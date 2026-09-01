@@ -1,8 +1,12 @@
-# Stop selling prompts. Sell jobs that already ran.
+# Bot Shelf
 
-> If the pack needs after-follow, it isn't a pack.
+A marketplace where you rent out the AI agent team you built, for a fee. That's Bot Shelf.
 
-Bot Shelf is a shop for Grok Bot, Claude Code, and ChatGPT jobs that already ran. Not prompt dumps. You copy a pack, paste it into that AI, fill the buyer blanks, and run the job. The shop does not set it up, debug it, or stay on the line after the sale.
+**Rent out the AI team you built. Get paid.**
+
+Bot Shelf is a marketplace for Grok Bot, Claude Code, and ChatGPT teams that already ran. Not prompt dumps. You copy a pack, paste it into that AI, fill the buyer blanks, and run the job. The shop does not set it up, debug it, or stay on the line after the sale.
+
+Of the USDT the buyer pays, 80% goes to you. The shop takes 20%.
 
 ## Five rules
 
@@ -10,27 +14,28 @@ Bot Shelf is a shop for Grok Bot, Claude Code, and ChatGPT jobs that already ran
 2. **Yes-gate.** Send / spend / delete / publish / push / merge wait for a human Yes in that chat or on that job. Stop until then.
 3. **Buyer blanks.** Who you talk to / work for, what may run alone, what always needs Yes, project or account name. You fill them. The pack does not.
 4. **No after-follow.** No support, setup help, results guarantee, refund, or update promise. The shop does not handle complaints, chargebacks, or disputes. Seller and buyer settle between themselves only.
-5. **Recurring, 20% / 80%.** The model is: sellers list a job, buyers subscribe, you earn every cycle. Shop take is 20% displayed. Seller keeps 80%. USDT TRC20 is the live pay path. Card / Stripe is not. The shop does not auto-confirm.
+5. **Fee.** Of the USDT the buyer pays, 80% goes to you. The shop takes 20%. USDT TRC20 is the live pay path. Card / Stripe is not. The shop does not auto-confirm. This is a sale share, not a subscription cycle.
 
 ## What works today
 
 - Free packs on the shelf. Copy the markdown in this repo, or from the shop pages. Free packs stay free until prices are set.
 - **USDT TRC20 checkout** for paid listings: https://botshelf.netlify.app/checkout.html — send USDT on TRON / TRC20, then email the txid. The shop does not auto-confirm. ERC20 / BEP20 will not arrive. Not an exchange deposit address.
 - Register (email capture, not a login). Sellers and buyers both start there.
-- Rate a seller (stars plus よかった / ふつう / 残念). Ratings sit on the seller, not the shop. A rating is not a ticket.
+- Rate a seller (stars plus good / ok / not good). Ratings sit on the seller, not the shop. A rating is not a ticket.
 - How-to, listing rules, and the three AI tabs.
 
 ## What is not live
 
-**Card / Stripe is not live.** There is no card field. Listing is not fully wired to the public paid shelf yet. Sending the Sell form does not put a pack up. Free packs stay free. We do not invent GMV, sales counts, or “X sellers made $Y”.
+**Card / Stripe is not live.** There is no card field. Listing is not fully wired to the public paid shelf yet. Sending the Sell form does not put a pack up. Free packs stay free. We do not invent GMV, sales counts, or "X sellers made $Y".
 
-Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, pack is delivered privately when the shop checks it by hand. Seller keeps 80%, shop take 20%. Recurring is the point. No auto-confirm. No after-follow. No refunds. No mediation. 自己責任.
+Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, pack is delivered privately when the shop checks it by hand. Of the USDT the buyer pays, 80% goes to you. The shop takes 20%. No auto-confirm. No after-follow. No refunds. No mediation. Sale and use = your own risk.
 
 ## Links
 
 - Shop: https://botshelf.netlify.app
 - Pay (USDT TRC20): https://botshelf.netlify.app/checkout.html
 - Register: https://botshelf.netlify.app/register.html
+- Sell: https://botshelf.netlify.app/sell.html
 - Grok Bot packs: https://botshelf.netlify.app/grok.html
 - Claude Code packs: https://botshelf.netlify.app/claude.html
 - ChatGPT packs: https://botshelf.netlify.app/chatgpt.html
