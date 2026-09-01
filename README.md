@@ -4,31 +4,33 @@ A marketplace where you rent out the AI agent team you built, for a fee. That's 
 
 **Rent out the AI team you built. Get paid.**
 
-Bot Shelf is a marketplace for Grok Bot, Claude Code, and ChatGPT teams that already ran. Not prompt dumps. You copy a pack, paste it into that AI, fill the buyer blanks, and run the job. The shop does not set it up, debug it, or stay on the line after the sale.
+Sellers get 100 ready-to-use AI teams, free.
 
-Of the USDT the buyer pays, 80% goes to you. The shop takes 20%.
+Bot Shelf is a marketplace for Grok Bot, Claude Code, and ChatGPT ready-to-use AI teams. You copy a team, paste it into that AI, fill the buyer blanks, and run the job. The shop does not set it up, debug it, or stay on the line after the sale.
+
+Of the USDT the buyer pays, 80% you / 20% shop.
 
 ## Five rules
 
-1. **Evidence.** A listing needs a real run as evidence — a screen or log that this job actually ran. Open-share prompt dumps cannot list.
-2. **Yes-gate.** Send / spend / delete / publish / push / merge wait for a human Yes in that chat or on that job. Stop until then.
-3. **Buyer blanks.** Who you talk to / work for, what may run alone, what always needs Yes, project or account name. You fill them. The pack does not.
-4. **No after-follow.** No support, setup help, results guarantee, refund, or update promise. The shop does not handle complaints, chargebacks, or disputes. Seller and buyer settle between themselves only.
-5. **Fee.** Of the USDT the buyer pays, 80% goes to you. The shop takes 20%. USDT TRC20 is the live pay path. Card / Stripe is not. The shop does not auto-confirm. This is a sale share, not a subscription cycle.
+1. **Proof it ran.** A list needs a real run as proof — a screen or log that the work completed. Paste-anyone text cannot list.
+2. **Human Yes.** Send / pay / delete wait for a human Yes in that chat or on that job. Stop until then.
+3. **Blanks the buyer fills.** Who you talk to / work for, what may run alone, what always needs Yes, project or account name. You fill them. The team does not.
+4. **No after-follow.** No help after you buy, setup help, results promise, refund, or update promise. The shop does not handle complaints, chargebacks, or fights. Seller and buyer settle between themselves only.
+5. **Fee.** Of the USDT the buyer pays, 80% you / 20% shop. USDT TRC20 is the live pay path. Card / Stripe is not. The shop does not auto-confirm. This is a sale share, not a subscription cycle.
 
 ## What works today
 
-- Free packs on the shelf. Copy the markdown in this repo, or from the shop pages. Free packs stay free until prices are set.
-- **USDT TRC20 checkout** for paid listings: https://botshelf.netlify.app/checkout.html — send USDT on TRON / TRC20, then email the txid. The shop does not auto-confirm. ERC20 / BEP20 will not arrive. Not an exchange deposit address.
+- Free teams on the shelf. Copy the markdown in this repo, or from the shop pages. Free teams stay free until prices are set.
+- **USDT TRC20 checkout** for paid lists: https://botshelf.netlify.app/checkout.html — send USDT on TRON / TRC20, then email the txid. The shop does not auto-confirm. ERC20 / BEP20 will not arrive. Not an exchange deposit address.
 - Register (email capture, not a login). Sellers and buyers both start there.
 - Rate a seller (stars plus good / ok / not good). Ratings sit on the seller, not the shop. A rating is not a ticket.
-- How-to, listing rules, and the three AI tabs.
+- How-to, list rules, and the three AI tabs.
 
 ## What is not live
 
-**Card / Stripe is not live.** There is no card field. Listing is not fully wired to the public paid shelf yet. Sending the Sell form does not put a pack up. Free packs stay free. We do not invent GMV, sales counts, or "X sellers made $Y".
+**Card / Stripe is not live.** There is no card field. List is not fully wired to the public paid shelf yet. Sending the Sell form does not put a team up. Free teams stay free. We do not invent sales counts or "X sellers made $Y".
 
-Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, pack is delivered privately when the shop checks it by hand. Of the USDT the buyer pays, 80% goes to you. The shop takes 20%. No auto-confirm. No after-follow. No refunds. No mediation. Sale and use = your own risk.
+Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, team is delivered privately when the shop checks it by hand. Of the USDT the buyer pays, 80% you / 20% shop. No auto-confirm. No after-follow. No refunds. No stepping in. Sale and use = your own risk.
 
 ## Links
 
@@ -36,9 +38,9 @@ Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, 
 - Pay (USDT TRC20): https://botshelf.netlify.app/checkout.html
 - Register: https://botshelf.netlify.app/register.html
 - Sell: https://botshelf.netlify.app/sell.html
-- Grok Bot packs: https://botshelf.netlify.app/grok.html
-- Claude Code packs: https://botshelf.netlify.app/claude.html
-- ChatGPT packs: https://botshelf.netlify.app/chatgpt.html
+- Grok Bot teams: https://botshelf.netlify.app/grok.html
+- Claude Code teams: https://botshelf.netlify.app/claude.html
+- ChatGPT teams: https://botshelf.netlify.app/chatgpt.html
 - How to use: https://botshelf.netlify.app/how.html
 - X: [@getbotshelf](https://x.com/getbotshelf)
 
@@ -46,7 +48,7 @@ Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, 
 
 Not an official xAI, Anthropic, or OpenAI shop. Sale and use = your own risk.
 
-## How to use a pack
+## How to use a team
 
 Pick the file for the AI you actually run. Fill every blank. Then paste:
 
@@ -56,7 +58,7 @@ Pick the file for the AI you actually run. Fill every blank. Then paste:
 
 The shop will not install it for you.
 
-## Packs in this repo
+## Files in this repo
 
 See [packs/README.md](packs/README.md). All files here are the free shelf copies.
 

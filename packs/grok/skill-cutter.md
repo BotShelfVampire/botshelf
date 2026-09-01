@@ -39,6 +39,5 @@ This already ran as a job shape. You still fill the blanks. No after-follow.
 No after-follow. No support, setup help, results guarantee, refund, or update promise.
 The shop does not handle after-follow, complaints, refunds, chargebacks, or disputes.
 Seller and buyer settle between themselves only. The shop will not reply to complaint mail.
-アフターフォロー・クレーム・返金・仲介は一切しません。出品者と購入者の間だけで解決してください。
-Sale and use = buyer's own risk / 自己責任.
+Sale and use = buyer's own risk.
 Not official xAI / Anthropic / OpenAI.
