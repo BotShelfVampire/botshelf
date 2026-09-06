@@ -43,6 +43,8 @@ Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, 
 - Pay (USDT TRC20): https://botshelf.netlify.app/checkout.html
 - Register: https://botshelf.netlify.app/register.html
 - Sell: https://botshelf.netlify.app/sell.html
+- For sellers: https://botshelf.netlify.app/for-sellers.html
+- Seller guide (this repo): [docs/sellers.md](docs/sellers.md)
 - Grok Bot teams: https://botshelf.netlify.app/grok.html
 - Claude Code teams: https://botshelf.netlify.app/claude.html
 - ChatGPT teams: https://botshelf.netlify.app/chatgpt.html
