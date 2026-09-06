@@ -35,13 +35,17 @@ Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, 
 ## Links
 
 - Shop: https://botshelf.netlify.app
+- How to use: https://botshelf.netlify.app/how.html
+- For buyers: https://botshelf.netlify.app/for-buyers.html
+- Free Gold Morning 3: https://botshelf.netlify.app/trading-gold-morning-3.html
+- Gold Session Desk (paid, USDT): https://botshelf.netlify.app/paid-gold-session-desk.html
+- Gold analysis cluster: https://botshelf.netlify.app/gold-analysis-ai-team/
 - Pay (USDT TRC20): https://botshelf.netlify.app/checkout.html
 - Register: https://botshelf.netlify.app/register.html
 - Sell: https://botshelf.netlify.app/sell.html
 - Grok Bot teams: https://botshelf.netlify.app/grok.html
 - Claude Code teams: https://botshelf.netlify.app/claude.html
 - ChatGPT teams: https://botshelf.netlify.app/chatgpt.html
-- How to use: https://botshelf.netlify.app/how.html
 - X: [@getbotshelf](https://x.com/getbotshelf)
 
 ## Not official
