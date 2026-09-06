@@ -21,7 +21,7 @@ Of the USDT the buyer pays, 80% you / 20% shop.
 ## What works today
 
 - Free teams on the shelf. Copy the markdown in this repo, or from the shop pages. Free teams stay free until prices are set.
-- **USDT TRC20 checkout** for paid lists: https://botshelf.netlify.app/checkout.html — send USDT on TRON / TRC20, then email the txid. The shop does not auto-confirm. ERC20 / BEP20 will not arrive. Not an exchange deposit address.
+- **USDT TRC20 checkout** for paid lists: https://botshelfvampire.com/checkout.html — send USDT on TRON / TRC20, then email the txid. The shop does not auto-confirm. ERC20 / BEP20 will not arrive. Not an exchange deposit address.
 - Register (email capture, not a login). Sellers and buyers both start there.
 - Rate a seller (stars plus good / ok / not good). Ratings sit on the seller, not the shop. A rating is not a ticket.
 - How-to, list rules, and the three AI tabs.
@@ -34,21 +34,21 @@ Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, 
 
 ## Links
 
-- Shop: https://botshelf.netlify.app
-- How to use: https://botshelf.netlify.app/how.html
-- For buyers: https://botshelf.netlify.app/for-buyers.html
-- Free Gold Morning 3: https://botshelf.netlify.app/trading-gold-morning-3.html
-- Gold Session Desk (paid, USDT): https://botshelf.netlify.app/paid-gold-session-desk.html
-- Gold analysis cluster: https://botshelf.netlify.app/gold-analysis-ai-team/
-- Pay (USDT TRC20): https://botshelf.netlify.app/checkout.html
-- Register: https://botshelf.netlify.app/register.html
-- Sell: https://botshelf.netlify.app/sell.html
-- For sellers: https://botshelf.netlify.app/for-sellers.html
+- Shop: https://botshelfvampire.com
+- How to use: https://botshelfvampire.com/how.html
+- For buyers: https://botshelfvampire.com/for-buyers.html
+- Free Gold Morning 3: https://botshelfvampire.com/trading-gold-morning-3.html
+- Gold Session Desk (paid, USDT): https://botshelfvampire.com/paid-gold-session-desk.html
+- Gold analysis cluster: https://botshelfvampire.com/gold-analysis-ai-team/
+- Pay (USDT TRC20): https://botshelfvampire.com/checkout.html
+- Register: https://botshelfvampire.com/register.html
+- Sell: https://botshelfvampire.com/sell.html
+- For sellers: https://botshelfvampire.com/for-sellers.html
 - Buyer guide (this repo): [docs/buyers.md](docs/buyers.md)
 - Seller guide (this repo): [docs/sellers.md](docs/sellers.md)
-- Grok Bot teams: https://botshelf.netlify.app/grok.html
-- Claude Code teams: https://botshelf.netlify.app/claude.html
-- ChatGPT teams: https://botshelf.netlify.app/chatgpt.html
+- Grok Bot teams: https://botshelfvampire.com/grok.html
+- Claude Code teams: https://botshelfvampire.com/claude.html
+- ChatGPT teams: https://botshelfvampire.com/chatgpt.html
 - X: [@getbotshelf](https://x.com/getbotshelf)
 
 ## Not official
