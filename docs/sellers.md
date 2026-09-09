@@ -1,38 +1,54 @@
-# For sellers
+# Turn a useful workflow into a team submission
 
-Bot Shelf lists ready-to-use AI teams (Grok Bot, Claude Code, ChatGPT) that already ran once with proof.
+Start with one job you have actually used. BotShelf Vampire's Marketplace submission is separate from contributing a free prompt to this GitHub repository.
 
-## What can list
+## Prepare the workflow
 
-- A real run as proof (screen or log). Paste-anyone text cannot list.
-- Buyer blanks the buyer fills (who / what needs Yes / project name).
-- USDT TRC20 price named by you. Of what the buyer pays: **80% you / 20% shop**.
-- No after-follow promise. No results promise. No refund promise.
+1. Choose a specific user and outcome: for example, turn source notes into a brief whose claims can be checked.
+2. Write the input contract: required context, permitted sources, tools, and facts that must remain unknown.
+3. Define the output and actions that wait for human review.
+4. Test the exact version you intend to submit. Keep the input, actual output, model/runtime details, date, and limitations.
+5. Explain your adaptation. Identify the original source and respect its license.
 
-## What is live today
+The [source-checking exercise](source-checking-exercise.md) shows how input and review criteria fit together. It is a teaching fixture, not proof that your team ran.
 
-- Free shelf copies in this repo under `packs/` — free stays free until you set a price.
-- Sell form: https://botshelf.netlify.app/sell.html (sending the form does **not** auto-publish a paid list yet).
-- Register (email capture): https://botshelf.netlify.app/register.html
-- Seller path page: https://botshelf.netlify.app/for-sellers.html
-- Paid buyer path (USDT TRC20 checkout): https://botshelf.netlify.app/checkout.html
+## Submission worksheet
 
-## What is not live
+Fill this before opening the form. Keep private account details and credentials out of public files.
 
-- Card / Stripe.
-- Auto-confirm of USDT transfers (shop checks txid by hand).
-- Shop handling complaints, chargebacks, or fights — seller and buyer settle between themselves.
+```text
+Team name:
+One job / intended user:
+AI runtime and model:
+Source revision:
+Prerequisites and tools:
+Required user context:
+Allowed sources:
+Output artifact:
+Actions allowed without further approval:
+Actions requiring human approval:
+Stop / escalation conditions:
+What I changed from the source:
+Actual test date and environment:
+Redacted input:
+Actual output or run-evidence link:
+Expected result and observed result:
+Known failures / limits:
+License and attribution:
+Proposed listing terms:
+```
 
-## Gold example (buyer path, not a seller pitch)
+An unexecuted prompt, invented screenshot, or sample labeled as a customer result is not run evidence. Report failures as well as successes. Avoid unsupported earnings, performance, customer, or sales claims.
 
-Free **Gold Morning 3** proves a gold analysis job runs:
-https://botshelf.netlify.app/trading-gold-morning-3.html
+## Submit to the Marketplace
 
-**Gold Session Desk** is the paid continuity desk (300 USDT/mo, analysis only, human Yes before any order):
-https://botshelf.netlify.app/paid-gold-session-desk.html
+Review the [current seller information](https://botshelfvampire.com/for-sellers.html), [register](https://botshelfvampire.com/register.html), then [submit your team](https://botshelfvampire.com/sell.html). Submission goes to review; it does not automatically publish a product. Current prices and commercial terms belong on the live listing and seller pages.
 
-We do not invent sales counts or "X sellers made $Y".
+The Build Library provides separate building blocks for local/self-hosted workflows. A Library implementation is not automatically a ready-to-use Marketplace product. Validate the finished experience before describing it that way.
 
-## Not official
+## Share a free improvement
 
-Not an official xAI, Anthropic, or OpenAI shop. Sale and use = your own risk.
+For a correction, clearer example, or tested adaptation of a repository pack, see [CONTRIBUTING.md](../CONTRIBUTING.md). Contributing source and submitting a commercial listing are different actions.
+
+[Pack catalog](../packs/README.md) · [Marketplace](https://botshelfvampire.com/) · [Build Library source](https://github.com/BotShelfVampire/botshelf-ai-team-registry)
+
