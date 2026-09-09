@@ -36,7 +36,7 @@ Send / spend / delete / publish / push / merge need a human Yes in this chat or 
 - Required noun:
 
 ## Note
-This job shape already ran on a live desk. You still fill the blanks. No after-follow.
+Runtime verification for this copy is not recorded in this file. Fill the blanks and test your exact model and setup; retain a redacted input and actual output before claiming a successful run.
 
 ---
 No after-follow. No support, setup help, results guarantee, refund, or update promise.
@@ -44,3 +44,4 @@ The shop does not handle after-follow, complaints, refunds, chargebacks, or disp
 Seller and buyer settle between themselves only. The shop will not reply to complaint mail.
 Sale and use = buyer's own risk.
 Not official xAI / Anthropic / OpenAI.
+

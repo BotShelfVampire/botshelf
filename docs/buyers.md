@@ -1,56 +1,33 @@
-# For buyers
+# Choose and test an AI team
 
-Bot Shelf is a shop of ready-to-use AI teams (Grok Bot, Claude Code, ChatGPT) that already ran once with proof. You copy the team, fill the buyer blanks, and run the job in your own AI. The shop does not set it up, debug it, or stay on the line after the sale.
+BotShelf Vampire's Marketplace offers job-based AI teams for Grok Bot, Claude Code, and ChatGPT. The separate [Build Library](https://botshelfvampire.com/library/) contains materials to assemble and configure yourself.
 
-## Free path (prove the job)
+## Try a free source pack
 
-1. Open a free team page on the shop, or copy markdown from this repo under `packs/`.
-2. Fill every blank (who / what needs Yes / project name).
-3. Paste into the AI you actually run. Stop before send / pay / delete until a human says Yes.
+1. Choose a job in the [pack catalog](../packs/README.md), such as [Source desk](../packs/chatgpt/gpt-source.md).
+2. Read the instructions and fill the context blanks. Keep existing project or account instructions intact.
+3. Provide a small input with facts you already know. The [source-checking exercise](source-checking-exercise.md) includes a fictional input and review rubric.
+4. Compare the result with the input. Check unsupported claims, missing facts, and actions outside the job.
+5. Save your edited version if useful, along with the limitations you observed.
 
-Free teams stay free until a seller sets a USDT price.
+These free repository files are directly readable. Website free-team pages may use the [registration and unlock flow](https://botshelfvampire.com/for-buyers.html). Repository and website revisions can differ.
 
-**Gold example:** Free **Gold Morning 3** is a gold analysis job you can run today:
-https://botshelf.netlify.app/trading-gold-morning-3.html
+## Choose the right setup
 
-More gold-related free packs and the cluster hub:
-https://botshelf.netlify.app/gold-analysis-ai-team/
+- **Grok Bot:** follow the matching [Grok Bot team page](https://botshelfvampire.com/grok.html).
+- **Claude Code:** inspect existing project instructions before adding a pack; scope it to the intended job.
+- **ChatGPT:** for a small first trial, start a conversation with the filled instructions and input. Reusable settings depend on your account's available features.
+- **Local or self-hosted tools:** use the [Build Library source](https://github.com/BotShelfVampire/botshelf-ai-team-registry) and read the specific runtime requirements and verification notes.
 
-## Paid path (continuity desk)
+A pack does not supply a subscription, model, installed integration, or account permission. A human-review instruction is not a technical permission control.
 
-**Gold Session Desk** is the paid continuity desk after a free Morning run (300 USDT/mo, analysis only, human Yes before any order):
-https://botshelf.netlify.app/paid-gold-session-desk.html
+## Before choosing a paid listing
 
-Pay path (USDT TRC20 only):
-https://botshelf.netlify.app/checkout.html?team=Gold+Session+Desk&amount=300&term=month
+Read the exact product page for the deliverable, runtime, proof, rental period, current price, and limitations. Distinguish an actual run record from an illustrative sample. A successful example does not guarantee the same result on your data.
 
-- Send USDT on TRON / TRC20 to the shop address shown on checkout.
-- Email the txid. The shop checks by hand. No auto-confirm.
-- ERC20 / BEP20 will not arrive. Not an exchange deposit address.
-- Card / Stripe is not live.
+The [current buyer page](https://botshelfvampire.com/for-buyers.html) describes payment and access. Review checkout yourself if you decide to buy. Sending a transaction reference is not automatic payment confirmation.
 
-Of what you pay: **80% seller / 20% shop** when the list is a seller list. Desk is a shop-run paid continuity product.
+Repository files do not change Marketplace terms or promise installation, ongoing support, results, refunds, or updates. Check the live terms before committing to a purchase.
 
-## Buyer rules (same five as the shop)
+[How it works](https://botshelfvampire.com/how.html) · [Marketplace](https://botshelfvampire.com/) · [Build Library](https://botshelfvampire.com/library/) · [Adapt and submit a team](sellers.md)
 
-1. Proof it ran — lists need a real run as proof.
-2. Human Yes before send / pay / delete.
-3. You fill the blanks. The team does not invent them.
-4. No after-follow, setup help, results promise, or refund promise from the shop.
-5. USDT TRC20 is the live pay path.
-
-## Hub pages
-
-- How: https://botshelf.netlify.app/how.html
-- For buyers: https://botshelf.netlify.app/for-buyers.html
-- Paid monthly hub: https://botshelf.netlify.app/paid.html
-- AI team marketplace: https://botshelf.netlify.app/ai-team-marketplace/
-- Shop home: https://botshelf.netlify.app/
-
-## What we do not claim
-
-We do not invent sales counts, win rates, or "X buyers made $Y". Sale and use = your own risk.
-
-## Not official
-
-Not an official xAI, Anthropic, or OpenAI shop.
