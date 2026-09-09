@@ -12,6 +12,7 @@ Copy a focused AI workflow, add your context, and review the result. This reposi
 | Review a code change | [Diff review](packs/claude/claude-review.md) | A diff and the behavior you expect |
 | Turn incoming information into a next step | [Inbox propose](packs/grok/inbox-propose.md) | The message and the decision you need |
 | Extract actions from a meeting | [Meeting actions](packs/chatgpt/gpt-meeting.md) | Notes, known owners, and stated deadlines |
+| Set useful defaults in ChatGPT | [Custom Instructions starter](docs/chatgpt-custom-instructions-starter.md) | Your role, audience, output preferences, and guardrails |
 
 1. Open a pack for the AI you use and read its scope and stop conditions.
 2. Fill its context blanks, allowed sources, and approval boundaries.
