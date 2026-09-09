@@ -35,6 +35,7 @@ Paid path: buyer sends USDT on TRON/TRC20 to the shop address, emails the txid, 
 ## Links
 
 - Shop: https://botshelfvampire.com
+- AI Team Registry source: [botshelf-ai-team-registry](https://github.com/BotShelfVampire/botshelf-ai-team-registry)
 - How to use: https://botshelfvampire.com/how.html
 - For buyers: https://botshelfvampire.com/for-buyers.html
 - Free Gold Morning 3: https://botshelfvampire.com/trading-gold-morning-3.html
