@@ -14,6 +14,7 @@ Copy a focused AI workflow, add your context, and review the result. This reposi
 | Extract actions from a meeting | [Meeting actions](packs/chatgpt/gpt-meeting.md) | Notes, known owners, and stated deadlines |
 | Set useful defaults in ChatGPT | [Custom Instructions starter](docs/chatgpt-custom-instructions-starter.md) | Your role, audience, output preferences, and guardrails |
 | Connect an agent to tools safely | [AI agent safety checklist](docs/ai-agent-safety-checklist.md) | Allowed actions, approval boundaries, stop conditions, and evidence rules |
+| Evaluate a workflow before relying on it | [AI workflow evaluation starter](docs/ai-workflow-evaluation-starter.md) | Exact version, cases, acceptance criteria, raw evidence, and a baseline |
 
 1. Open a pack for the AI you use and read its scope and stop conditions.
 2. Fill its context blanks, allowed sources, and approval boundaries.
@@ -39,7 +40,7 @@ The linked pages document early research and operations handoff experiments. The
 - [Research Desk experiment](https://botshelfvampire.com/cross-ai/research-desk.html) · [Research run record](https://botshelfvampire.com/cross-ai/proof/research-desk-2026-09-10.html)
 - [Operations Desk experiment](https://botshelfvampire.com/cross-ai/operations-desk.html) · [Operations run record](https://botshelfvampire.com/cross-ai/proof/operations-desk-2026-09-10.html)
 
-Inspect the exact runtime, model participation, manual handoffs, approval gates, and limitations before drawing conclusions. The recorded research run states that ChatGPT was not used. The operations run stopped before sending and required human approval. A design that names several AIs is not proof that all of them participated or that their permissions were technically enforced. Marketplace products and Build Library materials remain separate.
+Inspect the exact runtime, model participation, manual handoffs, approval gates, and limitations before drawing conclusions. The current Research Desk quality audit accepted **0 of 9** real-model runs after the grader itself was checked; treat the kit as an experiment that requires human review. The recorded research run states that ChatGPT was not used. The operations run stopped before sending and required human approval. A design that names several AIs is not proof that all of them participated or that their permissions were technically enforced. Marketplace products and Build Library materials remain separate.
 
 ## Practical boundaries
 
@@ -53,6 +54,8 @@ Inspect the exact runtime, model participation, manual handoffs, approval gates,
 
 - [Pack catalog](packs/README.md): browse the free Markdown source by runtime.
 - [AI agent safety checklist](docs/ai-agent-safety-checklist.md): define permissions, approval boundaries, prompt-injection handling, and verifiable evidence before connecting tools.
+- [AI workflow evaluation starter](docs/ai-workflow-evaluation-starter.md): define acceptance criteria, cases, grading order, baseline comparison, and honest status labels.
+- [Workflow quality report](https://github.com/BotShelfVampire/botshelf/issues/new?template=workflow-quality-report.yml): submit a reproducible, redacted source-pack failure.
 - [Buyer guide](docs/buyers.md): choose a workflow and check a first run.
 - [Seller guide](docs/sellers.md): turn an adaptation into a reviewable submission.
 - [Build Library source](https://github.com/BotShelfVampire/botshelf-ai-team-registry): Ollama, LM Studio, Open WebUI, n8n, CrewAI, LangGraph, and MCP materials.
