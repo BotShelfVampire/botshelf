@@ -59,6 +59,8 @@ Run records apply to the exact models, versions, inputs, and settings tested, no
 - [Pack catalog](packs/README.md): browse the free Markdown source by runtime.
 - [AI agent safety checklist](docs/ai-agent-safety-checklist.md): define permissions, approval boundaries, prompt-injection handling, and verifiable evidence before connecting tools.
 - [AI workflow evaluation starter](docs/ai-workflow-evaluation-starter.md): define acceptance criteria, cases, grading order, baseline comparison, and honest status labels.
+- [Evaluation test cases](docs/eval-test-cases.jsonl): eight synthetic JSONL cases for factual fidelity, conflicts, missing information, prompt injection, approval boundaries, failures, and deduplication.
+- [Evaluation record schema](docs/eval-run.schema.json) · [validator](scripts/validate-eval-run.mjs): check record structure, references, blocking failures, and summary totals before review.
 - [Workflow quality report](https://github.com/BotShelfVampire/botshelf/issues/new?template=workflow-quality-report.yml): submit a reproducible, redacted source-pack failure.
 - [Buyer guide](docs/buyers.md): choose a workflow and check a first run.
 - [Seller guide](docs/sellers.md): turn an adaptation into a reviewable submission.
