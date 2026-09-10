@@ -13,6 +13,7 @@ Copy a focused AI workflow, add your context, and review the result. This reposi
 | Turn incoming information into a next step | [Inbox propose](packs/grok/inbox-propose.md) | The message and the decision you need |
 | Extract actions from a meeting | [Meeting actions](packs/chatgpt/gpt-meeting.md) | Notes, known owners, and stated deadlines |
 | Set useful defaults in ChatGPT | [Custom Instructions starter](docs/chatgpt-custom-instructions-starter.md) | Your role, audience, output preferences, and guardrails |
+| Connect an agent to tools safely | [AI agent safety checklist](docs/ai-agent-safety-checklist.md) | Allowed actions, approval boundaries, stop conditions, and evidence rules |
 
 1. Open a pack for the AI you use and read its scope and stop conditions.
 2. Fill its context blanks, allowed sources, and approval boundaries.
@@ -42,6 +43,7 @@ A Library team is a job concept. Its runtime variants are implementations of tha
 ## Files
 
 - [Pack catalog](packs/README.md): browse the free Markdown source by runtime.
+- [AI agent safety checklist](docs/ai-agent-safety-checklist.md): define permissions, approval boundaries, prompt-injection handling, and verifiable evidence before connecting tools.
 - [Buyer guide](docs/buyers.md): choose a workflow and check a first run.
 - [Seller guide](docs/sellers.md): turn an adaptation into a reviewable submission.
 - [Build Library source](https://github.com/BotShelfVampire/botshelf-ai-team-registry): Ollama, LM Studio, Open WebUI, n8n, CrewAI, LangGraph, and MCP materials.
