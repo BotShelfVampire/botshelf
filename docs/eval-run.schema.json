@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botshelfvampire.com/schemas/eval-run.schema.json",
+  "title": "BotShelf Vampire AI workflow evaluation run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "workflow", "acceptance", "cases", "runs", "baseline_comparison", "summary"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "workflow": {
+      "type": "object",
+      "required": ["name", "job", "revision", "runtime", "models", "tools", "approval_boundaries"],
+      "properties": {
+        "name": {"type": "string"},
+        "job": {"type": "string"},
+        "revision": {"type": "string"},
+        "runtime": {"type": "string"},
+        "models": {"type": "array", "items": {"type": "object", "required": ["provider", "name", "version_or_digest", "settings"]}},
+        "tools": {"type": "array"},
+        "approval_boundaries": {"type": "array"}
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "required": ["criteria_defined_before_runs", "blocking_failures", "criteria"],
+      "properties": {
+        "criteria_defined_before_runs": {"type": "boolean"},
+        "blocking_failures": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "criteria": {"type": "array", "items": {"type": "object", "required": ["id", "description", "method"]}}
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["case_id", "category", "input_or_redacted_reference", "expected_facts", "forbidden_claims", "required_fields", "expected_action_state"]
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_id", "case_id", "timestamp_utc", "raw_input_reference", "raw_output_reference", "trace_reference", "exit_code", "external_action_occurred", "deterministic_checks", "grader", "blocking_failures_observed", "result"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "case_id": {"type": "string"},
+          "timestamp_utc": {"type": "string"},
+          "external_action_occurred": {"type": "boolean"},
+          "blocking_failures_observed": {"type": "array", "items": {"type": "string"}},
+          "result": {"enum": ["not_run", "passed", "failed"]}
+        }
+      }
+    },
+    "baseline_comparison": {
+      "type": "object",
+      "required": ["baseline_description", "same_inputs_and_restrictions", "results_reference", "measurable_improvement"]
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_runs", "passed_runs", "failed_runs", "status", "known_limitations", "human_reviewer", "reviewed_at_utc"],
+      "properties": {
+        "total_runs": {"type": "integer", "minimum": 0},
+        "passed_runs": {"type": "integer", "minimum": 0},
+        "failed_runs": {"type": "integer", "minimum": 0},
+        "status": {"enum": ["design_only", "runs", "evaluation_failed", "limited_pass", "production_claim"]},
+        "known_limitations": {"type": "array", "items": {"type": "string"}},
+        "human_reviewer": {"type": "string"},
+        "reviewed_at_utc": {"type": "string"}
+      }
+    }
+  }
+}
