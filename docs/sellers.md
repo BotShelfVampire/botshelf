@@ -12,6 +12,14 @@ Start with one job you have actually used. BotShelf Vampire's Marketplace submis
 
 The [source-checking exercise](source-checking-exercise.md) shows how input and review criteria fit together. It is a teaching fixture, not proof that your team ran.
 
+## Evaluate before submission
+
+Use the [AI workflow evaluation starter](ai-workflow-evaluation-starter.md) and the [machine-readable run template](eval-run-template.json) on the exact version you plan to list.
+
+Define acceptance criteria and blocking failures before running. Include normal, conflicting, missing-information, untrusted-instruction, and dependency-failure cases. Grade deterministic facts first, preserve raw failures, and validate any model-based grader against known good and bad examples.
+
+Compare a multi-step or multi-agent workflow with a simpler baseline using the same inputs and restrictions. Extra agents, handoffs, or model names are not evidence of improvement. If the workflow fails a blocking criterion, describe it as an experiment or failed evaluation until a new version is tested.
+
 ## Submission worksheet
 
 Fill this before opening the form. Keep private account details and credentials out of public files.
