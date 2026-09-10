@@ -2,7 +2,7 @@
 
 Copy a focused AI workflow, add your context, and review the result. This repository contains free prompt packs for **Grok Bot, Claude Code, and ChatGPT**, with jobs such as source-based research, draft replies, meeting notes, and code review.
 
-[Browse the packs](packs/README.md) · [Practical guides in 6 languages](docs/guides-by-language.md) · [Marketplace](https://botshelfvampire.com/) · [Build Library](https://botshelfvampire.com/library/)
+[Browse the packs](packs/README.md) · [Practical guides in 8 languages](docs/guides-by-language.md) · [Marketplace](https://botshelfvampire.com/) · [Build Library](https://botshelfvampire.com/library/)
 
 ## Start with one useful job
 
