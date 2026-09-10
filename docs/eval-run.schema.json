@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://botshelfvampire.com/schemas/eval-run.schema.json",
+  "$id": "https://raw.githubusercontent.com/BotShelfVampire/botshelf/main/docs/eval-run.schema.json",
   "title": "BotShelf Vampire AI workflow evaluation run",
   "type": "object",
   "additionalProperties": false,
