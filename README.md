@@ -32,6 +32,15 @@ These are instructions you run with your own AI, account, and tools. A prompt do
 
 A Library team is a job concept. Its runtime variants are implementations of that job, not additional Marketplace products. Use the live pages for current availability, prices, rental periods, and terms; this repository is not a live inventory or sales report.
 
+## Cross-AI workflows
+
+Explore [Cross-AI Teams](https://botshelfvampire.com/cross-ai/) for research and operations handoffs. Start with a workflow and inspect its run notes before connecting your own accounts.
+
+- [Research Desk](https://botshelfvampire.com/cross-ai/research-desk.html) · [Research run notes](https://botshelfvampire.com/cross-ai/proof/research-desk-2026-09-10.html)
+- [Operations Desk](https://botshelfvampire.com/cross-ai/operations-desk.html) · [Operations run notes](https://botshelfvampire.com/cross-ai/proof/operations-desk-2026-09-10.html)
+
+Check the actual runtimes, manual steps, approval gates, and limitations recorded for each run. A design that names several AIs is not proof that all of them ran, ran concurrently, or enforced permissions. Marketplace products and Build Library materials remain separate.
+
 ## Practical boundaries
 
 - **Evidence:** inspect the proof attached to the exact version you plan to use. File presence or a previous claim that a workflow ran is not verification of your model and setup.
