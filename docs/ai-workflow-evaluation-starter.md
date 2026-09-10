@@ -36,6 +36,16 @@ Write expected facts, forbidden claims, approval boundaries, and required output
 
 Use the machine-readable [evaluation run template](eval-run-template.json) to keep cases, criteria, raw outputs, and results together.
 
+Start with the eight synthetic records in [evaluation test cases](eval-test-cases.jsonl). They cover exact values, conflicting sources, missing information, untrusted instructions, approval boundaries, dependency failure, and duplicate external actions. Replace or extend them with cases from the real job before drawing conclusions.
+
+Validate saved records against the [JSON Schema](eval-run.schema.json). The dependency-free repository checker adds duplicate-ID, case-reference, blocking-failure, and summary-total checks:
+
+\`\`\`bash
+node scripts/validate-eval-run.mjs path/to/eval-run.json
+\`\`\`
+
+A validator confirms record structure and internal consistency. It does not judge factual quality or prove model reliability.
+
 ## 3. Record the exact run
 
 For every run, retain:
