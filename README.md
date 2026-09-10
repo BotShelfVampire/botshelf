@@ -33,14 +33,18 @@ These are instructions you run with your own AI, account, and tools. A prompt do
 
 A Library team is a job concept. Its runtime variants are implementations of that job, not additional Marketplace products. Use the live pages for current availability, prices, rental periods, and terms; this repository is not a live inventory or sales report.
 
-## Cross-AI experiments
+## Cross-AI workflow foundations
 
-The linked pages document early research and operations handoff experiments. They are **not currently verified as ready-to-use Marketplace products or downloadable implementations**.
+[Cross-AI Teams](https://botshelfvampire.com/cross-ai/) provide an adaptable starting point for coordinating AI steps: assign roles, pass sources and context between them, define failure handling, and keep human approval where needed. Choose and configure the models, tools, and handoffs for your own environment and task.
 
-- [Research Desk experiment](https://botshelfvampire.com/cross-ai/research-desk.html) · [Research run record](https://botshelfvampire.com/cross-ai/proof/research-desk-2026-09-10.html)
-- [Operations Desk experiment](https://botshelfvampire.com/cross-ai/operations-desk.html) · [Operations run record](https://botshelfvampire.com/cross-ai/proof/operations-desk-2026-09-10.html)
+- [Research Desk](https://botshelfvampire.com/cross-ai/research-desk.html): a local experimental implementation using two Ollama models sequentially. [Kit instructions](https://botshelfvampire.com/cross-ai/kits/research-desk-local/index.html) · [Download the kit](https://botshelfvampire.com/cross-ai/kits/research-desk-local.zip) · [Run record](https://botshelfvampire.com/cross-ai/proof/research-desk-2026-09-10.html)
+- [Operations Desk](https://botshelfvampire.com/cross-ai/operations-desk.html): a workflow and approval-boundary example. The [recorded run](https://botshelfvampire.com/cross-ai/proof/operations-desk-2026-09-10.html) stopped before sending and awaited human approval.
 
-Inspect the exact runtime, model participation, manual handoffs, approval gates, and limitations before drawing conclusions. The current Research Desk quality audit accepted **0 of 9** real-model runs after the grader itself was checked; treat the kit as an experiment that requires human review. The recorded research run states that ChatGPT was not used. The operations run stopped before sending and required human approval. A design that names several AIs is not proof that all of them participated or that their permissions were technically enforced. Marketplace products and Build Library materials remain separate.
+Follow each implementation's setup instructions. Manual handoffs, local execution, and implemented provider integrations are different modes; the local kit does not establish simultaneous Grok, ChatGPT, and Claude integration. Marketplace products and Build Library materials remain separate.
+
+### Configuration-specific evidence
+
+Run records apply to the exact models, versions, inputs, and settings tested, not every possible Cross-AI combination. In the recorded Research Desk quality audit, **0 of 9** real-model outputs were accepted after the grader was checked. That result belongs to the tested configuration; it is not a blanket verdict on the Cross-AI foundation. Preserve the recorded failures when adapting the workflow and review outputs before use. The recorded research run did not use ChatGPT.
 
 ## Practical boundaries
 
