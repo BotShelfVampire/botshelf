@@ -1,0 +1,97 @@
+name: Workflow quality report
+description: Report a reproducible, redacted failure in a BotShelf Vampire source pack or workflow.
+title: "[Quality]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report the exact workflow version and observed output. Do not include credentials, private prompts, customer data, wallet information, or personal records. A report does not change Marketplace Verified status.
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Marketplace source pack
+        - Build Library material
+        - Cross-AI experiment
+        - Documentation or evaluation template
+    validations:
+      required: true
+
+  - type: input
+    id: workflow
+    attributes:
+      label: Workflow and version
+      description: Name plus commit SHA, release, file URL, or other exact revision.
+      placeholder: "Source desk — commit abc123..."
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime and model
+      description: Include provider, model, version or digest, and runtime version when known.
+      placeholder: "Ollama 0.x — model name — digest..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Give redacted inputs, steps, settings, and the expected approval boundary.
+      placeholder: |
+        Input:
+        Steps:
+        Settings:
+        Expected action state:
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: List required facts, forbidden claims, required fields, or expected stop behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed result
+      description: Paste the smallest redacted output or error that demonstrates the problem.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: external_action
+    attributes:
+      label: Did an external action occur?
+      description: Sending, publishing, spending, deleting, deploying, or changing access counts as external.
+      options:
+        - "No"
+        - "Yes — details are included without secrets"
+        - Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted evidence
+      description: Add public links, hashes, exit codes, or trace references. Do not upload secrets or private records.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I removed credentials, private data, customer records, wallet information, and private prompts.
+          required: true
+        - label: I distinguished model output, automated grading, and human decisions.
+          required: true
+        - label: I understand that this report is public and does not itself establish a universal failure or change Verified status.
+          required: true
