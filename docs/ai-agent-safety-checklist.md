@@ -157,8 +157,20 @@ Do not count drafts, research notes, repeated status checks, or failed attempts 
 
 No checklist makes an agent immune to prompt injection, hallucination, account compromise, or operator error. Combine instructions with structured outputs, limited permissions, sandboxing, tool confirmations, redaction, monitoring, and periodic evaluation.
 
-## Primary reference
+## Current evaluation note
+
+OpenAI now marks Agent Builder as deprecated and schedules its shutdown for **November 30, 2026**. The controls in this checklist are platform-neutral and do not depend on Agent Builder. For current OpenAI SDK workflows, use end-to-end traces while debugging, then move repeatable cases into datasets and eval runs.
+
+Useful trace questions include:
+
+- Did the workflow select the right tool?
+- Did the handoff happen at the correct point?
+- Did the workflow violate an instruction or safety rule?
+- Did a routing or prompt change improve the complete run?
+
+## Primary references
 
 - [OpenAI: Safety in building agents](https://developers.openai.com/api/docs/guides/agent-builder-safety)
+- [OpenAI: Evaluate agent workflows](https://developers.openai.com/api/docs/guides/agent-evals)
 
-OpenAI's current guidance describes prompt injection and private-data leakage as key agent risks and recommends keeping tool approvals enabled, constraining data flow with structured outputs, avoiding untrusted variables in privileged instructions, applying guardrails, and evaluating traces.
+OpenAI's guidance identifies prompt injection and private-data leakage as key agent risks and recommends constrained data flow, specific tool approvals, guardrails, trace inspection, and repeatable evaluations.
