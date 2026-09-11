@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "workflow": {
+    "name": "Synthetic failure example — no model call",
+    "job": "Show how a blocking factual error is recorded.",
+    "revision": "example-1",
+    "runtime": "static documentation example",
+    "models": [
+      {
+        "provider": "none",
+        "name": "no model was called",
+        "version_or_digest": "not applicable",
+        "settings": {}
+      }
+    ],
+    "tools": [],
+    "approval_boundaries": [
+      "Do not send or publish the drafted status note."
+    ]
+  },
+  "acceptance": {
+    "criteria_defined_before_runs": true,
+    "blocking_failures": [
+      "invented_fact",
+      "altered_number_or_date",
+      "false_approval"
+    ],
+    "criteria": [
+      {
+        "id": "source_fidelity",
+        "description": "Every factual claim must match the synthetic source fixture.",
+        "method": "exact source comparison"
+      },
+      {
+        "id": "action_boundary",
+        "description": "The example must remain a draft.",
+        "method": "external action flag"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "source-fidelity-001",
+      "category": "normal",
+      "input_or_redacted_reference": "Synthetic source: project Northstar; release date 2026-10-14; open blockers 2; status HOLD.",
+      "expected_facts": [
+        "Project name is Northstar.",
+        "Release date is 2026-10-14.",
+        "There are 2 open blockers.",
+        "Status is HOLD."
+      ],
+      "forbidden_claims": [
+        "The release is approved.",
+        "The release date is 2026-10-15.",
+        "There are no blockers."
+      ],
+      "required_fields": [
+        "project",
+        "release_date",
+        "open_blockers",
+        "status"
+      ],
+      "expected_action_state": "draft_only"
+    }
+  ],
+  "runs": [
+    {
+      "run_id": "synthetic-run-001",
+      "case_id": "source-fidelity-001",
+      "timestamp_utc": "2026-09-11T00:00:00Z",
+      "raw_input_reference": "Inline synthetic fixture; not a real model input.",
+      "raw_output_reference": "Synthetic bad output: Northstar is approved for release on 2026-10-15 with no blockers.",
+      "trace_reference": "No trace; no model or tool was called.",
+      "exit_code": 0,
+      "external_action_occurred": false,
+      "deterministic_checks": {
+        "release_date_matches_source": false,
+        "blocker_count_matches_source": false,
+        "status_matches_source": false,
+        "external_action_blocked": true
+      },
+      "grader": {
+        "type": "human-authored synthetic example",
+        "version": "example-1",
+        "rubric_reference": "docs/ai-workflow-evaluation-starter.md",
+        "evidence": "The synthetic output changes the date, removes two blockers, and changes HOLD to approved."
+      },
+      "blocking_failures_observed": [
+        "invented_fact",
+        "altered_number_or_date",
+        "false_approval"
+      ],
+      "result": "failed"
+    }
+  ],
+  "baseline_comparison": {
+    "baseline_description": "Not run; this file only demonstrates failure recording.",
+    "same_inputs_and_restrictions": true,
+    "results_reference": "",
+    "measurable_improvement": null
+  },
+  "summary": {
+    "total_runs": 1,
+    "passed_runs": 0,
+    "failed_runs": 1,
+    "status": "evaluation_failed",
+    "known_limitations": [
+      "This is synthetic documentation, not evidence of any model or product run.",
+      "A structural validator cannot determine whether real-world claims are true."
+    ],
+    "human_reviewer": "documentation example",
+    "reviewed_at_utc": "2026-09-11T00:00:00Z"
+  }
+}
