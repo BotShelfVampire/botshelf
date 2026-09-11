@@ -1,5 +1,7 @@
 # BotShelf Vampire — ready-to-use AI teams
 
+[![Evaluation toolkit check](https://github.com/BotShelfVampire/botshelf/actions/workflows/eval-toolkit-check.yml/badge.svg)](https://github.com/BotShelfVampire/botshelf/actions/workflows/eval-toolkit-check.yml)
+
 Copy a focused AI workflow, add your context, and review the result. This repository contains free prompt packs for **Grok Bot, Claude Code, and ChatGPT**, with jobs such as source-based research, draft replies, meeting notes, and code review.
 
 [Browse the packs](packs/README.md) · [Practical guides in 8 languages](docs/guides-by-language.md) · [Marketplace](https://botshelfvampire.com/) · [Build Library](https://botshelfvampire.com/library/)
@@ -60,6 +62,7 @@ Run records apply to the exact models, versions, inputs, and settings tested, no
 - [AI agent safety checklist](docs/ai-agent-safety-checklist.md): define permissions, approval boundaries, prompt-injection handling, and verifiable evidence before connecting tools.
 - [AI workflow evaluation starter](docs/ai-workflow-evaluation-starter.md): define acceptance criteria, cases, grading order, baseline comparison, and honest status labels.
 - [Evaluation test cases](docs/eval-test-cases.jsonl): eight synthetic JSONL cases for factual fidelity, conflicts, missing information, prompt injection, approval boundaries, failures, and deduplication.
+- [Synthetic failed run](docs/eval-run-example-failed.json): complete example showing altered facts, false approval, blocking failures, and an `evaluation_failed` summary without implying a real model run.
 - [Evaluation record schema](docs/eval-run.schema.json) · [validator](scripts/validate-eval-run.mjs): check record structure, references, blocking failures, and summary totals before review.
 - [Workflow quality report](https://github.com/BotShelfVampire/botshelf/issues/new?template=workflow-quality-report.yml): submit a reproducible, redacted source-pack failure.
 - [Buyer guide](docs/buyers.md): choose a workflow and check a first run.
