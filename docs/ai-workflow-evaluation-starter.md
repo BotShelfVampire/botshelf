@@ -46,6 +46,8 @@ node scripts/validate-eval-run.mjs path/to/eval-run.json
 
 A validator confirms record structure and internal consistency. It does not judge factual quality or prove model reliability.
 
+See the [synthetic failed run](eval-run-example-failed.json) for a complete record. It deliberately contains altered facts and a false approval, is marked \`evaluation_failed\`, and did not call a model or external tool.
+
 ## 3. Record the exact run
 
 For every run, retain:
