@@ -1,0 +1,40 @@
+name: Evaluation toolkit check
+
+on:
+  push:
+    paths:
+      - "docs/eval-run-template.json"
+      - "docs/eval-run-example-failed.json"
+      - "docs/eval-run.schema.json"
+      - "docs/eval-test-cases.jsonl"
+      - "scripts/validate-eval-run.mjs"
+      - ".github/workflows/eval-toolkit-check.yml"
+  pull_request:
+    paths:
+      - "docs/eval-run-template.json"
+      - "docs/eval-run-example-failed.json"
+      - "docs/eval-run.schema.json"
+      - "docs/eval-test-cases.jsonl"
+      - "scripts/validate-eval-run.mjs"
+      - ".github/workflows/eval-toolkit-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+      - name: Check evaluation records
+        run: |
+          node scripts/validate-eval-run.mjs docs/eval-run-template.json
+          node scripts/validate-eval-run.mjs docs/eval-run-example-failed.json
+      - name: Check JSON and JSONL syntax
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('docs/eval-run.schema.json', 'utf8'))"
+          node -e "require('fs').readFileSync('docs/eval-test-cases.jsonl', 'utf8').trim().split(/\\n/).forEach(JSON.parse)"
