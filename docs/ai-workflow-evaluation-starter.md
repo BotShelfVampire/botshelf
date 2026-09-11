@@ -40,13 +40,13 @@ Start with the eight synthetic records in [evaluation test cases](eval-test-case
 
 Validate saved records against the [JSON Schema](eval-run.schema.json). The dependency-free repository checker adds duplicate-ID, case-reference, blocking-failure, and summary-total checks:
 
-\`\`\`bash
+```bash
 node scripts/validate-eval-run.mjs path/to/eval-run.json
-\`\`\`
+```
 
 A validator confirms record structure and internal consistency. It does not judge factual quality or prove model reliability.
 
-See the [synthetic failed run](eval-run-example-failed.json) for a complete record. It deliberately contains altered facts and a false approval, is marked \`evaluation_failed\`, and did not call a model or external tool.
+See the [synthetic failed run](eval-run-example-failed.json) for a complete record. It deliberately contains altered facts and a false approval, is marked `evaluation_failed`, and did not call a model or external tool.
 
 ## 3. Record the exact run
 
