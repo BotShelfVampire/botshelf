@@ -1,0 +1,36 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { buildActivationStageReport } from './activation-stage-report.mjs';
+
+const common = (kind, n, extra = {}) => ({ event_id: `event-${n}`, kind, at: '2026-09-02T12:00:00Z', actor_id: 'customer-1', actor_kind: 'customer', environment: 'production', ...extra });
+const activation = (n, extra = {}) => common('activation_accepted', n, { activation_id: `activation-${n}`, evidence_gate: 'PASS', accepted_by_participant: true, evidence_ref: `evidence-${n}`, ...extra });
+const run = (n, extra = {}) => common('run_accepted', n, { run_id: `run-${n}`, execution_kind: 'runtime', accepted: true, evidence_ref: `evidence-${n}`, ...extra });
+const payment = (n, extra = {}) => common('payment_verified', n, { order_id: `order-${n}`, amount: '20.00', currency: 'USDT', verification_source: 'server_ledger', evidence_ref: `evidence-${n}`, ...extra });
+const snapshot = (events = [], coverage = {}) => ({ schema_version: 1, window: { start: '2026-09-01T00:00:00Z', end: '2026-10-01T00:00:00Z', timezone: 'Asia/Tokyo' }, coverage: { activations: 'complete', runs: 'complete', payments: 'complete', ...coverage }, events });
+
+test('complete empty sources report known zero', () => assert.equal(buildActivationStageReport(snapshot()).totals.eligible_activated_users, 0));
+test('missing coverage remains unknown', () => assert.equal(buildActivationStageReport(snapshot([], { payments: 'missing' })).totals.activated_users_with_verified_payment, null));
+test('partial coverage exposes observations but not totals', () => { const r = buildActivationStageReport(snapshot([activation(1)], { activations: 'partial' })); assert.equal(r.observed.eligible_activated_users, 1); assert.equal(r.totals.eligible_activated_users, null); });
+test('accepted activation is counted', () => assert.equal(buildActivationStageReport(snapshot([activation(1)])).observed.eligible_activated_users, 1));
+test('failed evidence gate is not activation', () => assert.equal(buildActivationStageReport(snapshot([activation(1, { evidence_gate: 'FAIL' })])).observed.eligible_activated_users, 0));
+test('participant rejection is not activation', () => assert.equal(buildActivationStageReport(snapshot([activation(1, { accepted_by_participant: false })])).observed.eligible_activated_users, 0));
+test('test internal vendor and unknown actors excluded', () => { const events = ['test', 'internal', 'vendor', 'unknown'].map((kind, i) => activation(i, { actor_id: `actor-${i}`, actor_kind: kind })); assert.equal(buildActivationStageReport(snapshot(events)).observed.eligible_activated_users, 0); });
+test('test environment excluded', () => assert.equal(buildActivationStageReport(snapshot([activation(1, { environment: 'test' })])).observed.eligible_activated_users, 0));
+test('same-day runtime use is not a return', () => assert.equal(buildActivationStageReport(snapshot([activation(1), run(2, { at: '2026-09-02T13:00:00Z' })])).observed.activated_users_returning_on_later_day, 0));
+test('later Tokyo day runtime use is a return', () => assert.equal(buildActivationStageReport(snapshot([activation(1, { at: '2026-09-02T14:59:00Z' }), run(2, { at: '2026-09-02T15:01:00Z' })])).observed.activated_users_returning_on_later_day, 1));
+test('run before activation is not a return', () => assert.equal(buildActivationStageReport(snapshot([run(1, { at: '2026-09-02T11:00:00Z' }), activation(2)])).observed.activated_users_returning_on_later_day, 0));
+test('structural and sample executions are not returns', () => assert.equal(buildActivationStageReport(snapshot([activation(1), run(2, { at: '2026-09-03T12:00:00Z', execution_kind: 'structural' }), run(3, { at: '2026-09-04T12:00:00Z', execution_kind: 'sample' })])).observed.activated_users_returning_on_later_day, 0));
+test('unaccepted runtime is not a return', () => assert.equal(buildActivationStageReport(snapshot([activation(1), run(2, { at: '2026-09-03T12:00:00Z', accepted: false })])).observed.activated_users_returning_on_later_day, 0));
+test('server verified payment after activation counts', () => assert.equal(buildActivationStageReport(snapshot([activation(1), payment(2, { at: '2026-09-03T12:00:00Z' })])).observed.activated_users_with_verified_payment, 1));
+test('payment before activation does not count in cohort', () => assert.equal(buildActivationStageReport(snapshot([payment(1, { at: '2026-09-02T11:00:00Z' }), activation(2)])).observed.activated_users_with_verified_payment, 0));
+test('submitted txid is not payment', () => assert.equal(buildActivationStageReport(snapshot([activation(1), common('payment_submitted', 2, { order_id: 'order-2' })])).observed.activated_users_with_verified_payment, 0));
+test('browser claim is not server verification', () => assert.throws(() => buildActivationStageReport(snapshot([activation(1), payment(2, { verification_source: 'browser' })]))));
+test('return and pay require same activated actor', () => { const r = buildActivationStageReport(snapshot([activation(1), run(2, { at: '2026-09-03T12:00:00Z' }), payment(3, { actor_id: 'customer-2', at: '2026-09-03T12:00:00Z' })])); assert.equal(r.observed.activated_users_returning_and_paying, 0); });
+test('one actor can reach all three stages', () => { const r = buildActivationStageReport(snapshot([activation(1), run(2, { at: '2026-09-03T12:00:00Z' }), payment(3, { at: '2026-09-04T12:00:00Z' })])); assert.equal(r.observed.activated_users_returning_and_paying, 1); });
+test('exact duplicate events count once', () => { const a = activation(1); assert.equal(buildActivationStageReport(snapshot([a, { ...a }])).observed.eligible_activated_users, 1); });
+test('conflicting event IDs fail closed', () => assert.throws(() => buildActivationStageReport(snapshot([activation(1), activation(1, { actor_id: 'customer-2' })]))));
+test('same business IDs deduplicate', () => { const r = buildActivationStageReport(snapshot([activation(1), activation(2, { activation_id: 'activation-1' }), payment(3), payment(4, { order_id: 'order-3' })])); assert.equal(r.observed.eligible_activated_users, 1); assert.equal(r.observed.verified_orders_by_activated_users, 1); });
+test('conflicting business IDs fail closed', () => assert.throws(() => buildActivationStageReport(snapshot([activation(1), activation(2, { activation_id: 'activation-1', actor_id: 'customer-2' })]))));
+test('different currencies are never combined', () => assert.deepEqual(buildActivationStageReport(snapshot([activation(1), payment(2), payment(3, { currency: 'USD' })])).observed.gross_collected_from_activated_users_by_currency, { USD: '20', USDT: '20' }));
+test('missing source cannot contain eligible observation', () => assert.throws(() => buildActivationStageReport(snapshot([activation(1)], { activations: 'missing' }))));
+test('output omits all private identifiers', () => { const output = JSON.stringify(buildActivationStageReport(snapshot([activation(1), run(2, { at: '2026-09-03T12:00:00Z' }), payment(3)]))); for (const id of ['customer-1', 'activation-1', 'run-2', 'order-3', 'evidence-1']) assert.equal(output.includes(id), false); });
