@@ -12,9 +12,11 @@ The public GitHub review branch intentionally omits:
 
 - `private/` source bodies, downloadable archives, full provenance and pending
   author-directory data;
-- screenshots and other binary review captures;
-- the 3.9 MB generated standalone preview, whose reviewable source components
-  are already present under `public/` and `server/`.
+- screenshots and other binary review captures.
+
+The generated standalone preview is included because it contains no curated or
+user source payload. Its reviewable components are also present under `public/`
+and `server/`.
 
 Those omissions prevent the review repository from becoming an anonymous source
 delivery route. The gated payload remains in the verified local artifact and must
