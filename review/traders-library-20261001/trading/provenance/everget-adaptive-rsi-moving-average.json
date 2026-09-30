@@ -1,0 +1,55 @@
+{
+  "id": "everget-adaptive-rsi-moving-average",
+  "name": "Adaptive RSI Moving Average",
+  "platforms": [
+    "TradingView"
+  ],
+  "kind": "Indicator",
+  "category": "Trend",
+  "license": "GPL-3.0-only",
+  "provider": "Alex Orekhov (everget)",
+  "repo": "everget/tradingview-pinescript-indicators",
+  "commit": "60c93d3711d222b8f2db96160defe568429348e0",
+  "path": "movings/adaptive_rsi_moving_average.pine",
+  "blob_sha1": "191cf355a1744ed469cd9a5e506d0646be31085a",
+  "sha256": "95cdee5108b200d98e7a3e817c32316c45b009b53dcff8069a4ce59c0c15ec0d",
+  "license_file": "licenses/GPL-3.0.txt",
+  "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/movings/adaptive_rsi_moving_average.pine",
+  "local_source": "sources/everget-adaptive-rsi-moving-average/adaptive_rsi_moving_average.pine",
+  "distribution": "bundled",
+  "license_review": "File-level notice and pinned license checked; original bytes verified",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "detail_url": "items/everget-adaptive-rsi-moving-average.html",
+  "risk_level": "Not runtime tested",
+  "version": "Pine v4",
+  "is_bundled": true,
+  "license_blob_sha1": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+  "files": [
+    {
+      "path": "movings/adaptive_rsi_moving_average.pine",
+      "local_source": "sources/everget-adaptive-rsi-moving-average/adaptive_rsi_moving_average.pine",
+      "blob_sha1": "191cf355a1744ed469cd9a5e506d0646be31085a",
+      "sha256": "95cdee5108b200d98e7a3e817c32316c45b009b53dcff8069a4ce59c0c15ec0d",
+      "encoding": "utf-8",
+      "bytes": 702,
+      "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/movings/adaptive_rsi_moving_average.pine",
+      "platform": "TradingView"
+    }
+  ],
+  "legacy": true,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": false,
+    "strategy_orders": false,
+    "external_include": false,
+    "file_write": false
+  },
+  "source_count": 1,
+  "download": "downloads/everget-adaptive-rsi-moving-average.zip",
+  "provenance_url": "provenance/everget-adaptive-rsi-moving-average.json"
+}

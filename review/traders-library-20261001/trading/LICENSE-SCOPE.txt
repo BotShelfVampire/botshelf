@@ -1,0 +1,1 @@
+This directory is an aggregate. Third-party source retains its original license, authorship and notices. Each download contains the applicable LICENSE.txt. Do not apply a repository-wide MIT license to GPL or Apache source. BSV explanatory pages, stylesheet and browser script are original editorial/interface work; no ownership of upstream source is claimed.
