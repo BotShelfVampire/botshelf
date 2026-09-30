@@ -1,0 +1,97 @@
+{
+  "id": "earnforex-spike-trader",
+  "name": "Spike Trader",
+  "platforms": [
+    "MT4",
+    "MT5"
+  ],
+  "kind": "Expert Advisor",
+  "category": "Price action",
+  "license": "Apache-2.0",
+  "provider": "EarnForex",
+  "repo": "EarnForex/Spike-Trader",
+  "commit": "abc322e8da3c7fc9c701d056f01a70ebe4e20cd5",
+  "path": "SpikeTrader.mq4",
+  "files": [
+    {
+      "path": "SpikeTrader.mq4",
+      "local_source": "sources/earnforex-spike-trader/SpikeTrader.mq4",
+      "blob_sha1": "c34bf926f03e9efa3682d7eb9c0da42ba3fcace3",
+      "sha256": "696f86ee28080826f08eb2c6e88289b4206a5f3bfa65657bae1eb6310eed45ea",
+      "bytes": 6099,
+      "encoding": "utf-8",
+      "source_url": "https://github.com/EarnForex/Spike-Trader/blob/abc322e8da3c7fc9c701d056f01a70ebe4e20cd5/SpikeTrader.mq4",
+      "platform": "MT4"
+    },
+    {
+      "path": "SpikeTrader.mq5",
+      "local_source": "sources/earnforex-spike-trader/SpikeTrader.mq5",
+      "blob_sha1": "f67c52875cf3ca804fc97b225fe370a2af651e1e",
+      "sha256": "13c53bf88164232ead564ce0cea96c8f6aa25a3e940e946713bd436c7ec207bb",
+      "bytes": 4849,
+      "encoding": "utf-8",
+      "source_url": "https://github.com/EarnForex/Spike-Trader/blob/abc322e8da3c7fc9c701d056f01a70ebe4e20cd5/SpikeTrader.mq5",
+      "platform": "MT5"
+    }
+  ],
+  "local_source": "sources/earnforex-spike-trader/SpikeTrader.mq4",
+  "blob_sha1": "c34bf926f03e9efa3682d7eb9c0da42ba3fcace3",
+  "sha256": "696f86ee28080826f08eb2c6e88289b4206a5f3bfa65657bae1eb6310eed45ea",
+  "license_file": "licenses/Apache-2.0.txt",
+  "license_blob_sha1": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+  "source_url": "https://github.com/EarnForex/Spike-Trader/tree/abc322e8da3c7fc9c701d056f01a70ebe4e20cd5",
+  "distribution": "bundled",
+  "license_review": "Pinned author repository license, copyright and complete relevant source/dependency declarations checked; original bytes verified. No separate NOTICE in pinned tree.",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "risk_level": "Research only",
+  "dependencies": {
+    "en": "MT4: no external includes found. MT5: standard terminal Trade/Trade.mqh and Trade/PositionInfo.mqh, not redistributed in this bundle.",
+    "ja": "MT4版は外部インクルードなし。MT5版はターミナル標準のTrade/Trade.mqhとTrade/PositionInfo.mqhが必要です。標準ライブラリはこの配布物に含めません。"
+  },
+  "notices": {
+    "en": "Original © 2012–2022 EarnForex. Both platform variants are one catalogue item. No binaries, account data, or credentials are included.",
+    "ja": "原著作権は© 2012–2022 EarnForex。MT4・MT5の2版を1件として数えます。実行形式・口座データ・認証情報は含みません。"
+  },
+  "known_issues": {
+    "en": [
+      "No broker-side stop-loss or take-profit is placed: both values are zero in entry calls.",
+      "MT5 selects and closes by symbol without a magic-number filter. It may interfere with manual or other-EA positions on the same symbol.",
+      "MT5 logs a CopyRates failure but continues indexing the array. Insufficient history can cause an error.",
+      "The hold timer exists only in memory and resets on reattachment/restart. Repeated same-direction signals reset the timer.",
+      "MT4 ClosePrev can return true after a close failure; MT5 does not check trade result codes. A failed close is not guaranteed to prevent a new entry."
+    ],
+    "ja": [
+      "新規注文で損切り・利確の価格に0を渡しており、サーバー側の保護注文は入りません。",
+      "MT5版は銘柄だけでポジションを選択・決済し、マジックナンバーを絞り込みません。同じ銘柄の手動注文や他EAへ干渉する可能性があります。",
+      "MT5版はCopyRatesの取得失敗を記録しても処理を止めず、配列へアクセスします。履歴不足時にエラーになり得ます。",
+      "保有タイマーはメモリー内だけで保持され、再起動や付け直しで初期化されます。同方向シグナルが出ると再設定されます。",
+      "MT4版は決済失敗後もClosePrevがtrueを返す経路があり、MT5版も注文結果を確認しません。決済できなかった場合の新規注文停止は保証されません。"
+    ]
+  },
+  "static": {
+    "dll": false,
+    "webrequest": false,
+    "external_imports": false,
+    "order_execution": true,
+    "scope": "Keyword and direct code inspection only; not a security or runtime certification."
+  },
+  "detail_url": "items/earnforex-spike-trader.html",
+  "version": "MQL4 / MQL5",
+  "is_bundled": true,
+  "legacy": false,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": true,
+    "strategy_orders": false,
+    "external_include": true,
+    "file_write": false
+  },
+  "source_count": 2,
+  "download": "downloads/earnforex-spike-trader.zip",
+  "provenance_url": "provenance/earnforex-spike-trader.json"
+}

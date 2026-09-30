@@ -1,0 +1,55 @@
+{
+  "id": "everget-mean-absolute-deviation-bands",
+  "name": "Mean Absolute Deviation Bands",
+  "platforms": [
+    "TradingView"
+  ],
+  "kind": "Indicator",
+  "category": "Volatility",
+  "license": "GPL-3.0-only",
+  "provider": "Alex Orekhov (everget)",
+  "repo": "everget/tradingview-pinescript-indicators",
+  "commit": "60c93d3711d222b8f2db96160defe568429348e0",
+  "path": "bands_and_channels/mean_absolute_deviation_bands.pine",
+  "blob_sha1": "7c4a3c05489dd9646c9b23fa4aa748cb8631fe05",
+  "sha256": "212c7b3384b8122948bd013bbf5e2498bf1cc681ef2925b9fec1e6d31d279169",
+  "license_file": "licenses/GPL-3.0.txt",
+  "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/bands_and_channels/mean_absolute_deviation_bands.pine",
+  "local_source": "sources/everget-mean-absolute-deviation-bands/mean_absolute_deviation_bands.pine",
+  "distribution": "bundled",
+  "license_review": "File-level notice and pinned license checked; original bytes verified",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "detail_url": "items/everget-mean-absolute-deviation-bands.html",
+  "risk_level": "Not runtime tested",
+  "version": "Pine v4",
+  "is_bundled": true,
+  "license_blob_sha1": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+  "files": [
+    {
+      "path": "bands_and_channels/mean_absolute_deviation_bands.pine",
+      "local_source": "sources/everget-mean-absolute-deviation-bands/mean_absolute_deviation_bands.pine",
+      "blob_sha1": "7c4a3c05489dd9646c9b23fa4aa748cb8631fe05",
+      "sha256": "212c7b3384b8122948bd013bbf5e2498bf1cc681ef2925b9fec1e6d31d279169",
+      "encoding": "utf-8",
+      "bytes": 778,
+      "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/bands_and_channels/mean_absolute_deviation_bands.pine",
+      "platform": "TradingView"
+    }
+  ],
+  "legacy": true,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": false,
+    "strategy_orders": false,
+    "external_include": false,
+    "file_write": false
+  },
+  "source_count": 1,
+  "download": "downloads/everget-mean-absolute-deviation-bands.zip",
+  "provenance_url": "provenance/everget-mean-absolute-deviation-bands.json"
+}

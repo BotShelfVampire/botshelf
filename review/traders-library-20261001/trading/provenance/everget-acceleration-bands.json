@@ -1,0 +1,55 @@
+{
+  "id": "everget-acceleration-bands",
+  "name": "Acceleration Bands",
+  "platforms": [
+    "TradingView"
+  ],
+  "kind": "Indicator",
+  "category": "Volatility",
+  "license": "GPL-3.0-only",
+  "provider": "Alex Orekhov (everget)",
+  "repo": "everget/tradingview-pinescript-indicators",
+  "commit": "60c93d3711d222b8f2db96160defe568429348e0",
+  "path": "bands_and_channels/acceleration_bands.pine",
+  "blob_sha1": "298e46c21c2cf486d04719a18c55e86390ba893d",
+  "sha256": "2a7ba32a65d33e3350d7b772d0884acaebe955ec3a50ce8bc512f137b8548667",
+  "license_file": "licenses/GPL-3.0.txt",
+  "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/bands_and_channels/acceleration_bands.pine",
+  "local_source": "sources/everget-acceleration-bands/acceleration_bands.pine",
+  "distribution": "bundled",
+  "license_review": "File-level notice and pinned license checked; original bytes verified",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "detail_url": "items/everget-acceleration-bands.html",
+  "risk_level": "Not runtime tested",
+  "version": "Pine v3",
+  "is_bundled": true,
+  "license_blob_sha1": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+  "files": [
+    {
+      "path": "bands_and_channels/acceleration_bands.pine",
+      "local_source": "sources/everget-acceleration-bands/acceleration_bands.pine",
+      "blob_sha1": "298e46c21c2cf486d04719a18c55e86390ba893d",
+      "sha256": "2a7ba32a65d33e3350d7b772d0884acaebe955ec3a50ce8bc512f137b8548667",
+      "encoding": "utf-8",
+      "bytes": 950,
+      "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/bands_and_channels/acceleration_bands.pine",
+      "platform": "TradingView"
+    }
+  ],
+  "legacy": true,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": false,
+    "strategy_orders": false,
+    "external_include": false,
+    "file_write": false
+  },
+  "source_count": 1,
+  "download": "downloads/everget-acceleration-bands.zip",
+  "provenance_url": "provenance/everget-acceleration-bands.json"
+}

@@ -1,0 +1,55 @@
+{
+  "id": "everget-adaptive-laguerre-filter",
+  "name": "Adaptive Laguerre Filter",
+  "platforms": [
+    "TradingView"
+  ],
+  "kind": "Indicator",
+  "category": "Trend",
+  "license": "GPL-3.0-only",
+  "provider": "Alex Orekhov (everget)",
+  "repo": "everget/tradingview-pinescript-indicators",
+  "commit": "60c93d3711d222b8f2db96160defe568429348e0",
+  "path": "movings/adaptive_laguerre_filter.pine",
+  "blob_sha1": "cecfb72f710af00b6f480b17d113c7f77fb3a5bc",
+  "sha256": "68519b7ab0749700de77d9e2e5d2e75e1d2bf2c71e6bdda349b58d593b19f8c3",
+  "license_file": "licenses/GPL-3.0.txt",
+  "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/movings/adaptive_laguerre_filter.pine",
+  "local_source": "sources/everget-adaptive-laguerre-filter/adaptive_laguerre_filter.pine",
+  "distribution": "bundled",
+  "license_review": "File-level notice and pinned license checked; original bytes verified",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "detail_url": "items/everget-adaptive-laguerre-filter.html",
+  "risk_level": "Not runtime tested",
+  "version": "Pine v4",
+  "is_bundled": true,
+  "license_blob_sha1": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+  "files": [
+    {
+      "path": "movings/adaptive_laguerre_filter.pine",
+      "local_source": "sources/everget-adaptive-laguerre-filter/adaptive_laguerre_filter.pine",
+      "blob_sha1": "cecfb72f710af00b6f480b17d113c7f77fb3a5bc",
+      "sha256": "68519b7ab0749700de77d9e2e5d2e75e1d2bf2c71e6bdda349b58d593b19f8c3",
+      "encoding": "utf-8",
+      "bytes": 1631,
+      "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/movings/adaptive_laguerre_filter.pine",
+      "platform": "TradingView"
+    }
+  ],
+  "legacy": true,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": false,
+    "strategy_orders": false,
+    "external_include": false,
+    "file_write": false
+  },
+  "source_count": 1,
+  "download": "downloads/everget-adaptive-laguerre-filter.zip",
+  "provenance_url": "provenance/everget-adaptive-laguerre-filter.json"
+}

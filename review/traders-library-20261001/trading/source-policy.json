@@ -1,0 +1,25 @@
+{
+  "name": "Traders Library",
+  "date": "2026-10-01",
+  "fee": 0,
+  "currency": null,
+  "requires_email": false,
+  "counts": {
+    "items": 75,
+    "bundled": 35,
+    "author_hosted": 40,
+    "source_files": 36,
+    "kinds": {
+      "Strategy": 3,
+      "Trade manager": 8,
+      "Indicator": 52,
+      "Expert Advisor": 10,
+      "Script": 1,
+      "Template": 1
+    }
+  },
+  "counting": "One distinct program per item; platform variants and translations are not extra items. Author-hosted links are separate from BSV source bundles.",
+  "license_policy": "Preserve original source licenses, notices, pinned provenance and checksums. No unlicensed, leaked, decompiled, noncommercial-only or contradictory source bundles.",
+  "runtime_verification": "No compiler, backtest, demo or live execution by BSV.",
+  "known_limitations": "Keyword scans are not complete security audits; source licenses are not legal guarantees; author-hosted listing content may change."
+}

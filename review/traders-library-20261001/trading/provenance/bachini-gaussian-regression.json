@@ -1,0 +1,55 @@
+{
+  "id": "bachini-gaussian-regression",
+  "name": "Gaussian Process Regression",
+  "platforms": [
+    "TradingView"
+  ],
+  "kind": "Indicator",
+  "category": "Research",
+  "license": "MIT",
+  "provider": "James Bachini",
+  "repo": "jamesbachini/Pine-Script-Examples",
+  "commit": "6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79",
+  "path": "gaussian_regression.ps",
+  "blob_sha1": "5fa1cde84b1a8ef579db6798cf4b5b8493b46b61",
+  "sha256": "e8445f12450134827d60a5e8a9749b2f2430f8785b59cdebe9bb98f0425dad71",
+  "license_file": "licenses/MIT-James-Bachini.txt",
+  "source_url": "https://github.com/jamesbachini/Pine-Script-Examples/blob/6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79/gaussian_regression.ps",
+  "local_source": "sources/bachini-gaussian-regression/gaussian_regression.ps",
+  "distribution": "bundled",
+  "license_review": "File-level notice and pinned license checked; original bytes verified",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "detail_url": "items/bachini-gaussian-regression.html",
+  "risk_level": "Not runtime tested",
+  "version": "Pine v6",
+  "is_bundled": true,
+  "license_blob_sha1": "0c89a10691806014181b818c55ac3b5784683a16",
+  "files": [
+    {
+      "path": "gaussian_regression.ps",
+      "local_source": "sources/bachini-gaussian-regression/gaussian_regression.ps",
+      "blob_sha1": "5fa1cde84b1a8ef579db6798cf4b5b8493b46b61",
+      "sha256": "e8445f12450134827d60a5e8a9749b2f2430f8785b59cdebe9bb98f0425dad71",
+      "encoding": "utf-8",
+      "bytes": 3240,
+      "source_url": "https://github.com/jamesbachini/Pine-Script-Examples/blob/6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79/gaussian_regression.ps",
+      "platform": "TradingView"
+    }
+  ],
+  "legacy": false,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": false,
+    "strategy_orders": false,
+    "external_include": false,
+    "file_write": false
+  },
+  "source_count": 1,
+  "download": "downloads/bachini-gaussian-regression.zip",
+  "provenance_url": "provenance/bachini-gaussian-regression.json"
+}

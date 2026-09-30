@@ -1,0 +1,55 @@
+{
+  "id": "everget-dorsey-inertia",
+  "name": "Dorsey Inertia",
+  "platforms": [
+    "TradingView"
+  ],
+  "kind": "Indicator",
+  "category": "Volatility",
+  "license": "GPL-3.0-only",
+  "provider": "Alex Orekhov (everget)",
+  "repo": "everget/tradingview-pinescript-indicators",
+  "commit": "60c93d3711d222b8f2db96160defe568429348e0",
+  "path": "oscillators/dorsey_inertia.pine",
+  "blob_sha1": "e31b950da9ba4c31bb416ee2ed995fd6f74db9c9",
+  "sha256": "633ac3053bc112cfad651e6881b023f5a2cc05da55cef64355d0ca233d54b72a",
+  "license_file": "licenses/GPL-3.0.txt",
+  "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/oscillators/dorsey_inertia.pine",
+  "local_source": "sources/everget-dorsey-inertia/dorsey_inertia.pine",
+  "distribution": "bundled",
+  "license_review": "File-level notice and pinned license checked; original bytes verified",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "detail_url": "items/everget-dorsey-inertia.html",
+  "risk_level": "Not runtime tested",
+  "version": "Pine v3",
+  "is_bundled": true,
+  "license_blob_sha1": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+  "files": [
+    {
+      "path": "oscillators/dorsey_inertia.pine",
+      "local_source": "sources/everget-dorsey-inertia/dorsey_inertia.pine",
+      "blob_sha1": "e31b950da9ba4c31bb416ee2ed995fd6f74db9c9",
+      "sha256": "633ac3053bc112cfad651e6881b023f5a2cc05da55cef64355d0ca233d54b72a",
+      "encoding": "utf-8",
+      "bytes": 1023,
+      "source_url": "https://github.com/everget/tradingview-pinescript-indicators/blob/60c93d3711d222b8f2db96160defe568429348e0/oscillators/dorsey_inertia.pine",
+      "platform": "TradingView"
+    }
+  ],
+  "legacy": true,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": false,
+    "strategy_orders": false,
+    "external_include": false,
+    "file_write": false
+  },
+  "source_count": 1,
+  "download": "downloads/everget-dorsey-inertia.zip",
+  "provenance_url": "provenance/everget-dorsey-inertia.json"
+}

@@ -1,0 +1,55 @@
+{
+  "id": "bachini-crossover",
+  "name": "Moving Average Cross",
+  "platforms": [
+    "TradingView"
+  ],
+  "kind": "Strategy",
+  "category": "Trend",
+  "license": "MIT",
+  "provider": "James Bachini",
+  "repo": "jamesbachini/Pine-Script-Examples",
+  "commit": "6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79",
+  "path": "crossover.ps",
+  "blob_sha1": "e8b2522031b8a4415570f072b4a5f244a96c73d3",
+  "sha256": "7947943ecd177b7fa262ebdded885e109c14e7f2e3ec80410349506f20423640",
+  "license_file": "licenses/MIT-James-Bachini.txt",
+  "source_url": "https://github.com/jamesbachini/Pine-Script-Examples/blob/6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79/crossover.ps",
+  "local_source": "sources/bachini-crossover/crossover.ps",
+  "distribution": "bundled",
+  "license_review": "File-level notice and pinned license checked; original bytes verified",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "detail_url": "items/bachini-crossover.html",
+  "risk_level": "Not runtime tested",
+  "version": "Pine v6",
+  "is_bundled": true,
+  "license_blob_sha1": "0c89a10691806014181b818c55ac3b5784683a16",
+  "files": [
+    {
+      "path": "crossover.ps",
+      "local_source": "sources/bachini-crossover/crossover.ps",
+      "blob_sha1": "e8b2522031b8a4415570f072b4a5f244a96c73d3",
+      "sha256": "7947943ecd177b7fa262ebdded885e109c14e7f2e3ec80410349506f20423640",
+      "encoding": "utf-8",
+      "bytes": 714,
+      "source_url": "https://github.com/jamesbachini/Pine-Script-Examples/blob/6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79/crossover.ps",
+      "platform": "TradingView"
+    }
+  ],
+  "legacy": false,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": false,
+    "strategy_orders": true,
+    "external_include": false,
+    "file_write": false
+  },
+  "source_count": 1,
+  "download": "downloads/bachini-crossover.zip",
+  "provenance_url": "provenance/bachini-crossover.json"
+}

@@ -1,0 +1,55 @@
+{
+  "id": "bachini-fear-greed",
+  "name": "Fear and Greed — Price/Volume Model",
+  "platforms": [
+    "TradingView"
+  ],
+  "kind": "Indicator",
+  "category": "Momentum",
+  "license": "MIT",
+  "provider": "James Bachini",
+  "repo": "jamesbachini/Pine-Script-Examples",
+  "commit": "6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79",
+  "path": "fear_greed.ps",
+  "blob_sha1": "d5798ebcc0703fa7272c585a2023a4dd401eac90",
+  "sha256": "fccd9404cd54eca90e5c6dd297e8d29d07223cfafc23e92673d81ff504bc0a78",
+  "license_file": "licenses/MIT-James-Bachini.txt",
+  "source_url": "https://github.com/jamesbachini/Pine-Script-Examples/blob/6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79/fear_greed.ps",
+  "local_source": "sources/bachini-fear-greed/fear_greed.ps",
+  "distribution": "bundled",
+  "license_review": "File-level notice and pinned license checked; original bytes verified",
+  "compiled": false,
+  "runtime_tested": false,
+  "check_date": "2026-10-01",
+  "detail_url": "items/bachini-fear-greed.html",
+  "risk_level": "Not runtime tested",
+  "version": "Pine v6",
+  "is_bundled": true,
+  "license_blob_sha1": "0c89a10691806014181b818c55ac3b5784683a16",
+  "files": [
+    {
+      "path": "fear_greed.ps",
+      "local_source": "sources/bachini-fear-greed/fear_greed.ps",
+      "blob_sha1": "d5798ebcc0703fa7272c585a2023a4dd401eac90",
+      "sha256": "fccd9404cd54eca90e5c6dd297e8d29d07223cfafc23e92673d81ff504bc0a78",
+      "encoding": "utf-8",
+      "bytes": 643,
+      "source_url": "https://github.com/jamesbachini/Pine-Script-Examples/blob/6d14308f8ce42b2d60ec6c80eb224e8f4ffb3a79/fear_greed.ps",
+      "platform": "TradingView"
+    }
+  ],
+  "legacy": false,
+  "scan": {
+    "dll_import": false,
+    "web_request": false,
+    "pine_security": false,
+    "lookahead_on": false,
+    "order_calls": false,
+    "strategy_orders": false,
+    "external_include": false,
+    "file_write": false
+  },
+  "source_count": 1,
+  "download": "downloads/bachini-fear-greed.zip",
+  "provenance_url": "provenance/bachini-fear-greed.json"
+}

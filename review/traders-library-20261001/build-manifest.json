@@ -1,0 +1,1008 @@
+{
+  "date": "2026-10-01",
+  "counts": {
+    "items": 75,
+    "bundled": 35,
+    "author_hosted": 40,
+    "source_files": 36,
+    "kinds": {
+      "Strategy": 3,
+      "Trade manager": 8,
+      "Indicator": 52,
+      "Expert Advisor": 10,
+      "Script": 1,
+      "Template": 1
+    }
+  },
+  "html_pages": 81,
+  "source_snapshots": 36,
+  "status": "Built locally; production deployment not performed by this builder",
+  "source_execution": "None",
+  "files": [
+    {
+      "path": "trading/LICENSE-SCOPE.txt",
+      "bytes": 360,
+      "sha256": "edae5642af955aec44719424a3887c4f4e86aa1463a85a7e71903ae834c9387d"
+    },
+    {
+      "path": "trading/assets/catalog.js",
+      "bytes": 252700,
+      "sha256": "9f95f158c80015a588d778eaeae8e911e917b7eed86d5565936918de02dca963"
+    },
+    {
+      "path": "trading/assets/library.css",
+      "bytes": 15285,
+      "sha256": "0d438ef6372117355354c6bd0f8d566fe2701536bf35d27c9ad0132f6f0bd1c7"
+    },
+    {
+      "path": "trading/assets/library.js",
+      "bytes": 8593,
+      "sha256": "43c969ab60777a29d238f136751309012a905d0e1b741d5ff4dd7b579c68a0b9"
+    },
+    {
+      "path": "trading/catalog.json",
+      "bytes": 233277,
+      "sha256": "3174028ad192f42705841823322005231839ae7015d4248e740503548f0fe235"
+    },
+    {
+      "path": "trading/downloads/bachini-breakout-sniper.zip",
+      "bytes": 4738,
+      "sha256": "8faed2b47ccd5a4d32d4e3a1734cd8c90c9910b1d90e73d2ee3359f04256f786"
+    },
+    {
+      "path": "trading/downloads/bachini-crossover.zip",
+      "bytes": 4647,
+      "sha256": "a5c846c2b995d2fd0fbb3fe0d46923620cce6f3ad425f5225cd963cb9c27f751"
+    },
+    {
+      "path": "trading/downloads/bachini-fear-greed.zip",
+      "bytes": 4678,
+      "sha256": "94c894b9d8b64eb517306de58f72888e769639d7bd86d94945fc259e5c73418c"
+    },
+    {
+      "path": "trading/downloads/bachini-gaussian-regression.zip",
+      "bytes": 5589,
+      "sha256": "290022899574dac128ef02a7a90e77bd4badea0bf34937336d7f4d4c0945da8a"
+    },
+    {
+      "path": "trading/downloads/bachini-price-channels.zip",
+      "bytes": 4714,
+      "sha256": "47c4c522ef12068909bc978f171c894ca384951e99f5228262eabd0c78a62b44"
+    },
+    {
+      "path": "trading/downloads/bachini-sma.zip",
+      "bytes": 4289,
+      "sha256": "8f0f22138c0e11458b61395c35ad6dea58f9938314c9cb31f43be903ba59422f"
+    },
+    {
+      "path": "trading/downloads/earnforex-spike-trader.zip",
+      "bytes": 13882,
+      "sha256": "8aeb6c9da3b4a4d8f277d15e6bc2571c9fad635ba11d4196ced7d521f1ef7e83"
+    },
+    {
+      "path": "trading/downloads/everget-acceleration-bands.zip",
+      "bytes": 16426,
+      "sha256": "4adaaa7d2e07ec399c90d715c9045f3b07d1550734a178b3315b83cd3a5fb6d9"
+    },
+    {
+      "path": "trading/downloads/everget-accelerator-oscillator.zip",
+      "bytes": 16371,
+      "sha256": "ff48e4368a97fb0daca99c6107e2c4333d485467cd80f6647b821ab1daf79979"
+    },
+    {
+      "path": "trading/downloads/everget-adaptive-laguerre-filter.zip",
+      "bytes": 16763,
+      "sha256": "553b071c2dab10b43b31a0414391c0d91b0e1a8d3007e62518cd84dc9a815ca9"
+    },
+    {
+      "path": "trading/downloads/everget-adaptive-rsi-moving-average.zip",
+      "bytes": 16446,
+      "sha256": "a1e64fdca858502e4becd2f4b89565bc4152d905784d1d6caf8a1b2ac12ec9cd"
+    },
+    {
+      "path": "trading/downloads/everget-ahrens-moving-average.zip",
+      "bytes": 16311,
+      "sha256": "286af19524763e9073f2cd4522ad0eb430e03a9d9b50db970211850a7de8f87b"
+    },
+    {
+      "path": "trading/downloads/everget-alpha-decreasing-exponential-moving-average.zip",
+      "bytes": 16538,
+      "sha256": "5d0deffd12206fd4f7848cedb2b39e5660add2b459e00026ad079ec50d513f7e"
+    },
+    {
+      "path": "trading/downloads/everget-arnaud-legoux-moving-average.zip",
+      "bytes": 16311,
+      "sha256": "fda575ea491f4aeb135c5ee28b2c53f2a0cbbea2584d6688e546490542bc1bc4"
+    },
+    {
+      "path": "trading/downloads/everget-awesome-oscillator.zip",
+      "bytes": 16247,
+      "sha256": "12cef1a4e0f5854e8be518c8310a0093898f15079c341669c0ec5b3ce9d2426f"
+    },
+    {
+      "path": "trading/downloads/everget-butterworth-filter.zip",
+      "bytes": 16441,
+      "sha256": "9cb7a6dc7614241f6725678846e9d6f5dcbf9e23f8163defc8d5c0584887cc73"
+    },
+    {
+      "path": "trading/downloads/everget-center-of-gravity-oscillator.zip",
+      "bytes": 16573,
+      "sha256": "918104d78dd9d516301390bd7351113ef3cff99026be2a3a80b2cca87bf8c4fa"
+    },
+    {
+      "path": "trading/downloads/everget-coppock-curve.zip",
+      "bytes": 16193,
+      "sha256": "d809cecdc40f79c02b2c413e15a7d1304e9b4b4646059780b18ad421f09d590f"
+    },
+    {
+      "path": "trading/downloads/everget-derivative-oscillator.zip",
+      "bytes": 16406,
+      "sha256": "d1f7efd7dc51acb39be81e830ebe78968c2486ddde7e5307b444cd69bb7e4b84"
+    },
+    {
+      "path": "trading/downloads/everget-disparity-index.zip",
+      "bytes": 16268,
+      "sha256": "03fbff986874c5369112e0862cc118acc90a016fcdb06ac71b411ad002254ace"
+    },
+    {
+      "path": "trading/downloads/everget-distance-weighted-moving-average.zip",
+      "bytes": 16607,
+      "sha256": "b6281d057ea3fb4ca9945fd59ec6304b97750f3d0767bbea254765ac75082686"
+    },
+    {
+      "path": "trading/downloads/everget-dorsey-inertia.zip",
+      "bytes": 16351,
+      "sha256": "a623a8abf100d608e4381b57f3cb5af0f9546a2abac1082dc83fd08853320f9b"
+    },
+    {
+      "path": "trading/downloads/everget-double-exponential-moving-average.zip",
+      "bytes": 16345,
+      "sha256": "f9bef7f869ac4bf54e97f98e372158d97c1b1e448209106c09982153ee7983e6"
+    },
+    {
+      "path": "trading/downloads/everget-double-weighted-moving-average.zip",
+      "bytes": 16351,
+      "sha256": "5be0ecbfdc683d29f4c72441554bfcdaf05e5ff493eb32af5ab6718d135c4877"
+    },
+    {
+      "path": "trading/downloads/everget-ehlers-cyber-cycle.zip",
+      "bytes": 16506,
+      "sha256": "2d6231412bd63619b74660901448f984257064c1c57dac0ffead51db0ab7725c"
+    },
+    {
+      "path": "trading/downloads/everget-ehlers-super-smoother-filter.zip",
+      "bytes": 16594,
+      "sha256": "7f332d01fdf1af631558f37289e0b8cb7a22a426c7215b2a20f03f7a630a3fdd"
+    },
+    {
+      "path": "trading/downloads/everget-elastic-volume-weighted-moving-average.zip",
+      "bytes": 16636,
+      "sha256": "6ed00f6df4f4e42909439bc2f5c9176dc40b3baa53b0ea99ec27f7c59971adea"
+    },
+    {
+      "path": "trading/downloads/everget-forecast-oscillator.zip",
+      "bytes": 16282,
+      "sha256": "21bc8d579d8a8a0d96409467ac11e5b3b8818e03a61fdf6eda657fcd69226bc6"
+    },
+    {
+      "path": "trading/downloads/everget-interquartile-range-bands.zip",
+      "bytes": 16479,
+      "sha256": "96e1d68c52d7e9e4bf7cb7e85c2eb1e0f3c310762f4994eebfab63c0295c9b98"
+    },
+    {
+      "path": "trading/downloads/everget-kirshenbaum-bands.zip",
+      "bytes": 16362,
+      "sha256": "7a09150eaf23c07462558669923479bac592bb69286d133d6d96c5a911ac7eec"
+    },
+    {
+      "path": "trading/downloads/everget-mean-absolute-deviation-bands.zip",
+      "bytes": 16431,
+      "sha256": "5b4cea8d4fb6046c9ee17a819fbedb46c4906de4c4fc60552a5d1658973412c8"
+    },
+    {
+      "path": "trading/downloads/everget-moving-average-channel.zip",
+      "bytes": 16522,
+      "sha256": "591241d7a390de762523a4becaf96b1bb1ae90b5e3b5e967c66e84177b3c74fa"
+    },
+    {
+      "path": "trading/downloads/everget-range-candles.zip",
+      "bytes": 16156,
+      "sha256": "807c35d0d451001cb78846f04d4002916a47fe1bd3704d12e328b250fb030538"
+    },
+    {
+      "path": "trading/downloads/everget-stoller-average-range-channels.zip",
+      "bytes": 16653,
+      "sha256": "49d9503cc5f1ed81d800ccbe667c95a1ecf13b657dd4ae028cff6b372a6241bb"
+    },
+    {
+      "path": "trading/downloads/everget-vortex-bands.zip",
+      "bytes": 16600,
+      "sha256": "fd0a01d3c72415e7b36af37bd93b43435fb40e62523b10c9ad2fc18a05ee7c1b"
+    },
+    {
+      "path": "trading/guides/choose.html",
+      "bytes": 6315,
+      "sha256": "7e12edeb74444441e0f1042c7fee8e7afd6b24103dd12d7eeb4b21c7f907e660"
+    },
+    {
+      "path": "trading/guides/licenses.html",
+      "bytes": 8838,
+      "sha256": "d7d1505860c2bc241a21ebc49421c721aadec97d76bd349604dc7c1036ee7f75"
+    },
+    {
+      "path": "trading/guides/metatrader.html",
+      "bytes": 7807,
+      "sha256": "aba86945c3f8df1dd736b24c3ab3bad2bbccb03954e9cab135c3af88c66fe858"
+    },
+    {
+      "path": "trading/guides/pine.html",
+      "bytes": 9121,
+      "sha256": "f3da4196bdad0cb5506089087e8e4da1af54fda23ccc82aed38c915c3697bb43"
+    },
+    {
+      "path": "trading/guides/testing.html",
+      "bytes": 7695,
+      "sha256": "246d661933865b9febc3f7737c24164e136b5dea6307c14cc2c37f5f66344f5a"
+    },
+    {
+      "path": "trading/index.html",
+      "bytes": 109727,
+      "sha256": "cc2c6548ac0bd968d4c983f209d68a6341d30317f04df99b1b607c41cbee3ae9"
+    },
+    {
+      "path": "trading/items/bachini-breakout-sniper.html",
+      "bytes": 15428,
+      "sha256": "8fbee93154452f1a40c5c88ebf89a4b3a47b65d102289b521a0f7eda4e5cc9ed"
+    },
+    {
+      "path": "trading/items/bachini-crossover.html",
+      "bytes": 15450,
+      "sha256": "703c8404be0b50b5ed789fdbed00d9eda18d0871defe3d538b1c913ae0c735a5"
+    },
+    {
+      "path": "trading/items/bachini-fear-greed.html",
+      "bytes": 15254,
+      "sha256": "86b50d1097a6f2cebb59344e7ece296e23895ec40f0c2f410164f2a1c26d9453"
+    },
+    {
+      "path": "trading/items/bachini-gaussian-regression.html",
+      "bytes": 18055,
+      "sha256": "8e82fceb8c65b5128e2072c6b18b7e2b1c6a31f1a261ed42b88d69b5ba3fcbce"
+    },
+    {
+      "path": "trading/items/bachini-price-channels.html",
+      "bytes": 15305,
+      "sha256": "bd564262a5214883bf8b7ebacb3c1b2c7631effdfbe15e91731f3251abf96be8"
+    },
+    {
+      "path": "trading/items/bachini-sma.html",
+      "bytes": 14502,
+      "sha256": "5846497480c2fb978841222947358e19f57ac755eb583857883e8d3ed67e556e"
+    },
+    {
+      "path": "trading/items/earnforex-account-protector.html",
+      "bytes": 11438,
+      "sha256": "16b6b94a1dae009f44e65cfe21be6b9a7cc25fc718e48f914139a9fb3a75aca4"
+    },
+    {
+      "path": "trading/items/earnforex-adjustable-ma.html",
+      "bytes": 11573,
+      "sha256": "26cc48c2c8fe19f110018d6e79aeac2fd6bc028e4bc9b5140bbc2c6c2a11553d"
+    },
+    {
+      "path": "trading/items/earnforex-amazing.html",
+      "bytes": 11508,
+      "sha256": "e72afcd067fd2d1142ccd3f9fe38905a69c7dad25a88cc8e63b02d8de7f68575"
+    },
+    {
+      "path": "trading/items/earnforex-atr-trailing-stop.html",
+      "bytes": 11360,
+      "sha256": "4af55d32e4605a88ad7a67089eec584e6c4290a732ed068bbaeba5060d412ad4"
+    },
+    {
+      "path": "trading/items/earnforex-binario.html",
+      "bytes": 11440,
+      "sha256": "f627aff5a8a13f5561cab4104795c720dd87d3fb727611c303bd0cf8896cd4c5"
+    },
+    {
+      "path": "trading/items/earnforex-bollinger-squeeze-advanced.html",
+      "bytes": 11304,
+      "sha256": "0f0d54b1d5a1e176b7c35b8a40be1f524070ab3670d6443503586e79fc2d29fa"
+    },
+    {
+      "path": "trading/items/earnforex-box-breakout-alert.html",
+      "bytes": 11037,
+      "sha256": "45c36f1e7d5e7176dc7b8c18068c1003b1eee206f982d44a89a541778bc0263e"
+    },
+    {
+      "path": "trading/items/earnforex-breakeven-line.html",
+      "bytes": 10942,
+      "sha256": "2ccc1c99ac709a79eb1f6927314dbd233f0dd31743b1491810d4b5d1b20da042"
+    },
+    {
+      "path": "trading/items/earnforex-candle-timer-and-spread-indicator.html",
+      "bytes": 11197,
+      "sha256": "5233da81dce3a95bb61c372bba5096fc7fcc35fa08a39f4c10c6e6ea427f058b"
+    },
+    {
+      "path": "trading/items/earnforex-candle-wicks-length-display.html",
+      "bytes": 10963,
+      "sha256": "848e9dd818bd0a832917fe15639363a1f111b34705007f314b0b0d394d7de2d6"
+    },
+    {
+      "path": "trading/items/earnforex-chart-pattern-helper.html",
+      "bytes": 11608,
+      "sha256": "336e5cde1c3d83f1691b6e14a88c0555c65661006a2c38585a4757f20f88da46"
+    },
+    {
+      "path": "trading/items/earnforex-close-all-orders.html",
+      "bytes": 11050,
+      "sha256": "4a516a5a94461a6559c6ec0216da39140cca0f587b8de8d7327d23faa782251e"
+    },
+    {
+      "path": "trading/items/earnforex-cumulative-volume-delta.html",
+      "bytes": 11186,
+      "sha256": "4f2e5b9b7953ff361e6fcc352b3f2cb2d80377e7b64a90f5c71d2bc78d21d633"
+    },
+    {
+      "path": "trading/items/earnforex-currency-strength-lines.html",
+      "bytes": 11099,
+      "sha256": "a204f51801d7c7b1879be6c54603dedd700b0c55c1d524c1ef36fa27eefa262f"
+    },
+    {
+      "path": "trading/items/earnforex-donchian-ultimate.html",
+      "bytes": 10994,
+      "sha256": "0498dbeefee75fbc1fbd2d8647d1a3ad9b6c9d4eb59442a3f2c049406b27a8a9"
+    },
+    {
+      "path": "trading/items/earnforex-fractals-trailing-stop.html",
+      "bytes": 11267,
+      "sha256": "77b609025aef1b82041ad2b60b0ee9d095a3f6bc7bb5fd73e29a5e5d680e79c4"
+    },
+    {
+      "path": "trading/items/earnforex-heiken-ashi-naive.html",
+      "bytes": 11755,
+      "sha256": "b697eb308a70c130102275db9c1122f75035806c2c36c04f8d508d0f10fc33b7"
+    },
+    {
+      "path": "trading/items/earnforex-ma-trailing-stop.html",
+      "bytes": 11121,
+      "sha256": "4c57258defc8b7aab375c46fb2f6d5baf693b8bb7cf9831de9438df068031ab6"
+    },
+    {
+      "path": "trading/items/earnforex-marketprofile.html",
+      "bytes": 11098,
+      "sha256": "7a501ea22505e6f1c067eddead9783c9eb23f77ec7044ed5f5066a6a22cc1ece"
+    },
+    {
+      "path": "trading/items/earnforex-moving-average-crossover-alert.html",
+      "bytes": 11065,
+      "sha256": "af0551ba37b78e04d5e655b83e67afc9c88e2056b1687486c9cb4af53034f67b"
+    },
+    {
+      "path": "trading/items/earnforex-mt5-expert-advisor-template.html",
+      "bytes": 11246,
+      "sha256": "364fd55977a5cf6f0b4161a35f4e6e7f42417cddb6fac8be919db63e74d8bdf9"
+    },
+    {
+      "path": "trading/items/earnforex-news-trader.html",
+      "bytes": 11740,
+      "sha256": "d16451efdc0f83cd39d3829da8627b807d277f87e15d6364757991dd9dfded40"
+    },
+    {
+      "path": "trading/items/earnforex-persistentanti.html",
+      "bytes": 11411,
+      "sha256": "4c52f5bab72cc5ea7b25d93fc0210b07e3b2146509dd8c94a6d4c33222890f37"
+    },
+    {
+      "path": "trading/items/earnforex-pinbar-detector.html",
+      "bytes": 11119,
+      "sha256": "0e33e36d5ccfe83c504b5771ff404db6b8f96c6f4a0303506e4ddc18ff76f9bb"
+    },
+    {
+      "path": "trading/items/earnforex-positionsizer.html",
+      "bytes": 11628,
+      "sha256": "7ebe58c742af3970980d6a32353117b11703bb0a676ef8639d6861ea2cecddf1"
+    },
+    {
+      "path": "trading/items/earnforex-psar-trailing-stop.html",
+      "bytes": 11068,
+      "sha256": "9ee86be435f9bfba27fd300dc187abe794faaf23d583a57190112e8395b4c8c6"
+    },
+    {
+      "path": "trading/items/earnforex-qqe.html",
+      "bytes": 11127,
+      "sha256": "9a610baea3e3e8aae2812fff819a32d83d83754206862b9f6b9f382b46c59a53"
+    },
+    {
+      "path": "trading/items/earnforex-riskcalculator.html",
+      "bytes": 11035,
+      "sha256": "ccb2f943873998f5d4f7924612289e0940830a98daad2eda3bff06f91533d3b7"
+    },
+    {
+      "path": "trading/items/earnforex-roundlevels.html",
+      "bytes": 11031,
+      "sha256": "8bf75785f57dbbb1fe0ed11e6288176471f69e73dcaf5921e93bc7319c3b4778"
+    },
+    {
+      "path": "trading/items/earnforex-rsi-ea.html",
+      "bytes": 11490,
+      "sha256": "da05154dd2b126ba7fecaf86217c52dcae20f9cf8c1a78dcbc7b51af5b2de6dd"
+    },
+    {
+      "path": "trading/items/earnforex-rsi-with-alert.html",
+      "bytes": 11052,
+      "sha256": "10903d024105783096f529398c99823429a50b91a5bb9972bd5d5915019a5602"
+    },
+    {
+      "path": "trading/items/earnforex-spike-trader.html",
+      "bytes": 40833,
+      "sha256": "1c7bffd69efae9e40d377010435ccd8ca7a41dc1cf3d8e0b4b79ed592a9762c8"
+    },
+    {
+      "path": "trading/items/earnforex-supertrend-multi-timeframe.html",
+      "bytes": 11111,
+      "sha256": "5da4e075aed4d45b4d008684a9c90868007e0a45f3e2d1aea61b050956709576"
+    },
+    {
+      "path": "trading/items/earnforex-supertrend-trailing-stop.html",
+      "bytes": 11254,
+      "sha256": "9617246abb511c637ec5448406aac08ea6738385bd5802c9f4e3a879f6112335"
+    },
+    {
+      "path": "trading/items/earnforex-support-and-resistance.html",
+      "bytes": 11338,
+      "sha256": "72d4b3d9e533a7aed7cbe58408022ee4511c9d6c8749e001fd737fe11cba5a0e"
+    },
+    {
+      "path": "trading/items/earnforex-timed-order.html",
+      "bytes": 11429,
+      "sha256": "3f6d793822e73903069a98be34643fd670be38cab0fe10eb3f90ed5aafc98990"
+    },
+    {
+      "path": "trading/items/earnforex-traders-dynamic-index.html",
+      "bytes": 11281,
+      "sha256": "b165aacf382168cb90c658514f679cebe01fe158088cb729189035287d6c68b2"
+    },
+    {
+      "path": "trading/items/earnforex-trading-session-time.html",
+      "bytes": 11111,
+      "sha256": "970caa723794d7e433d032cc89c57537fdc6b8a00f83bfd6175bfca05f6061ef"
+    },
+    {
+      "path": "trading/items/earnforex-trailing-stop-on-profit.html",
+      "bytes": 11156,
+      "sha256": "823531958f4b424e67c2711702ee5cbab60bf8aacadc60daa9a88a3eab7becf6"
+    },
+    {
+      "path": "trading/items/earnforex-volume-profile.html",
+      "bytes": 10953,
+      "sha256": "f14b11d97994f0d03ff6255767e7ee62bea7015c1ccf5971261547f414753549"
+    },
+    {
+      "path": "trading/items/earnforex-wrb-hidden-gap.html",
+      "bytes": 11238,
+      "sha256": "063dba34fd5db4c2d8f7bab0b2676cd7cfc3afc926f4a477d0b8337778ac7a4d"
+    },
+    {
+      "path": "trading/items/everget-acceleration-bands.html",
+      "bytes": 50371,
+      "sha256": "4f8beff3b30ef9cb35e951860da3794fa2461812a9c993004076c990dca80f92"
+    },
+    {
+      "path": "trading/items/everget-accelerator-oscillator.html",
+      "bytes": 50198,
+      "sha256": "1cf2b36fa0821fc319865422c679ea1ffacad010981dbf98df49ff7a54a652b5"
+    },
+    {
+      "path": "trading/items/everget-adaptive-laguerre-filter.html",
+      "bytes": 51191,
+      "sha256": "c5829efa1f25f64d5e927defecc8b00d4946ba7eaf3d4a463e0903b3935c37b8"
+    },
+    {
+      "path": "trading/items/everget-adaptive-rsi-moving-average.html",
+      "bytes": 50160,
+      "sha256": "4ba3fa71877754031f9959647cac6067988c2465d2caca9d1cf4b0e7b8f89281"
+    },
+    {
+      "path": "trading/items/everget-ahrens-moving-average.html",
+      "bytes": 50033,
+      "sha256": "ca83405c6ac73c2a9f93d0fa7c8cd05603a48dc581cc21d1c757eca7e44f8a81"
+    },
+    {
+      "path": "trading/items/everget-alpha-decreasing-exponential-moving-average.html",
+      "bytes": 50044,
+      "sha256": "67070d71335916f7bca81edbb772170b51d6b87cdc12f08a0b6292143eccf0ad"
+    },
+    {
+      "path": "trading/items/everget-arnaud-legoux-moving-average.html",
+      "bytes": 49926,
+      "sha256": "f37d16496690c6f5dcbed797a68164eace168e1677818a5c7e1fae3ecf504957"
+    },
+    {
+      "path": "trading/items/everget-awesome-oscillator.html",
+      "bytes": 49910,
+      "sha256": "eb580feb1e2492a7d73bde79094bb2c94609e6ee47f3da3919b66ec3421944e0"
+    },
+    {
+      "path": "trading/items/everget-butterworth-filter.html",
+      "bytes": 50594,
+      "sha256": "1c5644b28d3668cf006834bbeb9a7c987cc244659035ce02f6bf23ba3392c9ac"
+    },
+    {
+      "path": "trading/items/everget-center-of-gravity-oscillator.html",
+      "bytes": 50497,
+      "sha256": "839dc8d05af31867cf69f985483bef9d134732db1c4cbf846414f5a814f48b69"
+    },
+    {
+      "path": "trading/items/everget-coppock-curve.html",
+      "bytes": 50009,
+      "sha256": "27aac2fc7d2238ea63aeb29d90d582815bc048e75b68480eecc1f432584491c4"
+    },
+    {
+      "path": "trading/items/everget-derivative-oscillator.html",
+      "bytes": 50512,
+      "sha256": "abac1a803df594c7144b2932d00f7bc039b8817dba03f20f50b5857f36384faf"
+    },
+    {
+      "path": "trading/items/everget-disparity-index.html",
+      "bytes": 49934,
+      "sha256": "3931935cc62e7b231a89839597da493ce66f03c1208ca7afee1d11bbea42c2e3"
+    },
+    {
+      "path": "trading/items/everget-distance-weighted-moving-average.html",
+      "bytes": 50450,
+      "sha256": "64a3ee6a359c835de9ea320bf24ba0edefb00b7a351378b6b510eebcfb1d8992"
+    },
+    {
+      "path": "trading/items/everget-dorsey-inertia.html",
+      "bytes": 50421,
+      "sha256": "dee3a2f04aaa0a47cfcb61878b188848eb399309f3e7dcdb45105865ea12cb36"
+    },
+    {
+      "path": "trading/items/everget-double-exponential-moving-average.html",
+      "bytes": 49798,
+      "sha256": "a396e545a947d6e382f6d0a373ccdd2e31cb0f28a7df4e925b2b8a2401b672a9"
+    },
+    {
+      "path": "trading/items/everget-double-weighted-moving-average.html",
+      "bytes": 49944,
+      "sha256": "43e5e3151202a7aa46e0dd05a7553ebe4881b26c97e9718375df4074028941ab"
+    },
+    {
+      "path": "trading/items/everget-ehlers-cyber-cycle.html",
+      "bytes": 50508,
+      "sha256": "4642d4fa1dcc10b4029e66fc8bb05dded2c0b42f3024798f67e0a383dfdd5313"
+    },
+    {
+      "path": "trading/items/everget-ehlers-super-smoother-filter.html",
+      "bytes": 50523,
+      "sha256": "44e8fa51bced48f84f310cd457b8edee162f2beb69be356c89b3f8259a19a093"
+    },
+    {
+      "path": "trading/items/everget-elastic-volume-weighted-moving-average.html",
+      "bytes": 50331,
+      "sha256": "8f9a326dce93d22f904676090ef957aac2662ffd4957ebbeefa050bbe7302340"
+    },
+    {
+      "path": "trading/items/everget-forecast-oscillator.html",
+      "bytes": 49991,
+      "sha256": "e4aa7a7a90d2f2109b66190e9b6f912e1901c78d6fdf8d32e25ce3d0b1a2531a"
+    },
+    {
+      "path": "trading/items/everget-interquartile-range-bands.html",
+      "bytes": 50293,
+      "sha256": "a0a86f6d5eb6095f45e0cfd7cda7881bd8bf9e70e81c79a4bda5676232a38db2"
+    },
+    {
+      "path": "trading/items/everget-kirshenbaum-bands.html",
+      "bytes": 50222,
+      "sha256": "9da9600e5af4356327e2186ec23860f778dce1e27d6b99a9ef76220aea7ebe8f"
+    },
+    {
+      "path": "trading/items/everget-mean-absolute-deviation-bands.html",
+      "bytes": 50220,
+      "sha256": "6423ac7560746af7038d112fc522031424f4f60bc24f117bcd8659041a291d8a"
+    },
+    {
+      "path": "trading/items/everget-moving-average-channel.html",
+      "bytes": 50751,
+      "sha256": "25ef7b7d3375a7ea4c75e3194265573435f2a583c147c216fa6fc142ab3dd6e7"
+    },
+    {
+      "path": "trading/items/everget-range-candles.html",
+      "bytes": 49910,
+      "sha256": "cd90f22337b4d36bbd3b02ea3670282ea01967beaceb163ee0ea207e44a3044a"
+    },
+    {
+      "path": "trading/items/everget-stoller-average-range-channels.html",
+      "bytes": 50761,
+      "sha256": "b0072234003357d6d99b134066526a2df199e2316ff5009cf35fefbf9d4379c6"
+    },
+    {
+      "path": "trading/items/everget-vortex-bands.html",
+      "bytes": 51242,
+      "sha256": "25a018dcb543d99c449bda789ee6a2edb9532541e7647e824b5debf88d2a062f"
+    },
+    {
+      "path": "trading/licenses/Apache-2.0.txt",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "trading/licenses/GPL-3.0.txt",
+      "bytes": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "path": "trading/licenses/MIT-James-Bachini.txt",
+      "bytes": 1070,
+      "sha256": "7adc82fe070251f4569aff6ccf6c7aa225f8f1e54f87f6d83ce49f1aec1d8e0a"
+    },
+    {
+      "path": "trading/provenance/bachini-breakout-sniper.json",
+      "bytes": 2045,
+      "sha256": "37cdcd8db796c824803aac61acdb173ecc755ba516f83140af62e0e3237dc241"
+    },
+    {
+      "path": "trading/provenance/bachini-crossover.json",
+      "bytes": 1975,
+      "sha256": "e753e8086cc753a831c1039926bb3b06abdd09b34517a19b1f4f10b345c34f43"
+    },
+    {
+      "path": "trading/provenance/bachini-fear-greed.json",
+      "bytes": 2009,
+      "sha256": "e0b5252f8dd5902a9b1e921918843621c11d2bf04e583e861e6efa94e9462853"
+    },
+    {
+      "path": "trading/provenance/bachini-gaussian-regression.json",
+      "bytes": 2108,
+      "sha256": "12485ed61cb543e20dd99a18c4b561204a6df4c6f99fccf22a772ffa20375dd2"
+    },
+    {
+      "path": "trading/provenance/bachini-price-channels.json",
+      "bytes": 2038,
+      "sha256": "fb2751bb31fb573b9b35009aaf4407b3cafc5f84dc032653aabf24274e09dcfb"
+    },
+    {
+      "path": "trading/provenance/bachini-sma.json",
+      "bytes": 1906,
+      "sha256": "9dbe9826fc5e1be39fc4b725a128ddd1ec134e22240f212719aea9ac170b2704"
+    },
+    {
+      "path": "trading/provenance/earnforex-spike-trader.json",
+      "bytes": 5041,
+      "sha256": "41b97522bfc1fa7f03083a2dc887705aa2e629fdbf9a1dd7c95c87eb9faa6b4d"
+    },
+    {
+      "path": "trading/provenance/everget-acceleration-bands.json",
+      "bytes": 2207,
+      "sha256": "7669bc6f3c7b805ecfd952de57fac870abe4743f0b1449826adf309d1fca8c6a"
+    },
+    {
+      "path": "trading/provenance/everget-accelerator-oscillator.json",
+      "bytes": 2229,
+      "sha256": "63080f9f27013aef617db0b0620f0d89276c219cb980fb5186835fa5804ca32f"
+    },
+    {
+      "path": "trading/provenance/everget-adaptive-laguerre-filter.json",
+      "bytes": 2237,
+      "sha256": "fdf0f6402d55515761571f31a995eced3d8373d2022ebee29debd568776084e5"
+    },
+    {
+      "path": "trading/provenance/everget-adaptive-rsi-moving-average.json",
+      "bytes": 2275,
+      "sha256": "5478c4e7a18e9576fc77f5b1a4eb82bc8be5a65ac755b5906d19f0de798ff6a8"
+    },
+    {
+      "path": "trading/provenance/everget-ahrens-moving-average.json",
+      "bytes": 2197,
+      "sha256": "09986bfdad9a26379d9b150bad72a4eb24e733068b06ea36dc79a36f7a244042"
+    },
+    {
+      "path": "trading/provenance/everget-alpha-decreasing-exponential-moving-average.json",
+      "bytes": 2463,
+      "sha256": "3995b0caf1b097bf49a3167e35be7111219d7f8a225f31eafed2d94141166c3b"
+    },
+    {
+      "path": "trading/provenance/everget-arnaud-legoux-moving-average.json",
+      "bytes": 2288,
+      "sha256": "136c7943c290984da9dc36c91bbebe50af4ee21f5978ea4175f2eb476d7dd23b"
+    },
+    {
+      "path": "trading/provenance/everget-awesome-oscillator.json",
+      "bytes": 2177,
+      "sha256": "56c8986497b73bad962b9dbb3f78ef0c20556581259e465570cf624caa633076"
+    },
+    {
+      "path": "trading/provenance/everget-butterworth-filter.json",
+      "bytes": 2159,
+      "sha256": "8d4b9e435fba28674e8e8885aea071183c41b98a2a2e2d872c0490d85a8d7b93"
+    },
+    {
+      "path": "trading/provenance/everget-center-of-gravity-oscillator.json",
+      "bytes": 2307,
+      "sha256": "5a8f701e6b73ec7d805ec3e2f542862ef49c1ebcef4784f8f76ca1eb6fbbc5da"
+    },
+    {
+      "path": "trading/provenance/everget-coppock-curve.json",
+      "bytes": 2112,
+      "sha256": "e1fa9a37979ea5c11cdbb83df58a9af0572ffe0cd146073041f0373dcf818df8"
+    },
+    {
+      "path": "trading/provenance/everget-derivative-oscillator.json",
+      "bytes": 2217,
+      "sha256": "db8cedddbe011c1cc8b4a357311eeeaf9e8d730562266fac7b0ef6871f955dc8"
+    },
+    {
+      "path": "trading/provenance/everget-disparity-index.json",
+      "bytes": 2144,
+      "sha256": "94e50377f8c24a7b280e9062bf0922d65b869120c106e26df333364b829c6a77"
+    },
+    {
+      "path": "trading/provenance/everget-distance-weighted-moving-average.json",
+      "bytes": 2343,
+      "sha256": "59d58acbf1e21aa24947ad0b182b59402cce1ce370671b26271b9b48e0884c88"
+    },
+    {
+      "path": "trading/provenance/everget-dorsey-inertia.json",
+      "bytes": 2128,
+      "sha256": "82320c5806338685556dae58b478b75c3b7de667336064d1f6c6bd1d61e3369c"
+    },
+    {
+      "path": "trading/provenance/everget-double-exponential-moving-average.json",
+      "bytes": 2353,
+      "sha256": "4a95e0417b9de574da322f2150087493376772607a899d25289a659c708571ea"
+    },
+    {
+      "path": "trading/provenance/everget-double-weighted-moving-average.json",
+      "bytes": 2314,
+      "sha256": "6bdbd263d5f12fcaf635ae4a43d59f03bdc82320ccdb6230eab98068f7a0d98e"
+    },
+    {
+      "path": "trading/provenance/everget-ehlers-cyber-cycle.json",
+      "bytes": 2177,
+      "sha256": "bb0a9625472312946fd05558583d949998e246c5f80d1551ea832cf7e427f4e1"
+    },
+    {
+      "path": "trading/provenance/everget-ehlers-super-smoother-filter.json",
+      "bytes": 2282,
+      "sha256": "500b8ce6c25ea9dfb6171214ed0bc14b1d3694854faa6a4cad39993dcb1996c3"
+    },
+    {
+      "path": "trading/provenance/everget-elastic-volume-weighted-moving-average.json",
+      "bytes": 2419,
+      "sha256": "0c81093d2545a381d9b6a4520b7396ad9d01f4210c804ddf9eec0db2539d156e"
+    },
+    {
+      "path": "trading/provenance/everget-forecast-oscillator.json",
+      "bytes": 2196,
+      "sha256": "9c6207af9230b041c1b024f7b11d45b62cb5e5d771313f3ec1377898df9c81c3"
+    },
+    {
+      "path": "trading/provenance/everget-interquartile-range-bands.json",
+      "bytes": 2298,
+      "sha256": "cb9f29de1d8dcce322111603cf8e9d6a3a016d2f129281e417a1d176f44045d5"
+    },
+    {
+      "path": "trading/provenance/everget-kirshenbaum-bands.json",
+      "bytes": 2194,
+      "sha256": "354d6b39ffe10728d0c044aa04c7aa66d2f052e8645ee6e84649ad308788d2df"
+    },
+    {
+      "path": "trading/provenance/everget-mean-absolute-deviation-bands.json",
+      "bytes": 2350,
+      "sha256": "09e367e81eb8f055cd7f6febb3151ca735fccc4111e2054bb203e619626a6e38"
+    },
+    {
+      "path": "trading/provenance/everget-moving-average-channel.json",
+      "bytes": 2255,
+      "sha256": "a3505cc349936b4cd56f5e36d1a961e8523fc93c3097bbd415e5d26296d3b96c"
+    },
+    {
+      "path": "trading/provenance/everget-range-candles.json",
+      "bytes": 2137,
+      "sha256": "b2729443f9e0d8a847708a2fdbdcc9eb756e00df79ef4580dded23dc52d1a098"
+    },
+    {
+      "path": "trading/provenance/everget-stoller-average-range-channels.json",
+      "bytes": 2365,
+      "sha256": "ba7205ca0505d1591373c0cf14788c65ea6937dc398483b2afbd2dbb918041ab"
+    },
+    {
+      "path": "trading/provenance/everget-vortex-bands.json",
+      "bytes": 2125,
+      "sha256": "8d7d91cd8e5423b29d30963c0319ff12edb1bbc2b0f20879ac896cdc7d39bb3e"
+    },
+    {
+      "path": "trading/sitemap.xml",
+      "bytes": 7843,
+      "sha256": "a32407d3a1152592c1cfd709eef42c063c85ac730ffdea779686fe3093879df0"
+    },
+    {
+      "path": "trading/source-policy.json",
+      "bytes": 966,
+      "sha256": "f71bf083562ffa0d49c7459fc09982930cee4f1163cb9547821af38f3bccda93"
+    },
+    {
+      "path": "trading/sources/bachini-breakout-sniper/breakout_sniper.ps",
+      "bytes": 693,
+      "sha256": "4915a745d670040284624cc4b7cef3ab5c4184187266be8ac6f0172b1105100b"
+    },
+    {
+      "path": "trading/sources/bachini-crossover/crossover.ps",
+      "bytes": 714,
+      "sha256": "7947943ecd177b7fa262ebdded885e109c14e7f2e3ec80410349506f20423640"
+    },
+    {
+      "path": "trading/sources/bachini-fear-greed/fear_greed.ps",
+      "bytes": 643,
+      "sha256": "fccd9404cd54eca90e5c6dd297e8d29d07223cfafc23e92673d81ff504bc0a78"
+    },
+    {
+      "path": "trading/sources/bachini-gaussian-regression/gaussian_regression.ps",
+      "bytes": 3240,
+      "sha256": "e8445f12450134827d60a5e8a9749b2f2430f8785b59cdebe9bb98f0425dad71"
+    },
+    {
+      "path": "trading/sources/bachini-price-channels/price_channels.ps",
+      "bytes": 733,
+      "sha256": "6ac9bd52f40e2537deb88f250213be19a8d97e5b4e2451c636935433cbb4f495"
+    },
+    {
+      "path": "trading/sources/bachini-sma/sma.ps",
+      "bytes": 208,
+      "sha256": "b360bf62a97783d2d15ac42c6015ced8606a1c7db37737d44cd2a66e80c29758"
+    },
+    {
+      "path": "trading/sources/earnforex-spike-trader/SpikeTrader.mq4",
+      "bytes": 6099,
+      "sha256": "696f86ee28080826f08eb2c6e88289b4206a5f3bfa65657bae1eb6310eed45ea"
+    },
+    {
+      "path": "trading/sources/earnforex-spike-trader/SpikeTrader.mq5",
+      "bytes": 4849,
+      "sha256": "13c53bf88164232ead564ce0cea96c8f6aa25a3e940e946713bd436c7ec207bb"
+    },
+    {
+      "path": "trading/sources/everget-acceleration-bands/acceleration_bands.pine",
+      "bytes": 950,
+      "sha256": "2a7ba32a65d33e3350d7b772d0884acaebe955ec3a50ce8bc512f137b8548667"
+    },
+    {
+      "path": "trading/sources/everget-accelerator-oscillator/accelerator_oscillator.pine",
+      "bytes": 645,
+      "sha256": "91e1eaf3df466645c1eaee31d345c658fa101c592b2155b6e9509132fd41e1fd"
+    },
+    {
+      "path": "trading/sources/everget-adaptive-laguerre-filter/adaptive_laguerre_filter.pine",
+      "bytes": 1631,
+      "sha256": "68519b7ab0749700de77d9e2e5d2e75e1d2bf2c71e6bdda349b58d593b19f8c3"
+    },
+    {
+      "path": "trading/sources/everget-adaptive-rsi-moving-average/adaptive_rsi_moving_average.pine",
+      "bytes": 702,
+      "sha256": "95cdee5108b200d98e7a3e817c32316c45b009b53dcff8069a4ce59c0c15ec0d"
+    },
+    {
+      "path": "trading/sources/everget-ahrens-moving-average/ahrens_moving_average.pine",
+      "bytes": 658,
+      "sha256": "32896b90bb62aea72f1a5129820e46f781a42f5ec619ca49da4110cb5392e1e4"
+    },
+    {
+      "path": "trading/sources/everget-alpha-decreasing-exponential-moving-average/alpha_decreasing_exponential_moving_average.pine",
+      "bytes": 431,
+      "sha256": "0c38d6823a715bfd51b007375c2b731d53f3abc782911b63f27d68552327e567"
+    },
+    {
+      "path": "trading/sources/everget-arnaud-legoux-moving-average/arnaud_legoux_moving_average.pine",
+      "bytes": 563,
+      "sha256": "ddfa6e09df4d3fa287f96eed7ef4b992fd4baeac67d581e31b16ca8db1c19662"
+    },
+    {
+      "path": "trading/sources/everget-awesome-oscillator/awesome_oscillator.pine",
+      "bytes": 533,
+      "sha256": "d44d26916968ee69d9c58ce092dac205016b045edf4823c96d17c2fc2b3dab2a"
+    },
+    {
+      "path": "trading/sources/everget-butterworth-filter/butterworth_filter.pine",
+      "bytes": 1397,
+      "sha256": "7a79715f92a9272647fae1a7d08948e52ff0299df9307dcd6b6717446fb62834"
+    },
+    {
+      "path": "trading/sources/everget-center-of-gravity-oscillator/center_of_gravity_oscillator.pine",
+      "bytes": 859,
+      "sha256": "831193c1631aaf64f4159bab08955ef72671695aa9ba597cf709bf98c387d1ac"
+    },
+    {
+      "path": "trading/sources/everget-coppock-curve/coppock_curve.pine",
+      "bytes": 685,
+      "sha256": "7fcf1f36d1932f25612e17cd8c6e4c1e2b96a482fbd7b42e3814c11fbdc20fb4"
+    },
+    {
+      "path": "trading/sources/everget-derivative-oscillator/derivative_oscillator.pine",
+      "bytes": 1074,
+      "sha256": "5990c7a11e88fa0d65847f5909dd9123294fcc5d8d183d03b9c4df07378f434f"
+    },
+    {
+      "path": "trading/sources/everget-disparity-index/disparity_index.pine",
+      "bytes": 555,
+      "sha256": "769d3756f8ea788d952776f6bbd0877cb68c04154124ee7efd710238feee9dd3"
+    },
+    {
+      "path": "trading/sources/everget-distance-weighted-moving-average/distance_weighted_moving_average.pine",
+      "bytes": 941,
+      "sha256": "a9dd55f76450f2d3bee1c2689ccce5c3a7cdc540ffedc24e46e23d29afd57257"
+    },
+    {
+      "path": "trading/sources/everget-dorsey-inertia/dorsey_inertia.pine",
+      "bytes": 1023,
+      "sha256": "633ac3053bc112cfad651e6881b023f5a2cc05da55cef64355d0ca233d54b72a"
+    },
+    {
+      "path": "trading/sources/everget-double-exponential-moving-average/double_exponential_moving_average.pine",
+      "bytes": 549,
+      "sha256": "b57679a8c60c761c26847e2b5860acf519dbdb84a9af006661dc5f640fbb2cf0"
+    },
+    {
+      "path": "trading/sources/everget-double-weighted-moving-average/double_weighted_moving_average.pine",
+      "bytes": 619,
+      "sha256": "0e29b5bdf6fa5b9bd82e4ba941c4bef3c89823dfb69b7c830e6d1d9050a04019"
+    },
+    {
+      "path": "trading/sources/everget-ehlers-cyber-cycle/ehlers_cyber_cycle.pine",
+      "bytes": 947,
+      "sha256": "9cb5dbe756100247d990ff31e5a2e4b71e0908eeaddc3ba74691544033ec0c7b"
+    },
+    {
+      "path": "trading/sources/everget-ehlers-super-smoother-filter/ehlers_super_smoother_filter.pine",
+      "bytes": 1135,
+      "sha256": "62322a431314e64524564c51f99aa5d0f7c6dbca2919a844f18b9c7a675e8c80"
+    },
+    {
+      "path": "trading/sources/everget-elastic-volume-weighted-moving-average/elastic_volume_weighted_moving_average.pine",
+      "bytes": 724,
+      "sha256": "03159841d5017403bff2b5308a9911f9a48a1c901da3305e58ae8b7abc752691"
+    },
+    {
+      "path": "trading/sources/everget-forecast-oscillator/forecast_oscillator.pine",
+      "bytes": 558,
+      "sha256": "9bea13321f0776126b87885bbd7b86abc4a6af761822eb99c45c33b28b926536"
+    },
+    {
+      "path": "trading/sources/everget-interquartile-range-bands/interquartile_range_bands.pine",
+      "bytes": 926,
+      "sha256": "725515e300e3c7eac50b9aff7d22abb74459703b63ceb169ebec63bac8959db5"
+    },
+    {
+      "path": "trading/sources/everget-kirshenbaum-bands/kirshenbaum_bands.pine",
+      "bytes": 941,
+      "sha256": "2dff60ced48ca5f872c24559686177d5a53a74ad1dec04ed3f46bcd81a386bc0"
+    },
+    {
+      "path": "trading/sources/everget-mean-absolute-deviation-bands/mean_absolute_deviation_bands.pine",
+      "bytes": 778,
+      "sha256": "212c7b3384b8122948bd013bbf5e2498bf1cc681ef2925b9fec1e6d31d279169"
+    },
+    {
+      "path": "trading/sources/everget-moving-average-channel/moving_average_channel.pine",
+      "bytes": 1099,
+      "sha256": "d19d083eed0fa4c8bd5269df5a932d62c0591581aa01767f19ff789c12830d67"
+    },
+    {
+      "path": "trading/sources/everget-range-candles/range_candles.pine",
+      "bytes": 508,
+      "sha256": "89d3c31f016cee1e89561a6d2e69bcaa8c8cb3476841c4eac94cf7ee7f7fe647"
+    },
+    {
+      "path": "trading/sources/everget-stoller-average-range-channels/stoller_average_range_channels.pine",
+      "bytes": 1081,
+      "sha256": "efb52fa3a451c8b8bb6e858745f527192da8ec8fe7d9cf9569bd451a76deeeb1"
+    },
+    {
+      "path": "trading/sources/everget-vortex-bands/vortex_bands.pine",
+      "bytes": 1739,
+      "sha256": "ae64b9081f4e718baf16fc54a9722d6f812728804dce0d95fbaa8ac5381cf8c1"
+    }
+  ]
+}
