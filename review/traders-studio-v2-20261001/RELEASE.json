@@ -1,0 +1,34 @@
+{
+  "edition": "2026-10-01-v2-creator",
+  "status": "Local review implementation; production auth, storage, review and commerce adapters not connected; not deployed",
+  "email_registration_required": true,
+  "creator_publishing": [
+    "free",
+    "paid"
+  ],
+  "programs": 39,
+  "source_files": 40,
+  "platforms": [
+    "Backtrader",
+    "Freqtrade",
+    "MT4",
+    "MT5",
+    "QuantConnect / LEAN",
+    "TradingView",
+    "cTrader"
+  ],
+  "creator_platform_options": 15,
+  "kind_counts": {
+    "Strategy": 4,
+    "Indicator": 33,
+    "Expert Advisor": 1,
+    "Template": 1
+  },
+  "pending_directory_items_not_published": 40,
+  "local_server_tests": 30,
+  "in_memory_browser_checks": 19,
+  "static_checks": 325,
+  "trading_code_executed": false,
+  "production_changed": false,
+  "source_files_publicly_embedded": false
+}

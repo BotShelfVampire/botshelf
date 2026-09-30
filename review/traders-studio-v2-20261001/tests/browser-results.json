@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "browser_checks": 19,
+  "checks": [
+    "39 real curated program cards",
+    "no source bodies embedded in public page",
+    "registration and creator CTAs visible",
+    "cTrader filter populated from actual source",
+    "Backtrader filter populated from actual source",
+    "empty results correct",
+    "anonymous source access fails visibly",
+    "anonymous source body remains absent",
+    "registration required before creator save",
+    "15 extensible platform choices",
+    "paid option and price preview",
+    "user title is escaped, not interpreted",
+    "anonymous save sends no write request",
+    "anonymous save explains verification",
+    "mobile no horizontal overflow",
+    "verified publish sends save and publish calls",
+    "source sent only in verified creator request",
+    "review-pending is not claimed published",
+    "no uncaught browser errors"
+  ],
+  "errors": [],
+  "scope": "In-memory own-document Chromium checks with mocked fetch. URL navigation was blocked by administrator; no policy settings were changed. No real HTTP route, email, registration, persistence, payment, publication or trading was tested."
+}
