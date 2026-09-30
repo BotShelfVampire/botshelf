@@ -1,0 +1,107 @@
+[
+  {
+    "id": "tradingview",
+    "name": "TradingView",
+    "family": "chart",
+    "language": "Pine Script",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "mt4",
+    "name": "MT4",
+    "family": "terminal",
+    "language": "MQL4",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "mt5",
+    "name": "MT5",
+    "family": "terminal",
+    "language": "MQL5",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "ctrader",
+    "name": "cTrader",
+    "family": "terminal",
+    "language": "C#",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "ninjatrader",
+    "name": "NinjaTrader",
+    "family": "terminal",
+    "language": "NinjaScript / C#",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "sierra-chart",
+    "name": "Sierra Chart",
+    "family": "chart",
+    "language": "ACSIL / C++",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "multicharts",
+    "name": "MultiCharts",
+    "family": "terminal",
+    "language": "PowerLanguage",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "tradestation",
+    "name": "TradeStation",
+    "family": "terminal",
+    "language": "EasyLanguage",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "quantower",
+    "name": "Quantower",
+    "family": "terminal",
+    "language": "C#",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "quantconnect-lean",
+    "name": "QuantConnect / LEAN",
+    "family": "framework",
+    "language": "Python / C#",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "backtrader",
+    "name": "Backtrader",
+    "family": "framework",
+    "language": "Python",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "freqtrade",
+    "name": "Freqtrade",
+    "family": "framework",
+    "language": "Python",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "amibroker",
+    "name": "AmiBroker",
+    "family": "chart",
+    "language": "AFL",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "motivewave",
+    "name": "MotiveWave",
+    "family": "chart",
+    "language": "Java",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  },
+  {
+    "id": "other",
+    "name": "Other / その他",
+    "family": "other",
+    "language": "Specify platform, language and version",
+    "scope": "Creator metadata; not a claim of runtime validation or existing source coverage"
+  }
+]

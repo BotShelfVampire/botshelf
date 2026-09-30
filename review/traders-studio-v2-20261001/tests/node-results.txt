@@ -1,0 +1,190 @@
+TAP version 13
+# Subtest: anonymous cannot create a draft
+ok 1 - anonymous cannot create a draft
+  ---
+  duration_ms: 1.388385
+  type: 'test'
+  ...
+# Subtest: unverified email cannot create a draft
+ok 2 - unverified email cannot create a draft
+  ---
+  duration_ms: 0.19908
+  type: 'test'
+  ...
+# Subtest: verified author saves then self-publishes a cleared original
+ok 3 - verified author saves then self-publishes a cleared original
+  ---
+  duration_ms: 3.528103
+  type: 'test'
+  ...
+# Subtest: private source/evidence/account IDs do not enter public catalogue
+ok 4 - private source/evidence/account IDs do not enter public catalogue
+  ---
+  duration_ms: 0.74911
+  type: 'test'
+  ...
+# Subtest: another creator cannot edit or publish this draft
+ok 5 - another creator cannot edit or publish this draft
+  ---
+  duration_ms: 0.426293
+  type: 'test'
+  ...
+# Subtest: anonymous cannot retrieve source after publication
+ok 6 - anonymous cannot retrieve source after publication
+  ---
+  duration_ms: 0.725225
+  type: 'test'
+  ...
+# Subtest: verified reader receives free source and terms
+ok 7 - verified reader receives free source and terms
+  ---
+  duration_ms: 1.007209
+  type: 'test'
+  ...
+# Subtest: missing reviewer is fail-closed, not automatically approved
+ok 8 - missing reviewer is fail-closed, not automatically approved
+  ---
+  duration_ms: 0.293673
+  type: 'test'
+  ...
+# Subtest: stale or fabricated review hash cannot publish
+ok 9 - stale or fabricated review hash cannot publish
+  ---
+  duration_ms: 0.611642
+  type: 'test'
+  ...
+# Subtest: permission evidence missing holds submission pending
+ok 10 - permission evidence missing holds submission pending
+  ---
+  duration_ms: 0.776031
+  type: 'test'
+  ...
+# Subtest: external IO finding needs explicit review resolution
+ok 11 - external IO finding needs explicit review resolution
+  ---
+  duration_ms: 0.410069
+  type: 'test'
+  ...
+# Subtest: binary executable and path traversal uploads are rejected
+ok 12 - binary executable and path traversal uploads are rejected
+  ---
+  duration_ms: 0.319372
+  type: 'test'
+  ...
+# Subtest: duplicate case-folded filenames and null bytes are rejected
+ok 13 - duplicate case-folded filenames and null bytes are rejected
+  ---
+  duration_ms: 0.176125
+  type: 'test'
+  ...
+# Subtest: possible private keys never get stored
+ok 14 - possible private keys never get stored
+  ---
+  duration_ms: 0.148334
+  type: 'test'
+  ...
+# Subtest: draft revision conflict blocks lost updates
+ok 15 - draft revision conflict blocks lost updates
+  ---
+  duration_ms: 1.052688
+  type: 'test'
+  ...
+# Subtest: editing a published item does not expose new unreviewed source
+ok 16 - editing a published item does not expose new unreviewed source
+  ---
+  duration_ms: 0.730983
+  type: 'test'
+  ...
+# Subtest: author can choose a paid original with custom terms
+ok 17 - author can choose a paid original with custom terms
+  ---
+  duration_ms: 0.415477
+  type: 'test'
+  ...
+# Subtest: paid download requires server-side entitlement
+ok 18 - paid download requires server-side entitlement
+  ---
+  duration_ms: 0.705835
+  type: 'test'
+  ...
+# Subtest: missing commerce connection prevents paid publication
+ok 19 - missing commerce connection prevents paid publication
+  ---
+  duration_ms: 0.253783
+  type: 'test'
+  ...
+# Subtest: commerce product mismatches cannot publish
+ok 20 - commerce product mismatches cannot publish
+  ---
+  duration_ms: 0.284449
+  type: 'test'
+  ...
+# Subtest: checkout uses immutable published price and creates no charge
+ok 21 - checkout uses immutable published price and creates no charge
+  ---
+  duration_ms: 0.63646
+  type: 'test'
+  ...
+# Subtest: unpublish removes public listing but retains paid purchased revision
+ok 22 - unpublish removes public listing but retains paid purchased revision
+  ---
+  duration_ms: 0.531382
+  type: 'test'
+  ...
+# Subtest: fixed precision pricing rejects negative, scientific and excessive precision
+ok 23 - fixed precision pricing rejects negative, scientific and excessive precision
+  ---
+  duration_ms: 0.203858
+  type: 'test'
+  ...
+# Subtest: additional platform and custom platform can save
+ok 24 - additional platform and custom platform can save
+  ---
+  duration_ms: 0.189966
+  type: 'test'
+  ...
+# Subtest: HTTP rejects client-invented verified actor and cross-origin writes
+ok 25 - HTTP rejects client-invented verified actor and cross-origin writes
+  ---
+  duration_ms: 15.923965
+  type: 'test'
+  ...
+# Subtest: HTTP missing adapters and denied rate limit fail closed
+ok 26 - HTTP missing adapters and denied rate limit fail closed
+  ---
+  duration_ms: 0.654547
+  type: 'test'
+  ...
+# Subtest: HTTP authenticated workflow saves and publishes and protects source
+ok 27 - HTTP authenticated workflow saves and publishes and protects source
+  ---
+  duration_ms: 2.549977
+  type: 'test'
+  ...
+# Subtest: a mismatched runtime/source format waits for review
+ok 28 - a mismatched runtime/source format waits for review
+  ---
+  duration_ms: 0.273552
+  type: 'test'
+  ...
+# Subtest: unknown platform requires explicit review clearance
+ok 29 - unknown platform requires explicit review clearance
+  ---
+  duration_ms: 0.235476
+  type: 'test'
+  ...
+# Subtest: public metadata shows usage terms but not code
+ok 30 - public metadata shows usage terms but not code
+  ---
+  duration_ms: 0.347303
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 106.152343
