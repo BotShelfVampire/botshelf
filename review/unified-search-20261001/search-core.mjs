@@ -26,7 +26,7 @@ const GROUPS = [
 export function normalize(value=''){
   return String(value).normalize('NFKC').toLocaleLowerCase()
     .replace(/-/g,' ')
-    .replace(/[‐‑‒–—―ーｰ_/\\|・:;,.()[\]{}'"’“”!?！？、。]/g,' ')
+    .replace(/[‐‑‒–—―_/\\|・:;,.()[\]{}'"’“”!?！？、。]/g,' ')
     .replace(/\s+/g,' ').trim();
 }
 const ALIASES = new Map();
