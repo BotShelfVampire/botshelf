@@ -1,0 +1,406 @@
+TAP version 13
+# Subtest: anonymous cannot create a draft
+ok 1 - anonymous cannot create a draft
+  ---
+  duration_ms: 1.509471
+  type: 'test'
+  ...
+# Subtest: unverified email cannot create a draft
+ok 2 - unverified email cannot create a draft
+  ---
+  duration_ms: 0.920991
+  type: 'test'
+  ...
+# Subtest: verified author saves then self-publishes a cleared original
+ok 3 - verified author saves then self-publishes a cleared original
+  ---
+  duration_ms: 4.583117
+  type: 'test'
+  ...
+# Subtest: private source/evidence/account IDs do not enter public catalogue
+ok 4 - private source/evidence/account IDs do not enter public catalogue
+  ---
+  duration_ms: 0.743153
+  type: 'test'
+  ...
+# Subtest: another creator cannot edit or publish this draft
+ok 5 - another creator cannot edit or publish this draft
+  ---
+  duration_ms: 0.468588
+  type: 'test'
+  ...
+# Subtest: anonymous cannot retrieve source after publication
+ok 6 - anonymous cannot retrieve source after publication
+  ---
+  duration_ms: 0.472343
+  type: 'test'
+  ...
+# Subtest: verified reader receives free source and terms
+ok 7 - verified reader receives free source and terms
+  ---
+  duration_ms: 0.540657
+  type: 'test'
+  ...
+# Subtest: missing reviewer is fail-closed, not automatically approved
+ok 8 - missing reviewer is fail-closed, not automatically approved
+  ---
+  duration_ms: 0.342588
+  type: 'test'
+  ...
+# Subtest: stale or fabricated review hash cannot publish
+ok 9 - stale or fabricated review hash cannot publish
+  ---
+  duration_ms: 0.535669
+  type: 'test'
+  ...
+# Subtest: permission evidence missing holds submission pending
+ok 10 - permission evidence missing holds submission pending
+  ---
+  duration_ms: 0.700128
+  type: 'test'
+  ...
+# Subtest: external IO finding needs explicit review resolution
+ok 11 - external IO finding needs explicit review resolution
+  ---
+  duration_ms: 0.966661
+  type: 'test'
+  ...
+# Subtest: binary executable and path traversal uploads are rejected
+ok 12 - binary executable and path traversal uploads are rejected
+  ---
+  duration_ms: 0.308376
+  type: 'test'
+  ...
+# Subtest: duplicate case-folded filenames and null bytes are rejected
+ok 13 - duplicate case-folded filenames and null bytes are rejected
+  ---
+  duration_ms: 0.1453
+  type: 'test'
+  ...
+# Subtest: possible private keys never get stored
+ok 14 - possible private keys never get stored
+  ---
+  duration_ms: 0.155085
+  type: 'test'
+  ...
+# Subtest: draft revision conflict blocks lost updates
+ok 15 - draft revision conflict blocks lost updates
+  ---
+  duration_ms: 0.440145
+  type: 'test'
+  ...
+# Subtest: editing a published item does not expose new unreviewed source
+ok 16 - editing a published item does not expose new unreviewed source
+  ---
+  duration_ms: 0.401177
+  type: 'test'
+  ...
+# Subtest: author can choose a paid original with custom terms
+ok 17 - author can choose a paid original with custom terms
+  ---
+  duration_ms: 0.621629
+  type: 'test'
+  ...
+# Subtest: paid download requires server-side entitlement
+ok 18 - paid download requires server-side entitlement
+  ---
+  duration_ms: 1.418334
+  type: 'test'
+  ...
+# Subtest: missing commerce connection prevents paid publication
+ok 19 - missing commerce connection prevents paid publication
+  ---
+  duration_ms: 0.261685
+  type: 'test'
+  ...
+# Subtest: commerce product mismatches cannot publish
+ok 20 - commerce product mismatches cannot publish
+  ---
+  duration_ms: 0.294315
+  type: 'test'
+  ...
+# Subtest: checkout uses immutable published price and creates no charge
+ok 21 - checkout uses immutable published price and creates no charge
+  ---
+  duration_ms: 0.508618
+  type: 'test'
+  ...
+# Subtest: unpublish removes public listing but retains paid purchased revision
+ok 22 - unpublish removes public listing but retains paid purchased revision
+  ---
+  duration_ms: 0.544613
+  type: 'test'
+  ...
+# Subtest: fixed precision pricing rejects negative, scientific and excessive precision
+ok 23 - fixed precision pricing rejects negative, scientific and excessive precision
+  ---
+  duration_ms: 0.18487
+  type: 'test'
+  ...
+# Subtest: additional platform and custom platform can save
+ok 24 - additional platform and custom platform can save
+  ---
+  duration_ms: 0.280594
+  type: 'test'
+  ...
+# Subtest: HTTP rejects client-invented verified actor and cross-origin writes
+ok 25 - HTTP rejects client-invented verified actor and cross-origin writes
+  ---
+  duration_ms: 20.441923
+  type: 'test'
+  ...
+# Subtest: HTTP missing adapters and denied rate limit fail closed
+ok 26 - HTTP missing adapters and denied rate limit fail closed
+  ---
+  duration_ms: 0.550982
+  type: 'test'
+  ...
+# Subtest: HTTP authenticated workflow saves and publishes and protects source
+ok 27 - HTTP authenticated workflow saves and publishes and protects source
+  ---
+  duration_ms: 2.836867
+  type: 'test'
+  ...
+# Subtest: a mismatched runtime/source format waits for review
+ok 28 - a mismatched runtime/source format waits for review
+  ---
+  duration_ms: 0.313964
+  type: 'test'
+  ...
+# Subtest: unknown platform requires explicit review clearance
+ok 29 - unknown platform requires explicit review clearance
+  ---
+  duration_ms: 0.247695
+  type: 'test'
+  ...
+# Subtest: public metadata shows usage terms but not code
+ok 30 - public metadata shows usage terms but not code
+  ---
+  duration_ms: 0.320545
+  type: 'test'
+  ...
+# Subtest: price is creator-selected, not a fixed price list
+ok 31 - price is creator-selected, not a fixed price list
+  ---
+  duration_ms: 1.797346
+  type: 'test'
+  ...
+# Subtest: 100 USDT receipt gives seller 80 and BSV 20
+ok 32 - 100 USDT receipt gives seller 80 and BSV 20
+  ---
+  duration_ms: 0.289097
+  type: 'test'
+  ...
+# Subtest: micro-unit rounding conserves every receipt
+ok 33 - micro-unit rounding conserves every receipt
+  ---
+  duration_ms: 1.835244
+  type: 'test'
+  ...
+# Subtest: renewal before expiry preserves remaining access
+ok 34 - renewal before expiry preserves remaining access
+  ---
+  duration_ms: 1.779825
+  type: 'test'
+  ...
+# Subtest: late renewal starts from payment confirmation, not old expiry
+ok 35 - late renewal starts from payment confirmation, not old expiry
+  ---
+  duration_ms: 0.120623
+  type: 'test'
+  ...
+# Subtest: one-time paid option is rejected server-side
+ok 36 - one-time paid option is rejected server-side
+  ---
+  duration_ms: 0.874452
+  type: 'test'
+  ...
+# Subtest: annual interval is rejected
+ok 37 - annual interval is rejected
+  ---
+  duration_ms: 0.171018
+  type: 'test'
+  ...
+# Subtest: currency, network and split cannot be overridden
+ok 38 - currency, network and split cannot be overridden
+  ---
+  duration_ms: 0.184589
+  type: 'test'
+  ...
+# Subtest: monthly commercial terms reach immutable product and checkout
+ok 39 - monthly commercial terms reach immutable product and checkout
+  ---
+  duration_ms: 3.365126
+  type: 'test'
+  ...
+# Subtest: backend accepting wrong fee cannot publish product
+ok 40 - backend accepting wrong fee cannot publish product
+  ---
+  duration_ms: 1.112551
+  type: 'test'
+  ...
+# Subtest: monthly offer must describe ongoing value
+ok 41 - monthly offer must describe ongoing value
+  ---
+  duration_ms: 0.276798
+  type: 'test'
+  ...
+# Subtest: unchanged free source cannot be sold for a subscription
+ok 42 - unchanged free source cannot be sold for a subscription
+  ---
+  duration_ms: 0.129757
+  type: 'test'
+  ...
+# Subtest: unchanged licensed free source remains eligible for free publication
+ok 43 - unchanged licensed free source remains eligible for free publication
+  ---
+  duration_ms: 0.764455
+  type: 'test'
+  ...
+# Subtest: substantial licensed remake may be monthly paid
+ok 44 - substantial licensed remake may be monthly paid
+  ---
+  duration_ms: 0.498794
+  type: 'test'
+  ...
+# Subtest: paid remake requires actual commercial and modification review attestations
+ok 45 - paid remake requires actual commercial and modification review attestations
+  ---
+  duration_ms: 0.46982
+  type: 'test'
+  ...
+# Subtest: remake without change explanation is rejected
+ok 46 - remake without change explanation is rejected
+  ---
+  duration_ms: 0.11877
+  type: 'test'
+  ...
+# Subtest: new original does not require open-source license
+ok 47 - new original does not require open-source license
+  ---
+  duration_ms: 0.532625
+  type: 'test'
+  ...
+# Subtest: all visibility and source modes are independent for original free work
+ok 48 - all visibility and source modes are independent for original free work
+  ---
+  duration_ms: 0.569621
+  type: 'test'
+  ...
+# Subtest: copyleft source protection requires a specific rights decision, never just a toggle
+ok 49 - copyleft source protection requires a specific rights decision, never just a toggle
+  ---
+  duration_ms: 0.316378
+  type: 'test'
+  ...
+# Subtest: permissive license can coexist with source protection when reviewed
+ok 50 - permissive license can coexist with source protection when reviewed
+  ---
+  duration_ms: 0.598815
+  type: 'test'
+  ...
+# Subtest: source protection is not merely a UI toggle: missing adapter blocks publication
+ok 51 - source protection is not merely a UI toggle: missing adapter blocks publication
+  ---
+  duration_ms: 0.519665
+  type: 'test'
+  ...
+# Subtest: protection attestation missing revocation enforcement blocks publication
+ok 52 - protection attestation missing revocation enforcement blocks publication
+  ---
+  duration_ms: 0.751826
+  type: 'test'
+  ...
+# Subtest: protected source denied even to an active paying user
+ok 53 - protected source denied even to an active paying user
+  ---
+  duration_ms: 1.120363
+  type: 'test'
+  ...
+# Subtest: protected usage strips unexpected adapter source fields
+ok 54 - protected usage strips unexpected adapter source fields
+  ---
+  duration_ms: 0.907661
+  type: 'test'
+  ...
+# Subtest: invite-only denied until author approves verified recipient
+ok 55 - invite-only denied until author approves verified recipient
+  ---
+  duration_ms: 1.506446
+  type: 'test'
+  ...
+# Subtest: invitation never bypasses paid subscription requirement
+ok 56 - invitation never bypasses paid subscription requirement
+  ---
+  duration_ms: 1.443201
+  type: 'test'
+  ...
+# Subtest: paid invite-only order cannot start before invitation
+ok 57 - paid invite-only order cannot start before invitation
+  ---
+  duration_ms: 0.433505
+  type: 'test'
+  ...
+# Subtest: revocation stops BSV use and durably queues native revoke, not claims completion
+ok 58 - revocation stops BSV use and durably queues native revoke, not claims completion
+  ---
+  duration_ms: 0.737705
+  type: 'test'
+  ...
+# Subtest: access-list revision does not create a new product revision
+ok 59 - access-list revision does not create a new product revision
+  ---
+  duration_ms: 0.856805
+  type: 'test'
+  ...
+# Subtest: other user cannot grant or inspect invitations
+ok 60 - other user cannot grant or inspect invitations
+  ---
+  duration_ms: 0.512465
+  type: 'test'
+  ...
+# Subtest: private publication excluded from catalogue and guessed URL
+ok 61 - private publication excluded from catalogue and guessed URL
+  ---
+  duration_ms: 0.900561
+  type: 'test'
+  ...
+# Subtest: active subscription is denied exactly at expiry
+ok 62 - active subscription is denied exactly at expiry
+  ---
+  duration_ms: 0.883325
+  type: 'test'
+  ...
+# Subtest: submitted, refunded, wrong-network and wrong-release subscriptions cannot authorize
+ok 63 - submitted, refunded, wrong-network and wrong-release subscriptions cannot authorize
+  ---
+  duration_ms: 3.642375
+  type: 'test'
+  ...
+# Subtest: renewal needs new confirmed receipt: boolean entitlement is rejected
+ok 64 - renewal needs new confirmed receipt: boolean entitlement is rejected
+  ---
+  duration_ms: 0.110167
+  type: 'test'
+  ...
+# Subtest: public metadata omits code, evidence, invitations and private account IDs
+ok 65 - public metadata omits code, evidence, invitations and private account IDs
+  ---
+  duration_ms: 0.548599
+  type: 'test'
+  ...
+# Subtest: HTTP HEAD/Range cannot expose protected source or forge authentication
+ok 66 - HTTP HEAD/Range cannot expose protected source or forge authentication
+  ---
+  duration_ms: 18.588613
+  type: 'test'
+  ...
+1..66
+# tests 66
+# suites 0
+# pass 66
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 122.272554
