@@ -12,13 +12,16 @@ const GROUPS = [
   ['volatility','ボラティリティ','値幅'],
   ['volume','出来高'],
   ['stop loss','stoploss','損切り'],
-  ['lot size','position size','lot calculator','ロット計算'],
+  ['stop management','損切り管理','決済管理'],
+  ['trailing stop','トレーリングストップ','追従ストップ','追従決済'],
+  ['lot size','position size','lot calculator','ロット計算','ポジションサイズ'],
   ['meeting notes','minutes','議事録'],
+  ['email reply','inbox reply','メール返信','返信メール'],
   ['research','調査','リサーチ'],
   ['code review','コードレビュー'],
   ['workflow','automation','ワークフロー','自動化'],
   ['mcp','model context protocol'],
-  ['local environment','ローカル環境']
+  ['local environment','self hosted','ollama','lm studio','ローカル環境','ローカル実行']
 ];
 export function normalize(value=''){
   return String(value).normalize('NFKC').toLocaleLowerCase()
