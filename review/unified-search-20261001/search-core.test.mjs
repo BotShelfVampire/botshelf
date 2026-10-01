@@ -164,6 +164,21 @@ assert.equal(merged.length,1,'scope+id duplicates must collapse');
 assert.equal(merged[0].revision,2,'newest public revision must win');
 assert.equal(merged[0].pricing,'one_time');
 
+const regressions=mergePublicCatalogues([
+ {record:{id:'support-resistance',title:'Support & Resistance',mode:'free',text:{ja:{purpose:'支持線と抵抗線'}}},scope:'trading',source:'curated'},
+ {record:{id:'levels-paths',title:'Levels & Paths',mode:'free',text:{en:{purpose:'Support & Resistance scenarios'}}},scope:'ai',source:'curated'},
+ {record:{id:'atr-trailing',title:'ATR Trailing Stop',mode:'free',text:{ja:{purpose:'損切り管理と追従ストップ'}}},scope:'trading',source:'curated'},
+ {record:{id:'hold-reply',title:'Hold reply inbox',mode:'free',text:{ja:{purpose:'メール返信の下書き'}}},scope:'ai',source:'curated'},
+ {record:{id:'ollama-local',title:'Ollama local kit',mode:'free',text:{ja:{purpose:'ローカル環境で実行'}}},scope:'build',source:'curated'},
+ {record:{id:'position-sizer',title:'Position Sizer',mode:'free',text:{ja:{purpose:'ポジションサイズとロット計算'}}},scope:'trading',source:'curated'}
+]);
+assert.equal(searchPublicCatalogue(regressions,{q:'Support & Resistance'})[0]?.id,'support-resistance','exact title must outrank a summary mention');
+assert.equal(searchPublicCatalogue(regressions,{q:'損切り管理'})[0]?.id,'atr-trailing');
+assert.equal(searchPublicCatalogue(regressions,{q:'トレーリングストップ'})[0]?.id,'atr-trailing');
+assert.equal(searchPublicCatalogue(regressions,{q:'メール返信'})[0]?.id,'hold-reply');
+assert.equal(searchPublicCatalogue(regressions,{q:'ローカル環境'})[0]?.id,'ollama-local');
+assert.equal(searchPublicCatalogue(regressions,{q:'ポジションサイズ'})[0]?.id,'position-sizer');
+
 const roundTrip=decodeSearchState(encodeSearchState({q:'ＭＴ５　ＥＡ',scope:'trading',platform:'MT5',pricing:'one_time'}));
 assert.deepEqual(roundTrip,{q:'ＭＴ５　ＥＡ',scope:'trading',kind:'',platform:'MT5',pricing:'one_time'});
-console.log(JSON.stringify({catalogueRecords:records.length,queryCases:cases.length,totalAssertions:cases.length+9,status:'pass'}));
+console.log(JSON.stringify({catalogueRecords:records.length,queryCases:cases.length,totalAssertions:cases.length+15,status:'pass'}));
