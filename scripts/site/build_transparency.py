@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Capability manifests (capability-manifest v0.1) for every public catalogue entry and BSV recipe; nothing marked VERIFIED.", "/capabilities/index.json"),
     ("2026-10-04", "Tradovate (JavaScript custom indicator) starters listed; 19 builder targets.", "/trading/build/"),
     ("2026-10-04", "Request Market builder view: live request counts by area and catalogue gaps (no estimates).", "/requests/#builders"),
     ("2026-10-04", "Transparency Center published (quoted rules and counted figures only).", "/transparency/"),
@@ -71,7 +72,7 @@ def page(site, F, css_href, js_href, today):
         '<section class="container hero bb-hero"><div><div class="eyebrow">TRANSPARENCY CENTER</div>'
         f'<h1>{both("How BotShelf Vampire works, in checkable facts.", "BotShelf Vampire の仕組みを、確かめられる事実で。")}</h1>'
         f'{both("Each rule below is quoted word for word from the production page it links to. Each figure is counted from a public file at build time or read live from an aggregate-count API. Nothing here is estimated.", "以下のルールは、リンク先の本番ページの文をそのまま引用しています。数字は、公開ファイルからビルド時に数えたもの、または集計APIからその場で読んだものです。推計はありません。", "p", "lead")}'
-        f'<p class="small">{both("Built", "作成日")}: {today} · <a href="/.well-known/bsv-trust.json">bsv-trust.json</a></p>'
+        f'<p class="small">{both("Built", "作成日")}: {today} · <a href="/.well-known/bsv-trust.json">bsv-trust.json</a> · <a href="/capabilities/index.json">capability manifests</a></p>'
         '</div><aside class="hero-stats"><div class="stat-lines">'
         f'<div>{both("Traders Library entries", "Traders Library の件数")}<b>{F["cat_total"]}</b></div>'
         f'<div>{both("Builder targets", "ビルダーの出力先")}<b>{len(F["targets"])}</b></div>'
