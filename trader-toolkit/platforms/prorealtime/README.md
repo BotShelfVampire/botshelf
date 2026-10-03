@@ -18,4 +18,10 @@ Official references:
 - https://www.prorealtime.com/en/help-manual/probuilder-custom-indicators
 - https://www.prorealtime.com/en/pdf/probuilder.pdf
 
+## Generated indicators
+
+The BSV generator also renders any recipe as a ProBuilder indicator: `node generator/render.mjs <recipe.json> --target prorealtime` (or the browser recipe builder). Overlay recipes draw arrow markers; for alerts, create a second indicator that returns the 0/1 line and set the alert on it. Not validated by BSV.
+
+- https://www.prorealcode.com/documentation/probuilder/
+
 Status: source prepared; runtime validation still required.

@@ -47,6 +47,8 @@ Other current targets:
 --target bookmap-python  # Bookmap Python API add-on (open beta; time bars built from trades)
 --target ninjatrader     # NinjaTrader 8 NinjaScript indicator
 --target quantower       # Quantower C# indicator
+--target sierra-acsil    # Sierra Chart ACSIL C++ custom study
+--target prorealtime     # ProRealTime ProBuilder indicator
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.

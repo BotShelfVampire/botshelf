@@ -77,20 +77,20 @@
   "trader-generator": {
    "summary": {
     "en": "Node.js generator that turns one recipe into a Pine Script v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8 or Quantower starter. Unsupported blocks stay visible as TODO comments instead of silently disappearing.",
-    "ja": "1つのレシピからPine Script v6・MQL5・MQL4・cTrader（C#）・cTrader（Python）・Bookmap（Python）・NinjaTrader 8・Quantowerのひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
+    "ja": "1つのレシピからPine Script v6・MQL5・MQL4・cTrader（C#）・cTrader（Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTimeのひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
    },
    "use": {
     "en": [
      "Install Node.js 18 or later.",
      "Run: node render.mjs <recipe.json> --target pine-v6 (or mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower).",
      "Paste the output into the platform editor, compile there, and resolve every TODO before relying on it.",
-     "No Node.js? Each recipe page offers the eight pre-generated starters, and the browser recipe builder renders all eight targets."
+     "No Node.js? Each recipe page offers the ten pre-generated starters, and the browser recipe builder renders all ten targets."
     ],
     "ja": [
      "Node.js 18以上を用意します。",
      "node render.mjs <recipe.json> --target pine-v6（または mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower）を実行します。",
      "出力を各プラットフォームのエディターに貼り付けてコンパイルし、TODOをすべて解消してから使います。",
-     "Node.jsがなくても、各レシピのページで8種類の生成済みひな形を取得でき、ブラウザのレシピビルダーでも8種類すべてを生成できます。"
+     "Node.jsがなくても、各レシピのページで10種類の生成済みひな形を取得でき、ブラウザのレシピビルダーでも10種類すべてを生成できます。"
     ]
    }
   },
@@ -411,10 +411,11 @@
   },
   "OpenAI Agents SDK": {
    "slug": "openai-agents",
-   "en": "A guarded worker with no side-effect tools, ready to grow into agents-as-tools, guardrails, sessions or sandbox agents.",
-   "ja": "副作用のあるツールを持たない安全柵付きの作業役。agents-as-tools・ガードレール・セッション・サンドボックスへ広げられます。",
+   "en": "A guarded worker with no side-effect tools, ready to grow into agents-as-tools, guardrails, sessions or sandbox agents. The team runner runs each Library AI Team task on a local model with tracing disabled.",
+   "ja": "副作用のあるツールを持たない安全柵付きの作業役。agents-as-tools・ガードレール・セッション・サンドボックスへ広げられます。チームランナーは、Library AI Teamの各仕事をトレース無効のローカルモデルで動かします。",
    "refs": [
-    "https://openai.github.io/openai-agents-python/"
+    "https://openai.github.io/openai-agents-python/",
+    "https://openai.github.io/openai-agents-python/models/"
    ]
   },
   "LangGraph": {
@@ -431,6 +432,15 @@
    "ja": "役割ごとのエージェントで組むマルチエージェント。チームランナーはローカルモデル上で担当と確認役を使い、保存の前にあなたの承認を求めます。",
    "refs": [
     "https://docs.crewai.com/concepts/llms"
+   ]
+  },
+  "n8n": {
+   "slug": "n8n",
+   "en": "Workflow automation. The team runner builds one importable workflow per Library AI Team task: manual trigger, local model over HTTP and a section check, with no write, send or paid nodes.",
+   "ja": "ワークフロー自動化ツール。チームランナーは、Library AI Teamの仕事ごとに読み込めるワークフローを作ります。手動実行・HTTPでのローカルモデル呼び出し・必要な項目の確認だけで、保存・送信・有料のノードはありません。",
+   "refs": [
+    "https://docs.n8n.io/workflows/export-import/",
+    "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
    ]
   }
  },
@@ -532,6 +542,20 @@
     "en": "Runs any of the 10 Library AI Team tasks as a two-agent CrewAI crew (lead + checker) on a local model, checks the required sections and saves only after your approval. You paste the team prompt from its Library page.",
     "ja": "Library AI Teamの10種類の仕事を、ローカルモデル上のCrewAIの2人構成（担当＋確認役）で動かします。必要な項目を確認し、あなたが承認したときだけ保存します。Teamのプロンプトは各Libraryページから貼り付けます。"
    }
+  },
+  "n8n-team-runner": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Builds one importable n8n workflow per Library AI Team task (10 tasks): manual trigger, local OpenAI-compatible model over HTTP, a section check, then you review the result. No write, send or paid nodes. You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事ごとに、読み込めるn8nワークフローを作ります。手動実行→ローカルのOpenAI互換モデルへHTTPで依頼→必要な項目の確認→あなたが結果を確認、の順です。保存・送信・有料のノードはありません。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
+  },
+  "openai-agents-team-runner": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Runs any of the 10 Library AI Team tasks with the OpenAI Agents SDK on a local model (LM Studio or Ollama), tracing disabled and no tools: produce, check the required sections, then save only after your approval. You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、OpenAI Agents SDKとローカルモデル（LM StudioまたはOllama）で動かします。トレースは無効、ツールはなしです。作成→必要な項目の確認→あなたが承認したときだけ保存、の順です。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
   }
  },
  "ai_team_links": {
@@ -577,6 +601,22 @@
    "item": "crewai-team-runner",
    "platform": "CrewAI",
    "cmd": "python crew_runner.py --task {task} --input notes.md"
+  },
+  "n8n": {
+   "item": "n8n-team-runner",
+   "platform": "n8n",
+   "cmd": "python make_workflow.py --task {task}",
+   "blurb_en": "The BSV n8n team runner builds an importable workflow for this task: manual trigger, local model over HTTP, section check, then you review the result. It saves and sends nothing.",
+   "blurb_ja": "BSVのn8nチームランナーで、この仕事用の読み込めるワークフローを作れます。手動実行→ローカルモデルへHTTPで依頼→必要な項目の確認→あなたが結果を確認、の順で、保存や送信はしません。"
+  },
+  "openai-agents": {
+   "item": "openai-agents-team-runner",
+   "platform": "OpenAI Agents SDK",
+   "impl_runtime": "lm-studio",
+   "impl_label": "LM Studio team page (same prompt)",
+   "cmd": "python agents_runner.py --task {task} --input notes.md",
+   "blurb_en": "The BSV OpenAI Agents SDK team runner runs this task on a local model through LM Studio's OpenAI-compatible server (or Ollama), with tracing disabled, checks the required sections and saves only after your approval.",
+   "blurb_ja": "BSVのOpenAI Agents SDKチームランナーで、この仕事をLM StudioのOpenAI互換サーバー（またはOllama）上のローカルモデルで動かせます。トレースは無効で、必要な項目を確認し、あなたが承認したときだけ保存します。"
   }
  }
 }

@@ -21,7 +21,8 @@ SLUG = "bsv-builder"
 PRICE = ["open", "high", "low", "close", "hl2", "hlc3", "ohlc4"]
 # target id -> render function in trader-toolkit/generator/render.mjs (labels / extensions come from build_live_toolkit.TARGETS)
 TARGET_FN = {"pine-v6": "renderPine", "mql5": "renderMql5", "ctrader": "renderCTrader", "mql4": "renderMql4", "ctrader-python": "renderCTraderPython",
-             "bookmap-python": "renderBookmapPython", "ninjatrader": "renderNinja", "quantower": "renderQuantower"}
+             "bookmap-python": "renderBookmapPython", "ninjatrader": "renderNinja", "quantower": "renderQuantower",
+             "sierra-acsil": "renderSierra", "prorealtime": "renderProRealTime"}
 
 UI_JS = r"""
 var PRICE=__PRICE__;
@@ -80,7 +81,7 @@ function fileBase(){return (state.recipe.name||'bsv-recipe').toLowerCase().repla
 // ---- builder v2: per-block TODO hints + shareable recipe JSON (config only, no generated code, no server storage)
 var SHARE_MAX=6000,PENDING='bsv-rb-pending-share',PREV=KEY+'-prev';
 var HINTS={
- 'filter.session':['Session windows depend on timezone: MT4/MT5 use broker server time; the cTrader Python and Bookmap outputs use UTC. Convert the session before relying on alerts.','時間帯の判定はタイムゾーン次第です。MT4・MT5はブローカーのサーバー時間、cTrader PythonとBookmapの出力はUTCで判定します。アラートに使う前に時間帯を換算してください。'],
+ 'filter.session':['Session windows depend on timezone: MT4/MT5 use broker server time; the cTrader Python and Bookmap outputs use UTC; NinjaTrader, Sierra Chart and ProRealTime use the platform or chart time zone. Convert the session before relying on alerts.','時間帯の判定はタイムゾーン次第です。MT4・MT5はブローカーのサーバー時間、cTrader PythonとBookmapの出力はUTC、NinjaTrader・Sierra Chart・ProRealTimeはプラットフォームまたはチャートのタイムゾーンで判定します。アラートに使う前に時間帯を換算してください。'],
  'signal.cross':['Cross = left is above (or below) right on this bar but was not on the previous bar. Where a target leaves it as TODO, compare current and previous values of both inputs.','クロスは「この足で左が右を上抜け（下抜け）し、1本前はそうでなかった」状態です。TODOが残る出力先では、両方の値の現在と1本前を比べて判定します。'],
  'signal.threshold':['Compares one value with a fixed number. Check the value range on your platform (for example RSI 0-100).','1つの値を固定の数値と比べます。プラットフォームでの値の範囲（例：RSIは0〜100）を確認してください。'],
  'signal.combine':['all = every listed signal is true on the same bar; any = at least one. Referenced ids must exist above this block.','all は列挙したシグナルが同じ足ですべて成立、any は1つ以上成立。参照するidはこのブロックより上に必要です。'],
@@ -203,16 +204,50 @@ var CHECKLIST={
  'ctrader-python':[['cTrader: Algo > Indicators > New, language Python, same name as the generated class.','cTrader：Algo→インジケーター→新規で言語をPythonにし、生成されたクラスと同じ名前で作る。'],['Paste the commented attribute block into the .cs file and the rest into <Name>_main.py, then Build.','コメント内の属性部分を.csファイルに、残りを<Name>_main.pyに貼り付けてビルドする。']],
  'bookmap-python':[['Bookmap: set up the Python API add-on (open beta) as in the official BookmapAPI/python-api guide.','Bookmap：公式のBookmapAPI/python-apiの手順でPython APIアドオン（オープンベータ）を準備する。'],['Load the script, enable it for one instrument and check the add-on log; adjust BAR_SECONDS.','スクリプトを読み込んで1銘柄で有効にし、アドオンのログを確認する。BAR_SECONDSを調整する。']],
  'ninjatrader':[['NinjaTrader 8: New > NinjaScript Editor, create an indicator with the generated class name (or save the file under bin\\Custom\\Indicators), paste, Compile (F5).','NinjaTrader 8：「新規→NinjaScriptエディター」で生成されたクラス名のインジケーターを作る（またはbin\\Custom\\Indicatorsに保存）。貼り付けてコンパイル（F5）。'],['Add it to a chart; check the NinjaScript Output window. Alert() only fires in real time — use Market Replay to test alerts.','チャートに追加し、NinjaScript出力ウィンドウを確認する。Alert()はリアルタイムでのみ動くため、アラートはマーケットリプレイで確認する。']],
- 'quantower':[['Quantower: create an indicator project with the Quantower Algo extension for Visual Studio, replace the class, build.','Quantower：Visual Studio用のQuantower Algo拡張でインジケーターのプロジェクトを作り、クラスを置き換えてビルドする。'],['Add the indicator to a chart; alert lines go to the Quantower event log.','インジケーターをチャートに追加する。アラートの行はQuantowerのイベントログに出ます。']]};
+ 'quantower':[['Quantower: create an indicator project with the Quantower Algo extension for Visual Studio, replace the class, build.','Quantower：Visual Studio用のQuantower Algo拡張でインジケーターのプロジェクトを作り、クラスを置き換えてビルドする。'],['Add the indicator to a chart; alert lines go to the Quantower event log.','インジケーターをチャートに追加する。アラートの行はQuantowerのイベントログに出ます。']],
+ 'sierra-acsil':[['Sierra Chart: save the file in the ACS_Source folder, then Analysis > Build Custom Studies DLL > Build; fix any compiler errors shown.','Sierra Chart：ファイルをACS_Sourceフォルダに保存し、Analysis→Build Custom Studies DLL→Buildでビルドする。表示されたコンパイルエラーを直す。'],['Add the study from Analysis > Studies (Add Custom Study); alerts are written to the Alerts Log (Window > Alert Manager > Alert Log).','Analysis→Studies（Add Custom Study）でスタディを追加する。アラートはAlerts Log（Window→Alert Manager→Alert Log）に出ます。']],
+ 'prorealtime':[['ProRealTime: Indicators > New > Creation by programming, paste, then Validate; fix the line the editor reports.','ProRealTime：インジケーター→新規→プログラミングで作成、貼り付けて「確認」。エディターが示した行を直す。'],['Add it to the chart. Alerts are created in ProRealTime on an indicator line (value 1); overlay recipes only draw markers — see the comment in the code.','チャートに追加する。アラートはProRealTimeでインジケーターの線（値が1）に対して作成します。価格チャートに重ねるレシピは印を描くだけです（コード内のコメント参照）。']]};
 function renderLint(){var box=$('#rb-lint'),list=$('#rb-lint-list');if(!box)return;list.textContent='';var issues=lint(state.recipe),hasOrder=false;
  issues.forEach(function(it){var li=el('li',{'class':'rb-lint-'+it.level});li.appendChild(el('strong',{text:it.level.toUpperCase()+' '}));li.appendChild(bi(it.msg));
   if(it.fix==='remove'){li.appendChild(mk('Remove '+it.id,function(){state.recipe.blocks=state.recipe.blocks.filter(function(b){return b.id!==it.id});draw()}))}
   if(it.fix==='reorder')hasOrder=true;list.appendChild(li)});
  $('#rb-lint-fix').hidden=!hasOrder;var e=issues.filter(function(x){return x.level==='error'}).length,w=issues.filter(function(x){return x.level==='warn'}).length;
  $('#rb-lint-sum').textContent=issues.length?('Recipe check: '+e+' error(s), '+w+' warning(s), '+(issues.length-e-w)+' note(s)'):'Recipe check: no issues';box.classList.toggle('rb-lint-ok',!issues.length)}
-function renderChecklist(){var ol=$('#rb-check-list');if(!ol)return;ol.textContent='';(CHECKLIST[state.target]||[]).concat(COMMON_CHECK).forEach(function(pair){ol.appendChild(el('li',{},[bi(pair)]))});
- var b=document.querySelector('[data-rb-target="'+state.target+'"]');$('#rb-check-target').textContent=b?b.textContent:state.target}
-function init(){if(!$('#rb-app'))return;
+var RES_KEY='bsv-rb-compile-log',RES_MAX=200;
+var RES_STATUS=[['not-tried','Not tried yet','未実施'],['compiled','Compiled with 0 errors','エラー0でコンパイルできた'],['compiled-warnings','Compiled with warnings','警告ありでコンパイルできた'],['compile-failed','Compile failed','コンパイルできなかった'],['ran-replay','Ran on a chart / replay (own check)','チャート・リプレイで動いた（自分で確認）']];
+function fp(s){var h=0x811c9dc5;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}return('0000000'+h.toString(16)).slice(-8)}
+function clip(v,n){return String(v==null?'':v).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').slice(0,n)}
+function statusOk(x){return RES_STATUS.some(function(r){return r[0]===x})}
+function cleanRecord(r){if(!r||typeof r!=='object')return null;var t=clip(r.target,32);if(!Object.prototype.hasOwnProperty.call(CHECKLIST,t))return null;var st=statusOk(r.status)?r.status:'not-tried';
+ var steps=Array.isArray(r.steps)?r.steps.slice(0,12).map(function(b){return !!b}):[];
+ return {v:1,recipe:clip(r.recipe,120),target:t,fp:/^[0-9a-f]{8}$/.test(String(r.fp))?String(r.fp):'',len:Math.max(0,Math.min(1e7,+r.len||0)),status:st,platform:clip(r.platform,120),notes:clip(r.notes,1000),steps:steps,at:clip(r.at,32),self_reported:true,bsv_verified:false}}
+function makeRecord(recipeName,target,out,form){return cleanRecord({recipe:recipeName,target:target,fp:fp(out||''),len:(out||'').length,status:form.status,platform:form.platform,notes:form.notes,steps:form.steps||[],at:form.at||new Date().toISOString()})}
+function recordMarkdown(r){var items=(CHECKLIST[r.target]||[]).concat(COMMON_CHECK),lab=RES_STATUS.filter(function(x){return x[0]===r.status})[0];
+ return ['# Compile record (self-reported)','','> Recorded by the user in their own browser. Not verified by BSV; the BSV catalog status stays "Not runtime tested".','',
+  '- Recipe: '+r.recipe,'- Target: '+r.target,'- Generated code fingerprint: '+r.fp+' ('+r.len+' chars, FNV-1a of the code shown in the builder)','- Result: '+(lab?lab[1]:r.status),'- Platform / version / build: '+(r.platform||'(not given)'),'- Recorded at: '+r.at,'','## Checklist']
+  .concat(items.map(function(it,i){return '- ['+(r.steps[i]?'x':' ')+'] '+it[0]})).concat(['','## Notes','',r.notes||'(none)','']).join('\n')}
+function loadRecords(){try{var a=JSON.parse(localStorage.getItem(RES_KEY)||'[]');return Array.isArray(a)?a.map(cleanRecord).filter(Boolean):[]}catch(e){return[]}}
+function storeRecords(a){try{localStorage.setItem(RES_KEY,JSON.stringify(a.slice(-RES_MAX)))}catch(e){}}
+state.checks=state.checks||{};
+function checkKey(){return state.target+'|'+fp($('#rb-out')?$('#rb-out').textContent:'')}
+function renderChecklist(){var ol=$('#rb-check-list');if(!ol)return;ol.textContent='';var k=checkKey(),cur=state.checks[k]||[];
+ (CHECKLIST[state.target]||[]).concat(COMMON_CHECK).forEach(function(pair,i){var id='rb-ck-'+i,cb=el('input',{type:'checkbox',id:id,'class':'rb-ck','data-i':String(i)});cb.checked=!!cur[i];
+  cb.addEventListener('change',function(){var a=state.checks[k]||[];a[i]=cb.checked;state.checks[k]=a});var lb=el('label',{'for':id});lb.appendChild(bi(pair));ol.appendChild(el('li',{},[cb,lb]))});
+ var b=document.querySelector('[data-rb-target="'+state.target+'"]');$('#rb-check-target').textContent=b?b.textContent:state.target;renderRecords()}
+function formNow(){var n=(CHECKLIST[state.target]||[]).length+COMMON_CHECK.length,cur=state.checks[checkKey()]||[],steps=[];for(var i=0;i<n;i++)steps.push(!!cur[i]);
+ return {status:$('#rb-res-status').value,platform:$('#rb-res-platform').value,notes:$('#rb-res-notes').value,steps:steps}}
+function renderRecords(){var ul=$('#rb-res-list');if(!ul)return;ul.textContent='';var out=$('#rb-out').textContent,cfp=fp(out),name=state.recipe.name||'';
+ var mine=loadRecords().filter(function(r){return r.recipe===clip(name,120)});
+ if(!mine.length){ul.appendChild(el('li',{'class':'muted'},[bi(['No saved records for this recipe yet.','このレシピの記録はまだありません。'])]));return}
+ mine.slice(-10).reverse().forEach(function(r){var lab=RES_STATUS.filter(function(x){return x[0]===r.status})[0]||[r.status,r.status,r.status];
+  var same=r.target===state.target&&r.fp===cfp;var li=el('li',{},[el('strong',{text:r.target+' · '}),bi([lab[1],lab[2]]),el('span',{'class':'muted',text:' · '+r.at.slice(0,16).replace('T',' ')+' UTC · '+r.fp+' '}),
+   bi(r.target!==state.target?['(other target)','（別の出力先）']:same?['(matches the code shown)','（表示中のコードと一致）']:['(code changed since)','（その後コードが変わりました）'])]);
+  li.appendChild(mk('.md',function(){download(fileBase()+'.'+r.target+'.compile-record.md',recordMarkdown(r))}));ul.appendChild(li)})}
+function initRecords(){var s=$('#rb-res-status');if(!s)return;RES_STATUS.forEach(function(r){s.appendChild(el('option',{value:r[0],text:r[1]+' / '+r[2]}))});
+ $('#rb-res-save').addEventListener('click',function(){var out=$('#rb-out').textContent;if(!out){toast('Nothing to record');return}var rec=makeRecord(state.recipe.name||'',state.target,out,formNow());var a=loadRecords();a.push(rec);storeRecords(a);renderRecords();toast('Saved in this browser')});
+ $('#rb-res-dl').addEventListener('click',function(){var out=$('#rb-out').textContent;download(fileBase()+'.'+state.target+'.compile-record.md',recordMarkdown(makeRecord(state.recipe.name||'',state.target,out,formNow())))});
+ $('#rb-res-clear').addEventListener('click',function(){var name=clip(state.recipe.name||'',120);storeRecords(loadRecords().filter(function(r){return r.recipe!==name}));renderRecords();toast('Records for this recipe cleared')})}
+function init(){if(!$('#rb-app'))return;initRecords();
  var st=$('#rb-start');RECIPES.forEach(function(r,i){st.appendChild(el('option',{value:String(i),text:r.name}))});
  st.addEventListener('change',function(){if(st.value==='blank')load({schemaVersion:'0.1',name:'My chart tool',description:'',overlay:true,blocks:[]});else if(st.value!=='')load(RECIPES[+st.value])});
  var at=$('#rb-add-type');TYPES.forEach(function(t){at.appendChild(el('option',{value:t,text:t}))});
@@ -230,7 +265,7 @@ function init(){if(!$('#rb-app'))return;
  var d=null;try{d=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
  var ok=null;try{ok=d?sanitize(d).recipe:null}catch(e){}
  load(ok||RECIPES[0]);}
-root.BSVBuilder={lint:lint,reorder:reorder,checklist:CHECKLIST,common:COMMON_CHECK,sanitize:sanitize,sharePayload:sharePayload,readPayload:readPayload,todoMap:todoMap,hints:HINTS,b64e:b64e,b64d:b64d};
+root.BSVBuilder={fp:fp,makeRecord:makeRecord,cleanRecord:cleanRecord,recordMarkdown:recordMarkdown,resStatus:RES_STATUS,lint:lint,reorder:reorder,checklist:CHECKLIST,common:COMMON_CHECK,sanitize:sanitize,sharePayload:sharePayload,readPayload:readPayload,todoMap:todoMap,hints:HINTS,b64e:b64e,b64d:b64d};
 if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init()}
 """
 
@@ -279,7 +314,15 @@ CSS = """
 .rb-lint-error strong{color:var(--danger)}.rb-lint-warn strong{color:var(--danger)}.rb-lint-info strong{color:var(--muted)}
 #rb-lint.rb-lint-ok summary{color:var(--green)}
 #rb-check-list{margin:6px 0 0 18px;padding:0}
-#rb-check-list li{margin:3px 0}
+#rb-check-list li{margin:3px 0;display:flex;gap:6px;align-items:flex-start}
+#rb-check-list input{margin-top:2px}
+#rb-res{border-top:1px solid var(--line);margin-top:8px;padding-top:6px;display:grid;gap:4px}
+#rb-res label{font-size:12px;color:var(--muted)}
+#rb-res select,#rb-res input,#rb-res textarea{width:100%;box-sizing:border-box}
+#rb-res-list{list-style:none;padding:0;margin:4px 0 0}
+#rb-res-list li{border-top:1px solid var(--line);padding:4px 0}
+#rb-res-list li .btn{margin-left:6px}
+.rb-res-h{margin:4px 0 0}
 .rb-share{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 #rb-share-url{width:100%;font:11px var(--mono);background:#090d0b;color:var(--text);border:1px solid var(--line);border-radius:4px;padding:6px}
 .rb-file{display:inline-flex;align-items:center;gap:6px;font-size:12px}
@@ -324,7 +367,7 @@ def main():
     body = (
         f'<div class="container detail"><div class="breadcrumb"><a href="/trading/">← Traders Library</a> / <a href="/trading/build/">{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</a> / {both(T("Recipe builder", "レシピビルダー"))}</div>'
         f'<h1 class="detail-title">{both(T("Recipe builder", "レシピビルダー"))}</h1>'
-        f'{both(T("Pick a starter or start blank, edit the blocks, and the BSV generator renders TradingView Pine v6, MT5 MQL5, MT4 MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8 and Quantower right here in your browser. Nothing is sent to a server.", "ひな形を選ぶか白紙から始めてブロックを編集すると、BSVジェネレーターがTradingView（Pine v6）・MT5（MQL5）・MT4（MQL4）・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantowerのコードをこのブラウザ内で生成します。サーバーには何も送信しません。"), "p", "detail-lead")}'
+        f'{both(T("Pick a starter or start blank, edit the blocks, and the BSV generator renders TradingView Pine v6, MT5 MQL5, MT4 MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart (ACSIL) and ProRealTime right here in your browser. Nothing is sent to a server.", "ひな形を選ぶか白紙から始めてブロックを編集すると、BSVジェネレーターがTradingView（Pine v6）・MT5（MQL5）・MT4（MQL4）・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTimeのコードをこのブラウザ内で生成します。サーバーには何も送信しません。"), "p", "detail-lead")}'
         f'<div class="notice"><p>{both(T("Output is a structural starter: compile it on your platform and resolve every TODO marker before use. Not runtime tested by BSV; not investment advice; no profitability is promised.", "出力は構造のひな形です。各プラットフォームでコンパイルし、TODOをすべて解消してから使ってください。BSVでは実行検証していません。投資助言ではなく、収益も保証しません。"))}</p></div>'
         '<noscript><p class="no-js">JavaScript is required for the builder.</p></noscript>'
         '<div id="rb-app" class="rb-wrap"><section class="rb-panel" aria-label="Recipe editor">'
@@ -345,7 +388,14 @@ def main():
         f'<details id="rb-lint" open><summary id="rb-lint-sum">Recipe check</summary><ul id="rb-lint-list"></ul><button type="button" class="btn small-btn" id="rb-lint-fix" hidden>{both(T("Fix order", "順序を修正"))}</button></details>'
         '<p class="small" id="rb-todo"></p>'
         f'<details id="rb-hints" open hidden><summary>{both(T("TODO hints for this target (per block)", "この出力先のTODOヒント（ブロック別）"))}</summary><ul id="rb-hint-list"></ul></details>'
-        f'<details id="rb-check"><summary>{both(T("Compile checklist", "コンパイル確認リスト"))} — <span id="rb-check-target"></span></summary><ol id="rb-check-list"></ol></details>'
+        f'<details id="rb-check"><summary>{both(T("Compile checklist", "コンパイル確認リスト"))} — <span id="rb-check-target"></span></summary><ol id="rb-check-list"></ol>'
+        f'<div id="rb-res"><p class="rb-res-h"><strong>{both(T("Record your result", "結果を記録"))}</strong></p>'
+        f'<p class="small">{both(T("Your own record, kept only in this browser. BSV does not receive, publish or verify it, and the catalog status stays \"Not runtime tested\". The fingerprint ties the record to the exact code shown.", "あなた自身の記録で、このブラウザ内にだけ保存されます。BSVは受け取らず、公開も検証もしません。カタログの表示は「実行検証なし」のままです。指紋（fingerprint）で、表示中のコードと記録を対応づけます。"))}</p>'
+        f'<label for="rb-res-status">{both(T("Result", "結果"))}</label><select id="rb-res-status"></select>'
+        f'<label for="rb-res-platform">{both(T("Platform, version, build", "プラットフォーム・バージョン・ビルド"))}</label><input id="rb-res-platform" maxlength="120" autocomplete="off" placeholder="e.g. NinjaTrader 8.1.x">'
+        f'<label for="rb-res-notes">{both(T("Notes (errors, fixes)", "メモ（エラー・直した点）"))}</label><textarea id="rb-res-notes" maxlength="1000" rows="3"></textarea>'
+        '<div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-res-save">Save record</button><button type="button" class="btn small-btn" id="rb-res-dl">Download .md</button><button type="button" class="btn small-btn" id="rb-res-clear">Clear this recipe</button></div>'
+        '<ul id="rb-res-list"></ul></div></details>'
         '<div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-copy">Copy code</button><button type="button" class="btn small-btn" id="rb-dl">Download file</button></div>'
         '<pre id="rb-out" tabindex="0" aria-live="polite"></pre></section></div>'
         f'<p class="small">{both(T("Your draft is kept only in this browser (localStorage). Generator: trader-toolkit/generator/render.mjs (ORIGINAL BSV, MIT), ported unchanged to the browser.", "下書きはこのブラウザ内（localStorage）にだけ保存されます。ジェネレーター：trader-toolkit/generator/render.mjs（BSVオリジナル・MIT）をそのままブラウザに移植しています。"))}</p>'
@@ -364,7 +414,7 @@ def main():
     share_path = f"/trading/assets/{SLUG}-share.{sh_h}.js"
     blt.write(site / share_path.lstrip("/"), share_js)
     extra = f'<link rel="stylesheet" href="{css_path}"><script src="{js_path}" defer></script>'
-    blt.write(site / f"trading/items/{SLUG}.html", blt.trader_shell(site, "Recipe builder — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and render Pine v6, MQL5, MQL4, cTrader (C# / Python) Bookmap Python, NinjaTrader 8 and Quantower starters in the browser.", f"/trading/tools/{SLUG}.html", body, robots="noindex,nofollow", extra_head=extra))
+    blt.write(site / f"trading/items/{SLUG}.html", blt.trader_shell(site, "Recipe builder — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and render Pine v6, MQL5, MQL4, cTrader (C# / Python) Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart (ACSIL) and ProRealTime starters in the browser.", f"/trading/tools/{SLUG}.html", body, robots="noindex,nofollow", extra_head=extra))
 
     # ---- public summary page (no generator code)
     nxt = f"/trading/register.html?next=%2Ftrading%2Fitems%2F{SLUG}.html"
@@ -372,20 +422,20 @@ def main():
         f'<div class="container detail"><div class="breadcrumb"><a href="/trading/">← Traders Library</a> / <a href="/trading/build/">{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</a> / {both(T("Recipe builder", "レシピビルダー"))}</div>'
         f'<article class="prose"><div class="badges"><span class="badge">TradingView · MT5 · MT4 · cTrader · Bookmap · NinjaTrader · Quantower</span><span class="badge license">MIT</span><span class="badge">FREE</span></div>'
         f'<h1 class="detail-title">{both(T("Recipe builder (in your browser)", "レシピビルダー（ブラウザで動作）"))}</h1>'
-        f'{both(T("Edit indicator, signal, plot and alert blocks in a form and get Pine v6, MQL5, MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8 and Quantower starters generated instantly in your browser — the same BSV generator used for the pre-built recipes.", "指標・シグナル・プロット・アラートのブロックをフォームで編集すると、Pine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantowerのひな形がブラウザ内ですぐ生成されます。生成済みレシピと同じBSVジェネレーターです。"), "p", "detail-lead")}'
+        f'{both(T("Edit indicator, signal, plot and alert blocks in a form and get Pine v6, MQL5, MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart (ACSIL) and ProRealTime starters generated instantly in your browser — the same BSV generator used for the pre-built recipes.", "指標・シグナル・プロット・アラートのブロックをフォームで編集すると、Pine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTimeのひな形がブラウザ内ですぐ生成されます。生成済みレシピと同じBSVジェネレーターです。"), "p", "detail-lead")}'
         f'<p><span class="bb-status bb-warn">{both(T("Browser port of the repository generator — output not runtime tested", "リポジトリのジェネレーターをブラウザに移植・出力は実行検証なし"))}</span> <span class="bb-orig">ORIGINAL BSV SOURCE</span></p>'
         f'<div class="notice" id="rb-shared-note" hidden><p>{both(T("This link carries a shared recipe (block settings only). It opens automatically in the builder after free email verification; until then it is kept only in this browser for 24 hours.", "このリンクには共有されたレシピ（ブロックの設定のみ）が入っています。無料のメール確認後、ビルダーで自動的に開きます。それまではこのブラウザ内に24時間だけ保存されます。"))}</p></div>'
         f'<p><a class="btn primary" href="{nxt}" data-source-access="{SLUG}">{both(T("Open the builder — free email verification", "ビルダーを開く（無料のメール確認）"))}</a></p>'
         f'{both(T("The explanation is public. Using the builder (it contains the generator source) requires free email verification. Free stays free.", "解説は登録なしで読めます。ビルダー（ジェネレーターのソースを含みます）の利用には無料のメール確認が必要です。無料のものは無料のままです。"), "p", "small")}'
-        f'<h2>{both(T("What you can do", "できること"))}</h2><ul data-lang="en"><li>Start from one of {n_rec} starter recipes or a blank recipe.</li><li>Add, remove, reorder and edit blocks: EMA, SMA, RSI, ATR, session filter, cross, threshold, combine, plot, alert.</li><li>Switch the target between Pine v6, MQL5, MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8 and Quantower and see the TODO count for blocks a target cannot express yet.</li><li>Copy or download the code and the recipe JSON. Drafts stay in your browser.</li><li>Get a recipe check (unused blocks, blocks used before they are defined, value-vs-condition mix-ups) with one-click fixes, and a compile checklist for the selected platform.</li><li>See per-block TODO hints for the selected target, and share your own recipe as a link or JSON file (block settings only — never generated code or BSV source).</li></ul>'
-        f'<ul data-lang="ja"><li>{n_rec}種類のひな形レシピか、白紙から始められます。</li><li>ブロック（EMA・SMA・RSI・ATR・時間帯フィルター・クロス・しきい値・組み合わせ・プロット・アラート）の追加・削除・並べ替え・編集ができます。</li><li>出力先をPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantowerで切り替え、出力先でまだ表現できないブロックのTODO数を確認できます。</li><li>コードとレシピJSONをコピー・ダウンロードできます。下書きはブラウザ内に保存されます。</li><li>レシピの点検（使われていないブロック、定義より前での参照、値と条件の取り違え）とワンクリック修正、選んだプラットフォーム向けのコンパイル確認リストを表示します。</li><li>選んだ出力先のTODOヒントをブロックごとに確認でき、自分のレシピをリンクやJSONファイルで共有できます（ブロックの設定のみ。生成コードやBSVのソースは含みません）。</li></ul>'
+        f'<h2>{both(T("What you can do", "できること"))}</h2><ul data-lang="en"><li>Start from one of {n_rec} starter recipes or a blank recipe.</li><li>Add, remove, reorder and edit blocks: EMA, SMA, RSI, ATR, session filter, cross, threshold, combine, plot, alert.</li><li>Switch the target between Pine v6, MQL5, MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart (ACSIL) and ProRealTime and see the TODO count for blocks a target cannot express yet.</li><li>Copy or download the code and the recipe JSON. Drafts stay in your browser.</li><li>Get a recipe check (unused blocks, blocks used before they are defined, value-vs-condition mix-ups) with one-click fixes, and a compile checklist for the selected platform where you can record your own result (kept in your browser; BSV does not verify it).</li><li>See per-block TODO hints for the selected target, and share your own recipe as a link or JSON file (block settings only — never generated code or BSV source).</li></ul>'
+        f'<ul data-lang="ja"><li>{n_rec}種類のひな形レシピか、白紙から始められます。</li><li>ブロック（EMA・SMA・RSI・ATR・時間帯フィルター・クロス・しきい値・組み合わせ・プロット・アラート）の追加・削除・並べ替え・編集ができます。</li><li>出力先をPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTimeで切り替え、出力先でまだ表現できないブロックのTODO数を確認できます。</li><li>コードとレシピJSONをコピー・ダウンロードできます。下書きはブラウザ内に保存されます。</li><li>レシピの点検（使われていないブロック、定義より前での参照、値と条件の取り違え）とワンクリック修正、選んだプラットフォーム向けのコンパイル確認リストを表示します。結果は自分で記録できます（ブラウザ内に保存され、BSVは検証しません）。</li><li>選んだ出力先のTODOヒントをブロックごとに確認でき、自分のレシピをリンクやJSONファイルで共有できます（ブロックの設定のみ。生成コードやBSVのソースは含みません）。</li></ul>'
         f'<h2>{both(T("Verification status", "検証状態"))}</h2><table class="qa-table"><tbody>'
         f'<tr><td>{both(T("Generator parity", "ジェネレーターとの一致"))}</td><td>{both(T("Browser output is byte-identical to the repository generator for every starter recipe and target (automated check).", "すべてのひな形レシピと出力先で、ブラウザの出力がリポジトリのジェネレーターと完全に一致することを自動確認しています。"))}</td></tr>'
         f'<tr><td>{both(T("Compile on the platform", "プラットフォームでのコンパイル"))}</td><td>{both(T("Not performed by BSV", "BSVでは未実施"))}</td></tr>'
         f'<tr><td>{both(T("Backtest / demo / live run", "バックテスト・デモ・実運用"))}</td><td>{both(T("Not performed", "未実施"))}</td></tr></tbody></table>'
         f'<p class="small"><a href="/trading/build/">{both(T("← Build your own chart tool", "← 自分のチャートツールを作る"))}</a></p></article></div>'
     )
-    blt.write(site / f"trading/tools/{SLUG}.html", blt.trader_shell(site, "Recipe builder (browser) — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader (C# / Python) Bookmap Python, NinjaTrader 8 and Quantower starters in your browser. Free with email verification.", f"/trading/tools/{SLUG}.html", pub, extra_head=f'<script src="{share_path}" defer></script>'))
+    blt.write(site / f"trading/tools/{SLUG}.html", blt.trader_shell(site, "Recipe builder (browser) — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader (C# / Python) Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart (ACSIL) and ProRealTime starters in your browser. Free with email verification.", f"/trading/tools/{SLUG}.html", pub, extra_head=f'<script src="{share_path}" defer></script>'))
 
     # ---- entry in the existing build hub
     hp = site / "trading/build/index.html"
@@ -403,7 +453,7 @@ def main():
     idx = json.loads(ip.read_text())
     idx["rows"] = [r for r in idx["rows"] if r.get("id") != SLUG] + [{
         "s": "trading", "id": SLUG, "t": "Recipe builder (browser)", "k": "Builder", "kj": "ビルダー", "c": "Build your own chart tool",
-        "p": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower"], "d": "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader, Bookmap, NinjaTrader and Quantower starters in your browser.",
+        "p": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower", "Sierra Chart", "ProRealTime"], "d": "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader, Bookmap, NinjaTrader, Quantower, Sierra Chart and ProRealTime starters in your browser.",
         "dj": "レシピのブロックを編集して、Pine v6・MQL5・MQL4・cTrader・Bookmap・NinjaTrader・Quantowerのひな形をブラウザで生成します。", "x": "recipe builder generator editor pine mql5 mql4 mt4 ctrader python bookmap ninjatrader ninjascript quantower ORIGINAL BSV MIT",
         "u": f"/trading/tools/{SLUG}.html", "uj": f"/trading/tools/{SLUG}.html?lang=ja", "a": "free"}]
     ip.write_text(json.dumps(idx, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
