@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "0.1",
+  "generatedFor": "BSV existing AI category",
+  "policy": {
+    "category": "ai",
+    "sourceLabel": "ORIGINAL",
+    "externalRuntimeRule": "BSV does not claim to host or control external runtimes."
+  },
+  "entries": [
+    {
+      "id": "dots-rules",
+      "title": "Dots Custom Rules Starter",
+      "platform": "OpenAI Dots",
+      "type": "copy-paste-template",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/dots/custom-rules-starter.md",
+      "featured": true
+    },
+    {
+      "id": "dots-responsibility",
+      "title": "Dots Ongoing Responsibility Template",
+      "platform": "OpenAI Dots",
+      "type": "copy-paste-template",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/dots/ongoing-responsibility-template.md"
+    },
+    {
+      "id": "dots-review",
+      "title": "Dots Activity Review Checklist",
+      "platform": "OpenAI Dots",
+      "type": "checklist",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/dots/activity-review-checklist.md"
+    },
+    {
+      "id": "hf-mcp-research",
+      "title": "Hugging Face MCP Research Desk",
+      "platform": "Hugging Face",
+      "type": "copy-paste-workflow",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/hugging-face/hf-mcp-research-desk.md",
+      "featured": true
+    },
+    {
+      "id": "hf-space-gate",
+      "title": "Hugging Face Space Safety Gate",
+      "platform": "Hugging Face",
+      "type": "checklist",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/hugging-face/space-tool-safety-gate.md"
+    },
+    {
+      "id": "hf-skills",
+      "title": "Hugging Face Skills Workflow",
+      "platform": "Hugging Face",
+      "type": "copy-paste-workflow",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/hugging-face/hf-skills-workflow.md"
+    },
+    {
+      "id": "hf-tiny-agent",
+      "title": "Local Tiny Agent Starter",
+      "platform": "Hugging Face",
+      "type": "starter-config",
+      "status": "UNTESTED_RUNTIME",
+      "path": "ai-toolkit/hugging-face/local-tiny-agent/",
+      "featured": true
+    },
+    {
+      "id": "bionic-worker",
+      "title": "Bionic Project Worker Template",
+      "platform": "LM Studio Bionic",
+      "type": "copy-paste-template",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/bionic/project-worker-template.md",
+      "featured": true
+    },
+    {
+      "id": "bionic-compressor",
+      "title": "Bionic Context Compressor",
+      "platform": "LM Studio Bionic",
+      "type": "copy-paste-template",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/bionic/context-compressor-template.md"
+    },
+    {
+      "id": "smolagents-lmstudio",
+      "title": "smolagents + LM Studio Local Worker",
+      "platform": "Hugging Face smolagents",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "ai-toolkit/smolagents/lm-studio-local-agent.py"
+    },
+    {
+      "id": "letta-memory",
+      "title": "Stateful Project Memory Template",
+      "platform": "Letta",
+      "type": "copy-paste-template",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/letta/project-memory-template.md"
+    },
+    {
+      "id": "openai-agents-worker",
+      "title": "Guarded Agent Worker Starter",
+      "platform": "OpenAI Agents SDK",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "ai-toolkit/openai-agents/guarded-worker.py"
+    }
+  ]
+}
