@@ -261,7 +261,11 @@ def main():
     ok(len(dss) == 1 and dss[0]["url"] == ORIGIN + "/capabilities/" and [d["contentUrl"] for d in dss[0]["distribution"]] == [ORIGIN + "/capabilities/index.json"]
        and str(cm["counts"]["total"]) in dss[0]["description"] and "license" not in dss[0] and "VERIFIED" not in dss[0]["description"].replace("Nothing is labelled VERIFIED", "").replace("nothing here is VERIFIED", ""), "capabilities page: one truthful Dataset JSON-LD pointing at index.json")
     dpages = [str(f.relative_to(s)) for f in s.rglob("*.html") if '"@type":"Dataset"' in f.read_text(errors="ignore")]
-    ok(dpages == ["capabilities/index.html"], f"Dataset JSON-LD only on the dataset page {dpages[:4]}")
+    ok(sorted(dpages) == ["capabilities/index.html", "trading/build/coverage/index.html"], f"Dataset JSON-LD only on the two dataset pages {dpages[:4]}")
+    cvt = (s / "trading/build/coverage/index.html").read_text()
+    cds = [json.loads(x) for x in re.findall(r'<script type="application/ld\+json">(.*?)</script>', cvt, re.S)]
+    cds = [d for d in cds if d.get("@type") == "Dataset"]
+    ok(len(cds) == 1 and cds[0]["url"] == ORIGIN + "/trading/build/coverage/" and [d["contentUrl"] for d in cds[0]["distribution"]] == [ORIGIN + "/trading/build/coverage.json"] and "license" not in cds[0], "coverage page: one truthful Dataset JSON-LD pointing at coverage.json")
     # sitemaps: no gated URLs anywhere, txt == xml, legacy trading sitemap on public pages (#8 tranche 4)
     edge = s.parent / "netlify/edge-functions/free-session-gate.ts"
     if edge.exists():
