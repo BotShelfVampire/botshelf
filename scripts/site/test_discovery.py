@@ -8,6 +8,7 @@ import argparse, json, re, sys, urllib.request, urllib.error
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import build_discovery as bd
+import build_live_toolkit as blt
 
 ORIGIN = bd.ORIGIN
 fails, n = [], 0
@@ -214,6 +215,8 @@ def main():
         ok(all(g["targetsWithIt"] == len(g["targetsRenderingIt"]) and set(g["targetsRenderingIt"]) <= set(tids) for g in gg["gaps"]), "opportunities: targets rendering each gap listed by id, count matches")
         ok(cv["counts"]["recipeTargetPairsWithoutTodo"] == sum(1 for r in cv["recipes"] for v in r["todoLines"].values() if v == 0), "coverage.json: pairs-without-TODO count matches rows")
         ok(f"{ORIGIN}/trading/build/coverage.json" in (s / "llms.txt").read_text() and json.loads((s / ".well-known/bsv-trust.json").read_text())["generatorCoverage"]["url"].endswith("/trading/build/coverage.json"), "coverage.json: linked from llms.txt and trust manifest")
+        pk = re.findall(r'data-rq-plat="([^"]+)"', t); want_pk = list(dict.fromkeys(l.split(" · ")[0] for _, l, _ in blt.TARGETS))
+        ok(pk == want_pk and len(pk) == 21 and "function addPlat" in "".join(p.read_text() for p in (s / "requests").glob("request-market.*.js")), f"requests: platform picks = the builder's {len(want_pk)} platforms ({len(pk)})")
         ok('id="heatmap"' in t and 'id="rq-heat"' in t and not re.search(r'id="rq-heat"[^>]*>[^<]', t), "requests: demand heatmap present, no seeded cells")
         ok('id="builders"' in t and 'id="rq-areas"' in t and not re.search(r"projected|forecast|potential revenue|\$\d", bd.visible_text(rq), re.I), "opportunities: section present, no revenue projections")
         sc = json.loads((s / "schemas/demand-request-v0.1.json").read_text())
@@ -236,6 +239,14 @@ def main():
         ok(not re.search(r"low-profile|persona", vt, re.I), "transparency: no operator-positioning text (proposal only)")
         ok(not re.search(r"<script(?![^>]*\bsrc=)(?![^>]*application/ld\+json)[^>]*>", t), "transparency: no inline script")
         ok(m.get("transparencyCenter") == ORIGIN + "/transparency/", "trust manifest links the Transparency Center")
+        import xml.etree.ElementTree as ET
+        chs = re.search(r'id="changes">(.*?)</section>', t, re.S); n_li = len(re.findall(r"<li>", chs.group(1))) if chs else -1
+        cj = json.loads(rd("transparency/changes.json")); fx = ET.fromstring(rd("transparency/changes.atom")); A = "{http://www.w3.org/2005/Atom}"
+        ents = fx.findall(A + "entry")
+        ok(cj["count"] == len(cj["changes"]) == n_li == len(ents) > 0, f"transparency changes: page {n_li}, json {len(cj['changes'])}, atom {len(ents)} agree")
+        ok([c["text"] for c in cj["changes"]] == [e.find(A + "summary").text for e in ents] and len({c["id"] for c in cj["changes"]}) == len(ents), "transparency changes: same texts in the same order, unique ids")
+        ok(all(c["url"].startswith(ORIGIN + "/") and re.match(r"^\d{4}-\d{2}-\d{2}$", c["date"]) for c in cj["changes"]), "transparency changes: dated, site links")
+        ok('href="/transparency/changes.atom"' in t and 'type="application/atom+xml"' in t and 'href="/transparency/changes.json"' in t, "transparency changes: linked from the page and its head")
     nob = [u for u in locs if u != ORIGIN + "/" and bd.url_to_file(s, u).suffix == ".html" and bd.url_to_file(s, u).exists() and "BreadcrumbList" not in bd.url_to_file(s, u).read_text(errors="ignore")]
     ok(not nob, f"breadcrumbs: sitemap pages without BreadcrumbList {nob[:5]}")
     # capability manifests (#8 tranche 3)
@@ -317,6 +328,8 @@ def main():
             sts = list(ex.map(lambda u: status_no_redirect(u.replace(ORIGIN, L)), urls))
         badu = [(u, x) for u, x in zip(urls, sts) if x != 200]
         ok(not badu, f"live: {len(urls)} sitemap/capability URLs 200 without redirect; bad {badu[:5]}")
+        stc, cb_, hc = get(f"{L}/transparency/changes.json"); sta, ab_, ha = get(f"{L}/transparency/changes.atom")
+        ok(stc == 200 and sta == 200 and json.loads(cb_) == json.loads((s / "transparency/changes.json").read_text()) and ab_ == (s / "transparency/changes.atom").read_text(), f"live transparency changes feeds equal the build {stc} {sta}")
         for ua in ["OAI-SearchBot/1.0; +https://openai.com/searchbot", "Mozilla/5.0"]:
             st, _, _ = get(f"{L}/trading/build/", ua)
             ok(st == 200, f"live /trading/build/ for {ua} {st}")
