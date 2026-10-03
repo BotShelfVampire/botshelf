@@ -28,7 +28,7 @@
     {
       "id": "trader-generator",
       "title": "Trader Recipe code generator",
-      "platform": "Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower/Sierra Chart/ProRealTime/GoCharting/MotiveWave",
+      "platform": "Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower/Sierra Chart/ProRealTime/GoCharting/MotiveWave/Vela",
       "type": "generator",
       "status": "CI_PASS",
       "path": "trader-toolkit/generator/render.mjs",

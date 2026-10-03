@@ -22,6 +22,10 @@ Each bar must contain:
 
 `time` is epoch milliseconds.
 
+## Recipe-specific chart (generator)
+
+`node generator/render.mjs <recipe.json> --target vela > bsv-chart.js` (or the browser recipe builder) writes a module that registers a small BSV engine (`bsv-recipe`) and exports `mountBsvChart(target, bars, timeframe)`. Replace the `starter.js` import in `index.html` with a script that imports it and passes your bars. Only `@luxalgo/vela` is used; there is no Pine runtime and no network request.
+
 ## Why this matters
 
 With this route, BSV can provide reusable chart-tool recipes while you control:

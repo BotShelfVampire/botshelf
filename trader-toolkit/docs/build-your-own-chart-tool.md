@@ -51,6 +51,7 @@ Other current targets:
 --target prorealtime     # ProRealTime ProBuilder indicator
 --target gocharting-lipi # GoCharting Lipi indicator
 --target motivewave      # MotiveWave SDK custom study (Java)
+--target vela            # Vela web chart + small BSV recipe engine (JavaScript)
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.
@@ -71,7 +72,7 @@ Create a custom indicator in Automate, paste the generated C# starter, build, th
 
 ### Vela
 
-Use the [Vela custom chart starter](../platforms/vela/). It is for people who want their own browser chart rather than only an indicator inside someone else's charting platform.
+Use the [Vela custom chart starter](../platforms/vela/), or generate a recipe-specific module with `--target vela` (it imports only `@luxalgo/vela` and exports `mountBsvChart(target, bars)`). It is for people who want their own browser chart rather than only an indicator inside someone else's charting platform.
 
 ## 5. Verify
 

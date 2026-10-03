@@ -7,7 +7,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | TradingView | Pine Script | generator target + 6 copy/paste Pine starters | Source prepared; runtime compile still required |
 | MT5 | MQL5 | generator target (`mql5`: computes EMA/SMA/RSI/ATR, cross/threshold/combine, plots, closed-bar alerts) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | cTrader | C# or Python custom indicators in cTrader Algo | C# and Python generator targets (both compute indicators, signals, plots and closed-bar alerts) + EMA/ATR (C# and Python) + RSI source | Source prepared; runtime build still required |
-| Vela | JavaScript/TypeScript chart library + optional scripting engines | runnable custom web-chart starter | Source prepared; runtime test required |
+| Vela | JavaScript/TypeScript chart library + optional scripting engines | generator target (`vela`: a small BSV `ScriptingEngine` in plain JS, line series, signal markers, closed-bar alerts) + runnable custom web-chart starter | Generated starters for 7 recipes mounted without errors in headless Chrome against @luxalgo/vela 0.8.1 with synthetic bars (smoke test only); not tested with live data or by users |
 | NinjaTrader | NinjaScript/C# | generator target (`ninjatrader`: built-in EMA/SMA/RSI/ATR, cross/threshold/combine, plots, closed-bar `Alert()`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | Quantower | C# Quantower Algo | generator target (`quantower`: built-in indicators, cross/threshold/combine, line series, closed-bar log alerts) + simple SMA source | Source prepared; runtime compile still required |
 | Sierra Chart | ACSIL/C++ | generator target (`sierra-acsil`: ACSIL moving averages/RSI/ATR, cross/threshold/combine, subgraphs, closed-bar `sc.AddAlertLine`) + EMA overlay custom-study source | Source prepared; runtime build still required |
@@ -30,6 +30,12 @@ Official project/docs:
 - https://docs.luxalgo.com/vela/user/scripting-engines
 
 Vela itself is a charting library and does not ship a scripting engine. Engines are opt-in. Review the license of any scripting-engine dependency before bundling or redistributing it.
+
+The `vela` generator target avoids the Pine addon (whose runtime, `pinets`, is AGPL-3.0). It writes one ES module with the recipe compiled to plain JavaScript (SMA-seeded EMA, SMA, Wilder RSI/ATR, crosses, thresholds, combines, `Intl` session filters in the recipe time zone) and a minimal engine on Vela's `ScriptingEngine` port (`language: 'bsv-recipe'`, static runs, ids from `stableSeriesId`). Plots become line series; overlay signals become triangle label markers; alerts go to `handle.on('alert')` only for bars that close after the first run. Only `@luxalgo/vela` (Apache-2.0) is imported. No network requests, no orders.
+
+Checked by BSV: `scripts/site/test_vela_engine.mjs` (offline, all 14 recipes: model shape, stable ids, markers, closed-bar alerts) and a headless Chrome smoke test that mounted 7 generated starters on the real `vela.global.js` 0.8.1 with synthetic bars (lines and markers drew, 0 console errors). Not tested with live data feeds.
+
+- https://docs.luxalgo.com/vela/contributing/adding-an-engine
 
 ## cTrader
 
