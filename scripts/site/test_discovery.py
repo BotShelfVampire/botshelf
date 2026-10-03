@@ -110,6 +110,25 @@ def main():
         sc = json.loads((s / "schemas/demand-request-v0.1.json").read_text())
         ok(sc.get("$id") == ORIGIN + "/schemas/demand-request-v0.1.json", "requests: schema published at its $id")
         ok("data-rq-link" in (s / "trading/build/index.html").read_text(), "requests: link from /trading/build/")
+    # Transparency Center (Issue #8 tranche 2)
+    tp = s / "transparency/index.html"
+    if tp.exists():
+        t = tp.read_text()
+        vt = bd.visible_text(tp)
+        ok(ORIGIN + "/transparency/" in locs, "transparency: in sitemap")
+        for key, page, sent in bd.FACTS:
+            ok(sent in vt, f"transparency quotes {key}")
+        cat = json.loads((s / "trading/catalog.json").read_text())
+        ok(f"Traders Library entries Traders Library の件数 {len(cat)}" in vt, "transparency: catalogue total matches catalog.json")
+        ok(f"runtime-tested by BSV {sum(1 for i in cat if i.get('runtime_tested') is True)}" in vt, "transparency: runtime-tested matches catalog.json")
+        ok(all(re.search(rf'id="{i}">–<', t) for i in ("tc-rq-received", "tc-rq-published", "tc-rp-received", "tc-rp-reviewed")), "transparency: live counts not hard-coded")
+        ok(all(f'id="{i}"' in t for i in ("money", "buyers", "payouts", "labels", "coverage", "limits", "changes", "incidents", "support", "privacy")), "transparency: 10 sections")
+        ok("Sales and payout totals are not published" in vt and "No incident records are published yet" in vt, "transparency: no invented sales or incident figures")
+        ok(not re.search(r"low-profile|persona", vt, re.I), "transparency: no operator-positioning text (proposal only)")
+        ok(not re.search(r"<script(?![^>]*\bsrc=)(?![^>]*application/ld\+json)[^>]*>", t), "transparency: no inline script")
+        ok(m.get("transparencyCenter") == ORIGIN + "/transparency/", "trust manifest links the Transparency Center")
+    nob = [u for u in locs if u != ORIGIN + "/" and bd.url_to_file(s, u).suffix == ".html" and bd.url_to_file(s, u).exists() and "BreadcrumbList" not in bd.url_to_file(s, u).read_text(errors="ignore")]
+    ok(not nob, f"breadcrumbs: sitemap pages without BreadcrumbList {nob[:5]}")
     # trust facts re-read from the built pages
     for key, page, sent in bd.FACTS:
         ok(sent in bd.visible_text(s / page), f"trust fact {key} not on {page}")
