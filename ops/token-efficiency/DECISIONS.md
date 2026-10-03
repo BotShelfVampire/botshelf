@@ -24,4 +24,8 @@
 - Logged-in QA uses the operator test account (`support@botshelfvampire.com`, name `OTP test`); its cookie jar stays on the box.
 - Library pack items (skills, kimi-*, gemini, deepseek, cursor, claude-code, dify, flowise, autogen, openrouter, agentswarm, mcp, …) use the same body gate as the 70 teams: public explanation; full text at `/library/source/item-<runtime>-<slug>.html`; free label kept. `gate_library_bodies.py --packs all`.
 - Trader generator/builder targets include MQL4, cTrader Python and Bookmap Python alongside Pine v6 / MQL5 / cTrader C#. Catalog status stays UNTESTED_RUNTIME until runtime evidence exists.
-
+- Public GitHub repos (`botshelf-ai-team-registry`, `botshelf/packs`) stay public (owner decision). Site pages show them as provenance only (neutral "path in the BSV team registry repository" note); upstream/attribution links stay where a license requires them; they are never presented as BSV's gated body.
+- `/cross-ai/kits/research-desk-local/` is left as is (owner decision); `test_library_gate.py` reports it as KNOWN_OUT_OF_SCOPE.
+- Every deploy: confirm `/api/commerce/health` shows `email_configured:true`, deploy with `--prod`, confirm again (`qa/deploy_prod.sh`). Gated changes are verified LIVE (anonymous 302, test session 200 + byte match).
+- Recipe builder share links/JSON carry only the user's own block config (whitelisted schema keys, plain param values). Never generated code or BSV source. The payload sits after `#` (not sent to a server); unchanged starters are shared by name; starter descriptions are dropped. Import/apply/download use the same sanitizer.
+- Site pages are served with CSP `style-src 'self'`: no inline `<style>`/`style=` in generated pages; ship CSS as hashed files. QA browser checks must forward the CSP header.

@@ -12,29 +12,24 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
-# Status 2026-10-03 17:18 JST (New Bobby) — cycle 3 LIVE
+# Status 2026-10-03 17:50 JST (New Bobby) — cycle 4 LIVE
 
-LIVE deploy: `6ac0b8e61e7f01df9ceef1db` (production, email_configured:true). Prior: pack-gate batches through `6ac0b458`, then this cycle adds MT4 / Bookmap / cTrader Python + 2 recipes + 6 generator targets. Do not rebuild from scratch.
+LIVE deploy: `6ac0c0f48e544dc4923b42da` (production, email_configured:true before/after). Chain: `6ac0b8e6` (cycle 3) → `6ac0bff1` (builder v2) → `6ac0c0f4` (MQL5/cTrader C# upgrade). Do not rebuild from scratch; deploy tree `/workspace/bsv-live/deploy` (ops box).
 
 Shipped this cycle:
-1. Library pack body gate generalised: 809 pack items (skills, kimi-*, gemini, deepseek, cursor, claude-code, dify, flowise, autogen, openrouter, agentswarm, mcp, …) + 70 teams = 879 gated; title/summary public; full body at `/library/source/item-*` / `team-*` behind email session. Free labels kept. `*.bak*` pruned earlier.
-2. Trader: MT4 (MQL4), Bookmap (Python API), cTrader Python — catalog → build pages → filters → recipe builder (6 targets: pine-v6, mql5, mql4, ctrader, ctrader-python, bookmap-python). +2 recipes (golden-cross-alert, ema-cross-rsi-filter). Hub = 37 assets, 13 platform filters. Honest UNTESTED_RUNTIME / STRUCTURAL labels only.
+1. Builder v2 (gated `/trading/items/bsv-builder.html`): per-block TODO badges + EN/JA hints for the selected target; share link (`#r=` sanitized config / `#s=<starter>`), JSON file import, sanitized JSON download, "restore previous draft"; share survives email verification via a 24h browser-only stash on the public page. Config only — no generated code or BSV source in links.
+2. Fix: builder CSS was inline `<style>` and blocked by production CSP (`style-src 'self'`) → now `/trading/assets/bsv-builder.<hash>.css`.
+3. Generator: MQL5 and cTrader C# targets now compute indicators/signals/plots/closed-bar alerts (TODO markers MQL5 90→33, cTrader C# 52→19 over 14 recipes). Still UNTESTED_RUNTIME.
+4. Team pages: GitHub registry path shown as neutral provenance (no "link after verification" claim).
 
-LIVE URLs:
-- https://botshelfvampire.com/trading/build/ (37 assets; MT4 + Bookmap filters)
-- https://botshelfvampire.com/trading/tools/bsv-mt4-ema-atr.html
-- https://botshelfvampire.com/trading/tools/bsv-bookmap-trade-ema.html
-- https://botshelfvampire.com/trading/tools/bsv-ctrader-python-ema-atr.html
-- https://botshelfvampire.com/trading/tools/bsv-builder.html (6 targets)
-- https://botshelfvampire.com/library/toolkit/
-- Pack example (gated): /library/source/item-skills-accessibility-audit-skill.html → 302 anonymous
-
-Tests (pass): builder parity 84/84; local toolkit ok; local gate 879/0 err; LIVE toolkit public=52 gated=73; LIVE gate 879 logged-in 0 err; health email_configured:true before/after --prod.
+Tests (pass): parity 84/84; share/sanitizer/hints 406 checks; local+LIVE toolkit public=52 gated=73; LIVE trader gate 72/0; LIVE library gate 879/0 (at `6ac0b8e6`; library unchanged since); LIVE builder via CSP-forwarding proxy: grid layout, 6 tabs, hints, share→load, public stash→load, 0 CSP violations.
 
 Next queue (in order):
-1. Builder v2: per-target TODO hints and shareable recipe JSON links (no server storage).
-2. Move `scripts/site/site-integration-check.workflow.yml` into `.github/workflows/` (needs token with `workflow` scope — owner).
-3. Owner-only leftovers (do not invent): public GitHub repos still hold bodies (`botshelf-ai-team-registry`, `botshelf/packs`); `/cross-ai/kits/research-desk-local/` overlaps two Open WebUI bodies (left as-is per prior owner). No SNS/Discord/external posts.
+1. NinjaTrader 8 (NinjaScript C#) generator target + builder tab (same computing pattern), then Quantower.
+2. Builder: per-target "compile checklist" panel and recipe-level lint (unused blocks, refs to later ids) before render.
+3. AI toolkit: add runnable starters for LangGraph/CrewAI jobs that link to the gated Library Teams (catalog → build_live_toolkit → crosslinks).
+4. Move `scripts/site/site-integration-check.workflow.yml` into `.github/workflows/` and extend trader CI to 6 targets (needs a token with `workflow` scope — owner).
+5. Owner decisions already made (do not reopen): public GitHub repos stay public (provenance only); `/cross-ai/kits/research-desk-local/` left as is. No SNS/Discord/external posts.
 
 ---
 

@@ -49,13 +49,14 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
 
-## LIVE integration status (New Bobby, 2026-10-03 17:18 JST)
+## LIVE integration status (New Bobby, 2026-10-03 17:50 JST)
 
-- Production deploy: `6ac0b8e61e7f01df9ceef1db` (context `production`, email_configured:true). Chain includes pack-gate batches (`6ac0b458` …) then cycle-3 trader platforms. Always deploy with `--prod`; never publish CLI drafts via `restoreSiteDeploy`.
-- Trader: https://botshelfvampire.com/trading/build/ — **37** assets (23 catalog + 14 recipes) + recipe builder; filters include **MT4** and **Bookmap** (13 platform options). Generator / builder targets: Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python (parity 84/84). New pages: `bsv-mt4-ema-atr`, `bsv-bookmap-trade-ema`, `bsv-ctrader-python-ema-atr`, recipes `golden-cross-alert`, `ema-cross-rsi-filter`. All UNTESTED_RUNTIME / STRUCTURAL — Runtime-tested by BSV = 0.
+- Production deploy: `6ac0c0f48e544dc4923b42da` (context `production`, email_configured:true before/after). Always `qa/deploy_prod.sh` (`--prod` + health check before/after); never publish CLI drafts via `restoreSiteDeploy`.
+- Trader: https://botshelfvampire.com/trading/build/ — **37** assets (23 catalog + 14 recipes) + recipe builder; 13 platform filters incl. MT4 and Bookmap. Generator/builder targets: Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python (parity 84/84). MQL5 and cTrader C# now compute indicators/signals/plots/alerts. All UNTESTED_RUNTIME / STRUCTURAL — Runtime-tested by BSV = 0.
+- Recipe builder v2: https://botshelfvampire.com/trading/tools/bsv-builder.html (public) → gated `/trading/items/bsv-builder.html`: per-block TODO hints, config-only share link / JSON import-export. CSS external (CSP).
 - AI toolkit: https://botshelfvampire.com/library/toolkit/ (12) cross-linked with Library Teams.
-- Library bodies gated: **879** (70 teams + 809 packs). Public keeps title/summary/explanation; full text at `/library/source/team-*` and `/library/source/item-*` behind verified session; free labels kept. items.json / search / sitemap / llms have no bodies. `*.bak*` pruned.
+- Library bodies gated: **879** (70 teams + 809 packs); full text at `/library/source/team-*` / `item-*` behind verified session; free labels kept; items.json / search / sitemap / llms carry no bodies; `*.bak*` pruned.
 - Gated paths: `/trading/items|sources|downloads/*`, `/library/source/*`, `/registered`, `/switchboard-cos`.
-- LIVE tests (pass): toolkit public=52 gated=73; library gate 879 anonymous 302 + logged-in body match; builder parity 84; health email_configured:true.
+- LIVE tests (pass): toolkit public=52 gated=73; trader gate 72 files anon 302 / session 200 byte-match; library gate 879/0; builder parity 84; builder share/hints 406 checks; health email_configured:true.
 - Logged-in QA: `support@botshelfvampire.com` (OTP test). Cookie jar on ops box only.
-- UNVERIFIED / owner leftovers: public GitHub repos still expose bodies; `/cross-ai/kits/research-desk-local/` left public (prior owner); workflow file move needs `workflow` scope token.
+- Owner decisions recorded: public GitHub repos stay public (provenance links only); `/cross-ai/kits/research-desk-local/` left public. Workflow file move needs a `workflow`-scope token (owner).
