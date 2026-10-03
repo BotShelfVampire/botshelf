@@ -1,0 +1,16 @@
+// BSV Dual EMA Starter for GoCharting Lipi
+// ORIGINAL BSV STARTER. Paste into the Lipi editor and validate there.
+
+indicator("BSV Dual EMA", overlay=true)
+
+fastLength = input.int(21, title="Fast EMA", minval=1)
+slowLength = input.int(89, title="Slow EMA", minval=2)
+
+fast = talib.ema(close, fastLength)
+slow = talib.ema(close, slowLength)
+
+plot(fast, title="Fast EMA", color=color.orange, linewidth=2)
+plot(slow, title="Slow EMA", color=color.blue, linewidth=2)
+
+// Lipi is used here only for chart calculations/visuals.
+// No order placement. No profitability claim.
