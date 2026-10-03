@@ -18,7 +18,7 @@ import numpy as np, pandas as pd, backtesting  # noqa: E402
 from backtesting import Backtest, Strategy  # noqa: E402
 warnings.filterwarnings("ignore")
 
-checks = failures = files = alerts_seen = panels_seen = htf_seen = 0
+checks = failures = files = alerts_seen = panels_seen = htf_seen = zones_seen = webhooks_seen = 0
 import bsv_py_reference as BSVREF  # noqa: E402
 def ok(c, f, m):
     global checks, failures
@@ -38,7 +38,7 @@ def first_valid(xs):
     return 0
 
 tmp = Path(tempfile.mkdtemp(prefix="bsv-btpy-")); csvp = tmp / "bars.csv"; write_csv(csvp)
-ALLOWED_IMPORTS = {"sys", "numpy", "pandas", "backtesting"}
+ALLOWED_IMPORTS = {"json", "sys", "numpy", "pandas", "backtesting"}
 ORDER_CALLS = {"buy", "sell", "close", "cancel"}
 for f in sorted(RECIPES.glob("*.json")):
     recipe = json.loads(f.read_text()); name = f.name; files += 1
@@ -72,11 +72,11 @@ for f in sorted(RECIPES.glob("*.json")):
     ok(st["# Trades"] == 0, name, f"no trades ({st['# Trades']})")
     V, S, val, boo = reference(recipe)
     for b in recipe["blocks"]:  # structure.range: the window's high/low on every bar equal the reference
-        if b["type"] == "structure.range" and b["id"] + ".high" in V:
+        if b["type"] in ("structure.range", "structure.pivot") and b["id"] + ".high" in V:
             for KEYN in ("high", "low"):
                 KEY = b["id"] + "." + KEYN; got = list(strat.bsv_values[KEY]); want = V[KEY]
                 bad = sum(1 for g, w in zip(got, want) if not ((not BSVREF.fin(g) and not BSVREF.fin(w)) or (BSVREF.fin(g) and BSVREF.fin(w) and abs(g - w) < 1e-9)))
-                ok(len(got) == len(want) and bad == 0 and sum(1 for w in want if BSVREF.fin(w)) > 0, name, f"{KEY} (structure.range) equals reference ({bad} bars differ)")
+                ok(len(got) == len(want) and bad == 0 and sum(1 for w in want if BSVREF.fin(w)) > 0, name, f"{KEY} ({b['type']}) equals reference ({bad} bars differ)")
     for b in recipe["blocks"]:
         if b["type"] in ("indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr"):
             got = list(strat.bsv_values[b["id"]]); want = V[b["id"]]
@@ -93,7 +93,15 @@ for f in sorted(RECIPES.glob("*.json")):
     for n, pl in enumerate(plots):
         want = val(pl["params"]["source"]); got = list(np.asarray(getattr(strat, f"p{n + 1}"), float))
         ok(len(got) == NB and all(same(g, w) for g, w in zip(got, want)), name, f"p{n + 1} plots {pl['params']['source']}")
-    start = 1 + max((first_valid(val(pl["params"]["source"])) for pl in plots), default=0)
+    by = {x["id"]: x for x in recipe["blocks"]}
+    zl = []  # zone lines (self.I) also delay Backtesting.py's first next()
+    for n, z in enumerate([x for x in recipe["blocks"] if x["type"] == "visual.zone" and BSVREF.zone_source(by, x)]):
+        src = BSVREF.zone_source(by, z)
+        for e, KEYN in (("h", "high"), ("l", "low")):
+            want = V[src + "." + KEYN]; got = list(np.asarray(getattr(strat, f"z{n + 1}{e}"), float)); zl.append(want)
+            ok(len(got) == NB and all(same(g, w) for g, w in zip(got, want)) and any(fin(w) for w in want), name, f"zone {z['id']} {KEYN} line equals {src}.{KEYN}")
+        zones_seen += 1
+    start = 1 + max([first_valid(val(pl["params"]["source"])) for pl in plots] + [first_valid(w) for w in zl], default=0)
     ok(calls_seen == list(range(start, NB)), name, f"next() once per bar from bar {start} ({len(calls_seen)} calls)")
     out = subprocess.run([sys.executable, str(mp), str(csvp)], capture_output=True, text=True, timeout=300)
     ok(out.returncode == 0, name, f"script run exit {out.returncode} {out.stderr[-300:]}")
@@ -110,6 +118,10 @@ for f in sorted(RECIPES.glob("*.json")):
         BSVREF.htf_checks(recipe, lambda c: subprocess.run([sys.executable, str(mp), str(c)], capture_output=True, text=True, timeout=300), tmp, ok, name)
         htf_seen += 1
     ok(sorted(got) == sorted(want) and len(got) == len(set(got)), name, f"alerts printed {len(got)} expected {len(want)}")
-print(json.dumps({"target": "backtesting-py", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen,
+    if any(x["type"] == "alert.webhook" for x in recipe["blocks"]):  # webhook payloads: printed (never sent) once per completed bar from the first next()
+        gw = [tuple(l.split(" ", 2)) for l in out.stdout.splitlines() if l.startswith("WEBHOOK ")]; ww = BSVREF.webhook_expect(recipe, boo, start)
+        ok(gw == ww and len(ww) > 0, name, f"webhook payloads printed {len(gw)} expected {len(ww)}")
+        webhooks_seen += len(gw)
+print(json.dumps({"target": "backtesting-py", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen, "zones": zones_seen, "webhooks": webhooks_seen,
                   "backtesting": backtesting.__version__, "note": "run inside the Backtesting.py library on synthetic bars; not a broker, live-feed or platform runtime test"}))
 sys.exit(1 if failures else 0)

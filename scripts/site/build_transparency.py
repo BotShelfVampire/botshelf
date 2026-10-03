@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Pivots (structure.pivot), zones (visual.zone) and webhook payloads (alert.webhook, printed and never sent) rendered on backtrader, Backtesting.py and NautilusTrader, checked bar by bar.", "/trading/build/coverage/"),
     ("2026-10-04", "Higher timeframe on Pine v6, MQL5, MQL4 and NinjaTrader 8: the last closed higher-timeframe bar through each platform's officially documented idiom (statically checked by BSV, not run: UNTESTED_RUNTIME) instead of a TODO stub.", "/trading/build/coverage/"),
     ("2026-10-04", "Readable generator coverage page (the BSV check behind each target, TODO matrix); generator gaps name the targets that render each block; practice log downloadable as CSV.", "/trading/build/coverage/"),
     ("2026-10-04", "Ranges and breakouts (structure.range, signal.breakout) rendered on backtrader, Backtesting.py and NautilusTrader; Opening Range and Session Stats panels complete there.", "/trading/build/"),

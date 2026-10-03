@@ -17,7 +17,7 @@ R.use_rounded(5)
 import nautilus_trader  # noqa: E402
 warnings.filterwarnings("ignore")
 
-checks = failures = files = alerts_seen = panels_seen = htf_seen = 0
+checks = failures = files = alerts_seen = panels_seen = htf_seen = zones_seen = webhooks_seen = 0
 import bsv_py_reference as BSVREF  # noqa: E402
 def ok(c, f, m):
     global checks, failures
@@ -29,7 +29,7 @@ def same(a, b): return (not R.fin(a) and not R.fin(b)) or (R.fin(a) and R.fin(b)
 
 tmp = Path(tempfile.mkdtemp(prefix="bsv-nt-")); csvp = tmp / "bars.csv"; R.write_csv(csvp)
 ROWS = [(b["t"], b["open"], b["high"], b["low"], b["close"], 0.0) for b in R.bars]
-ALLOWED_IMPORTS = {"csv", "math", "sys", "collections", "datetime", "zoneinfo", "nautilus_trader"}
+ALLOWED_IMPORTS = {"csv", "json", "math", "sys", "collections", "datetime", "zoneinfo", "nautilus_trader"}
 ORDER = {"submit_order", "submit_order_list", "modify_order", "cancel_order", "cancel_all_orders", "close_position", "close_all_positions", "order_factory"}
 for f in sorted(RECIPES.glob("*.json")):
     recipe = json.loads(f.read_text()); name = f.name; files += 1
@@ -71,11 +71,11 @@ for f in sorted(RECIPES.glob("*.json")):
     ok(all(same(h[0]["close"], b["close"]) and same(h[0]["high"], b["high"]) for h, b in zip(hist, R.bars)), name, "bar prices arrive unchanged (5 decimals)")
     V, S, val, boo = R.reference(recipe)
     for b in recipe["blocks"]:  # structure.range: the window's high/low on every bar equal the reference
-        if b["type"] == "structure.range" and b["id"] + ".high" in V:
+        if b["type"] in ("structure.range", "structure.pivot") and b["id"] + ".high" in V:
             for KEYN in ("high", "low"):
                 KEY = b["id"] + "." + KEYN; got = [h[0].get(KEY, float("nan")) for h in hist]; want = V[KEY]
                 bad = sum(1 for g, w in zip(got, want) if not ((not BSVREF.fin(g) and not BSVREF.fin(w)) or (BSVREF.fin(g) and BSVREF.fin(w) and abs(g - w) < 1e-9)))
-                ok(len(got) == len(want) and bad == 0 and sum(1 for w in want if BSVREF.fin(w)) > 0, name, f"{KEY} (structure.range) equals reference ({bad} bars differ)")
+                ok(len(got) == len(want) and bad == 0 and sum(1 for w in want if BSVREF.fin(w)) > 0, name, f"{KEY} ({b['type']}) equals reference ({bad} bars differ)")
     for b in recipe["blocks"]:
         if b["type"] in ("indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr"):
             got = [h[0].get(b["id"], float("nan")) for h in hist]; bad = sum(1 for g, w in zip(got, V[b["id"]]) if not same(g, w))
@@ -86,6 +86,13 @@ for f in sorted(RECIPES.glob("*.json")):
         if b["type"] == "visual.plot":
             got = [h[0].get("plot:" + b["id"], float("nan")) for h in hist]
             ok(all(same(g, w) for g, w in zip(got, val(b["params"]["source"]))), name, f"plot value {b['id']}")
+    by = {x["id"]: x for x in recipe["blocks"]}
+    for z in [x for x in recipe["blocks"] if x["type"] == "visual.zone" and BSVREF.zone_source(by, x)]:  # zone values = the source's high/low
+        src = BSVREF.zone_source(by, z)
+        for KEYN in ("high", "low"):
+            got = [h[0].get(f"zone:{z['id']}.{KEYN}", float("nan")) for h in hist]; want = V[src + "." + KEYN]
+            ok(all(same(g, w) for g, w in zip(got, want)) and any(R.fin(w) for w in want), name, f"zone {z['id']} {KEYN} equals {src}.{KEYN}")
+        zones_seen += 1
     alerts = [b for b in recipe["blocks"] if b["type"] == "alert.condition"]
     out = subprocess.run([sys.executable, str(mp), str(csvp)], capture_output=True, text=True, timeout=300)
     ok(out.returncode == 0, name, f"script run exit {out.returncode} {out.stderr[-300:]}")
@@ -102,6 +109,10 @@ for f in sorted(RECIPES.glob("*.json")):
         BSVREF.htf_checks(recipe, lambda c: subprocess.run([sys.executable, str(mp), str(c)], capture_output=True, text=True, timeout=300), tmp, ok, name)
         htf_seen += 1
     ok(sorted(got) == sorted(want) and len(got) == len(set(got)), name, f"alerts printed {len(got)} expected {len(want)}")
-print(json.dumps({"target": "nautilus", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen,
+    if any(x["type"] == "alert.webhook" for x in recipe["blocks"]):  # webhook payloads: printed (never sent) once per completed bar
+        gw = [tuple(l.split(" ", 2)) for l in out.stdout.splitlines() if l.startswith("WEBHOOK ")]; ww = BSVREF.webhook_expect(recipe, boo)
+        ok(gw == ww and len(ww) > 0, name, f"webhook payloads printed {len(gw)} expected {len(ww)}")
+        webhooks_seen += len(gw)
+print(json.dumps({"target": "nautilus", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen, "zones": zones_seen, "webhooks": webhooks_seen,
                   "nautilus_trader": nautilus_trader.__version__, "note": "run inside the NautilusTrader backtest engine on synthetic bars; not a broker, live-feed or venue runtime test"}))
 sys.exit(1 if failures else 0)
