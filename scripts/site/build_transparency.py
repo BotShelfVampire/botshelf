@@ -60,7 +60,7 @@ def page(site, F, css_href, js_href, today):
         if sent not in bd.visible_text(site / page_):
             sys.exit(f"transparency: production sentence missing: {k} on {page_}")
     st = "".join(f"<li><code>{blt.esc(k)}</code>: {v}</li>" for k, v in F["build_status"].items())
-    tg = " · ".join(blt.esc(t) for t in F["targets"])
+    tg = "".join(f"<li>{blt.esc(t)}</li>" for t in F["targets"])
     ch = "".join(f'<li>{d}: {blt.esc(t)} <a class="small" href="{u}">{blt.esc(u)}</a></li>' for d, t, u in CHANGES)
     def sec(id_, en, ja, inner):
         return f'<section class="container bb-section" id="{id_}"><h2>{both(en, ja)}</h2>{inner}</section>'
@@ -80,7 +80,7 @@ def page(site, F, css_href, js_href, today):
         + sec("labels", "4. Verification labels", "4. 検証の表示", f'<p>{both("Build assets on /trading/build/ by label (counted from the page):", "/trading/build/ の素材の表示ごとの数（ページから数えた値）:")} {F["build_total"]}</p><ul>{st}</ul>'
               f'<p>{both("Traders Library (counted from /trading/catalog.json):", "Traders Library（/trading/catalog.json から数えた値）:")} {F["cat_total"]} · bundled {F["cat_bundled"]} · author-hosted {F["cat_hosted"]} · compiled by BSV {F["cat_compiled"]} · runtime-tested by BSV {F["cat_runtime"]}</p>'
               f'<p class="small">{both("A label states exactly what was checked. Checks written by BSV (for example a language-subset parser) are not the platform vendor's compiler or a run on the platform.", "表示は確認した範囲そのものです。BSVが書いた検査（言語の一部を解釈する検査など）は、各社のコンパイラーやプラットフォーム上での実行ではありません。")}</p>')
-        + sec("coverage", "5. Current platform / runtime coverage", "5. 対応しているプラットフォーム", f'<p>{both("Recipe builder targets (from the builder):", "レシピビルダーの出力先（ビルダーから取得）:")} {len(F["targets"])}</p><p class="small">{tg}</p>')
+        + sec("coverage", "5. Current platform / runtime coverage", "5. 対応しているプラットフォーム", f'<p>{both("Recipe builder targets (from the builder):", "レシピビルダーの出力先（ビルダーから取得）:")} {len(F["targets"])}</p><ul class="small bb-tags">{tg}</ul>')
         + sec("limits", "6. Known limitations", "6. わかっている制約", '<ul>'
               f'<li>{both("Runtime-tested by BSV", "BSVでの実行検証済み")}: {F["cat_runtime"]}. {both("Generated starters are prepared source, not runtime-verified tools.", "生成したコードは用意したソースであり、実行検証済みのツールではありません。")}</li>'
               f'<li>{both("Sales and payout totals are not published here yet; there is no public source for them on this site.", "売上と支払いの合計はまだ載せていません。このサイトに公開の元データがないためです。")}</li>'
