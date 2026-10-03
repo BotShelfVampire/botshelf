@@ -67,8 +67,25 @@ const RK = { "x-bsv-reviewer-key": process.env.COMPILE_REVIEWER_KEY };
     for (const k of Object.keys(pv)) ok(k in sc.properties, "public view field in schema: " + k);
     ok(/^req_[a-z0-9_-]+$/.test(pv.requestId) && pv.job.length >= 20, "requestId/job match schema pattern/length");
   }
+  // opportunity signals (#6 tranche 3): approved PUBLIC requests only, schema v0.1, no ids/emails
+  r = await fn.handler(ev("GET", { q: { op: "signals" } })); j = J(r);
+  ok(r.statusCode === 200 && j.signals.length === 1, "signals: one signal from the one approved public request");
+  const sg = j.signals[0], ss = JSON.stringify(j);
+  ok(sg.signalType === "REQUEST" && sg.count === 1 && sg.uniqueActors === 1 && sg.sector === "trading" && sg.platform === "TradingView", "signals: counted, grouped by domain/platform");
+  ok(sg.explicitWtp && sg.explicitWtp.count === 1 && sg.explicitWtp.min === 20 && sg.explicitWtp.max === 50 && sg.explicitWtp.currency === "USDT", "signals: WTP only from the stated budget");
+  ok(!ss.includes("req1@example.com") && !ss.includes(u.id) && !ss.includes("robot teleop checklist") && !ss.includes(id2), "signals: no email, user id or private request");
+  ok(j.collected.NO_RESULT_SEARCH === false && !j.signals.some(x => x.signalType === "NO_RESULT_SEARCH" || x.signalType === "MISSING_PLATFORM_VARIANT"), "signals: uncollected types not produced");
+  const sigP = path.join(root, "site/schemas/opportunity-signal-v0.1.json");
+  if (fs.existsSync(sigP)) {
+    const sc = JSON.parse(fs.readFileSync(sigP, "utf8"));
+    for (const k of sc.required) ok(k in sg, "signal has required schema field " + k);
+    for (const k of Object.keys(sg)) ok(k in sc.properties, "signal field in schema: " + k);
+    ok(new RegExp(sc.properties.signalId.pattern).test(sg.signalId) && sc.properties.signalType.enum.includes(sg.signalType) && sg.jobKey.length >= 3 && !isNaN(Date.parse(sg.windowStart)) && !isNaN(Date.parse(sg.windowEnd)), "signal matches schema pattern/enum/date-time");
+  } else ok(false, "opportunity-signal schema published in the deploy");
   r = await fn.handler(ev("POST", { q: { op: "review" }, h: RK, body: { id: id1, decision: "fulfilled", capabilityId: "bsv-recipe-session-breakout" } }));
   ok(J(r).status === "FULFILLED", "fulfilled status after approval");
+  r = await fn.handler(ev("GET", { q: { op: "signals" } })); j = J(r);
+  ok(j.signals.length === 1 && j.signals[0].signalType === "FULFILLED_REQUEST" && /^sig_ful_/.test(j.signals[0].signalId), "signals: fulfilled request becomes FULFILLED_REQUEST");
   r = await fn.handler(ev("GET", { q: { op: "mine" } })); ok(r.statusCode === 401, "mine without session -> 401");
   r = await fn.handler(ev("GET", { q: { op: "mine" }, h: ck })); j = J(r); ok(j.requests.length === 2, "mine lists own 2 requests");
   const u2 = await session.upsertUser({ email: "req2@example.com" }); u2.email_verified = true; await session.putUser(u2);

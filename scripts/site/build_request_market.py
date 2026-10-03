@@ -138,7 +138,7 @@ def builders_section(site: Path) -> str:
         f'<p class="small">{both("No-result searches and page-view demand are not logged on this site, so they are not shown.", "結果0件の検索やページの閲覧数は記録していないため、表示していません。")}</p>'
         f'<h3>{both("If you build it", "作ったら")}</h3><ul><li><q>{blt.esc(split[2])}</q> <a class="small" href="/{split[1]}">{split[1]}</a></li>'
         f'<li>{both("Label exactly what you checked; untested stays untested.", "確認した範囲をそのまま表示します。未検証は未検証のままです。")} <a class="small" href="/transparency/#labels">/transparency/</a></li>'
-        f'<li><a href="/trading/build/">{both("Build from recipe blocks", "レシピのブロックから作る")}</a> · <a href="/for-sellers.html">{both("How to publish", "出品のしかた")}</a> · <a href="/requests/opportunities.json">opportunities.json</a></li></ul></section>'
+        f'<li><a href="/trading/build/">{both("Build from recipe blocks", "レシピのブロックから作る")}</a> · <a href="/for-sellers.html">{both("How to publish", "出品のしかた")}</a> · <a href="/requests/opportunities.json">opportunities.json</a> · <a href="{API}?op=signals">{both("signals JSON", "シグナルJSON")}</a> (<a href="/schemas/opportunity-signal-v0.1.json">opportunity-signal v0.1</a>)</li></ul></section>'
     )
 
 
@@ -210,12 +210,14 @@ def main():
         "generatedAt": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "signals": {
             "publicRequests": {"source": ORIGIN + API + "?op=public", "note": "Live: open public requests and their stated budgets, read from the request store."},
+            "opportunitySignals": {"source": ORIGIN + API + "?op=signals", "schema": ORIGIN + "/schemas/opportunity-signal-v0.1.json", "note": "Live: REQUEST / FULFILLED_REQUEST signals aggregated from approved public requests. Other signal types are not produced because they are not collected."},
             "noResultSearches": {"collected": False, "note": "Not logged on this site."},
             "pageViews": {"collected": False, "note": "Not logged on this site."},
             "catalogueGaps": {"source": ORIGIN + "/trading/catalog.json", "note": "Facts about the catalogue, not demand. Porting third-party source must follow its license.", "gaps": gaps}},
     }, ensure_ascii=False, indent=1) + "\n")
     sd = site / "schemas"; sd.mkdir(exist_ok=True)
     (sd / "demand-request-v0.1.json").write_text((REPO / "schemas/bsv-demand-request.schema.json").read_text())
+    (sd / "opportunity-signal-v0.1.json").write_text((REPO / "schemas/bsv-opportunity-signal.schema.json").read_text())
     smp = site / "sitemap.xml"; s = smp.read_text()
     u = ORIGIN + "/requests/"
     if f"<loc>{u}</loc>" not in s:

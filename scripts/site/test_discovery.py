@@ -157,6 +157,8 @@ def main():
         ok(g["tradingview-only"]["count"] == sum(1 for i in cat if set(i["platforms"]) == {"TradingView"}), "opportunities: TradingView-only count matches catalog")
         ok(g["mt-no-pine"]["count"] == sum(1 for i in cat if "TradingView" not in i["platforms"]), "opportunities: MT-only count matches catalog")
         ok(all(x["count"] == len(x["entries"]) for x in g.values()), "opportunities: counts equal listed entries")
+        osch = json.loads((s / "schemas/opportunity-signal-v0.1.json").read_text())
+        ok((s / "schemas/opportunity-signal-v0.1.json").read_text() == (bd.Path(__file__).resolve().parents[2] / "schemas/bsv-opportunity-signal.schema.json").read_text() and op["signals"]["opportunitySignals"]["schema"].endswith("/schemas/opportunity-signal-v0.1.json"), "opportunity-signal schema published byte-identical and linked")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         ok('id="builders"' in t and 'id="rq-areas"' in t and not re.search(r"projected|forecast|potential revenue|\$\d", bd.visible_text(rq), re.I), "opportunities: section present, no revenue projections")
         sc = json.loads((s / "schemas/demand-request-v0.1.json").read_text())
@@ -232,6 +234,15 @@ def main():
             ok(all("user_id" not in r and "@" not in json.dumps(r) for r in j["requests"]), "live requests API: no user ids or emails")
             st3, cb, _ = get(f"{L}/capabilities/index.json")
             ok(st3 == 200 and json.loads(cb)["counts"] == cm["counts"], f"live capabilities/index.json {st3}")
+            st4, sb, _ = get(f"{L}/.netlify/functions/demand-request?op=signals")
+            if st4 == 200:
+                sj = json.loads(sb)
+                osc = json.loads((s / "schemas/opportunity-signal-v0.1.json").read_text())
+                serr = [e for g in sj["signals"] for e in schema_errors(g, osc, g.get("signalId", "?"))]
+                ok(not serr and sj["collected"]["NO_RESULT_SEARCH"] is False and "@" not in json.dumps(sj["signals"]), f"live signals: schema-valid, uncollected types off {serr[:3]}")
+                ok(sum(g["count"] for g in sj["signals"]) == j["counts"]["published"], "live signals: counts add up to published requests")
+            else:
+                ok(False, f"live signals API {st4}")
             st2, ob, _ = get(f"{L}/requests/opportunities.json")
             ok(st2 == 200 and json.loads(ob)["signals"]["noResultSearches"]["collected"] is False, f"live opportunities.json {st2}")
         else:

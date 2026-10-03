@@ -141,6 +141,48 @@ async function publicList() {
   }, { "Cache-Control": "public, max-age=60" });
 }
 
+// Builder opportunity signals = schema bsv-opportunity-signal v0.1, aggregated from APPROVED PUBLIC requests only.
+// One signal per (first domain, first platform) group; FULFILLED requests form FULFILLED_REQUEST signals. No user ids,
+// no emails, no estimates: count/uniqueActors are counted rows, explicitWtp only from budgets the requesters stated.
+function signalSlug(s) { return String(s || "any").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "any"; }
+async function signals() {
+  var store = await blobs.getStore(STORE);
+  var rows = (await all(store)).filter(function (r) { return r.public === true && r.record.visibility === "PUBLIC" && r.state === "approved"; });
+  var now = new Date().toISOString(), groups = {};
+  rows.forEach(function (r) {
+    var type = r.status === "FULFILLED" ? "FULFILLED_REQUEST" : "REQUEST";
+    var dom = r.record.domains[0], plat = (r.record.platforms || [])[0] || null;
+    var key = type + "|" + dom + "|" + (plat || "");
+    var g = groups[key] || (groups[key] = { type: type, dom: dom, plat: plat, rows: [] });
+    g.rows.push(r);
+  });
+  var out = Object.keys(groups).sort().map(function (k) {
+    var g = groups[k], actors = {}, w = g.rows.filter(function (r) { return !!r.record.willingnessToPay; });
+    g.rows.forEach(function (r) { actors[r.user_id] = 1; });
+    var mins = w.map(function (r) { return r.record.willingnessToPay.min; }).filter(function (v) { return v != null; });
+    var maxs = w.map(function (r) { return r.record.willingnessToPay.max; }).filter(function (v) { return v != null; });
+    var start = g.rows.map(function (r) { return r.created_at; }).sort()[0];
+    return {
+      schemaVersion: "0.1",
+      signalId: "sig_" + (g.type === "REQUEST" ? "req" : "ful") + "_" + signalSlug(g.dom) + "_" + signalSlug(g.plat),
+      signalType: g.type,
+      jobKey: "domain:" + g.dom + (g.plat ? " platform:" + g.plat : ""),
+      sector: g.dom, platform: g.plat,
+      count: g.rows.length, uniqueActors: Object.keys(actors).length,
+      windowStart: start, windowEnd: now, publicEligible: true,
+      explicitWtp: w.length ? { count: w.length, currency: "USDT", min: mins.length ? Math.min.apply(null, mins) : null, max: maxs.length ? Math.max.apply(null, maxs) : null } : null,
+      sourceRefs: g.rows.map(function (r) { return "https://botshelfvampire.com/requests/#" + r.id; }),
+      privacyNotes: ["Aggregated from approved public requests only; no account ids or emails.", "A stated budget is not escrow or a payment."]
+    };
+  });
+  return http.json(200, {
+    ok: true, schema: "https://botshelfvampire.com/schemas/opportunity-signal-v0.1.json", generatedAt: now,
+    collected: { REQUEST: true, FULFILLED_REQUEST: true, NO_RESULT_SEARCH: false, MISSING_PLATFORM_VARIANT: false, REMIX: false },
+    note: "Signals are counted from approved public requests. Searches, page views, platform-variant demand and remixes are not logged on this site, so those signal types are not produced.",
+    signals: out
+  }, { "Cache-Control": "public, max-age=60" });
+}
+
 async function mine(event) {
   var ctx = await session.requireUser(event);
   var store = await blobs.getStore(STORE);
@@ -216,6 +258,7 @@ exports.handler = async function (event) {
     if (method === "OPTIONS") return { statusCode: 204, headers: { "Cache-Control": "no-store" }, body: "" };
     if (method === "POST" && !op) return await submit(event);
     if (method === "GET" && op === "public") return await publicList();
+    if (method === "GET" && op === "signals") return await signals();
     if (method === "GET" && op === "mine") return await mine(event);
     if (method === "GET" && op === "queue") return await queue(event);
     if (method === "POST" && op === "review") return await review(event);
