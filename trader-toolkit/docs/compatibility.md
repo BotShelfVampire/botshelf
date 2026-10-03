@@ -48,7 +48,7 @@ Since 2026-10-04 these are rendered on backtrader, Backtesting.py and NautilusTr
 
 ## Pivots, zones and webhooks (structure.pivot, visual.zone, alert.webhook)
 
-Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader only; every other target keeps the TODO line.
+Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader; `structure.pivot` also on Tradovate (per-bar state, see below). Every other target keeps the TODO line.
 
 - `structure.pivot` (`left`, `right`: 1–50; `source`: `close` or `high_low`): a pivot high is a bar whose value is strictly above the `left` bars before it and at least as high as the `right` bars after it (a flat top counts once, at its first bar); pivot lows mirror this. A pivot is published only on the bar `right` bars later (no lookahead) and the last confirmed pivot high / low is held (`<id>.high`, `<id>.low`).
 - `visual.zone` (`source`: a pivot or a high/low range): two lines with the source's high and low (NautilusTrader: values only, no chart).
@@ -57,11 +57,12 @@ Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader only;
 
 ## Liquidity sweep and divergence (signal.liquidity_sweep, signal.divergence)
 
-Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader only; every other target keeps the TODO line. Both are candidates for you to review, not trade signals.
+Since 2026-10-04 rendered on backtrader, Backtesting.py, NautilusTrader and Tradovate; every other target keeps the TODO line. Both are candidates for you to review, not trade signals.
 
 - `signal.liquidity_sweep` (`pivot`: a structure.pivot; `atr`: an indicator.atr on the chart timeframe; `minAtrFraction`: 0–10, default 0): true on a completed bar whose high goes above the last pivot high known before this bar by at least `minAtrFraction` × this bar's ATR and whose close is back below that level, or the mirror for the last pivot low. False while the ATR or the level has no value. It can fire again on the same level.
 - `signal.divergence` (`pivot`: a structure.pivot whose `left` / `right` / `source` define the price pivots; `oscillator`: an EMA, SMA, RSI or ATR on the chart timeframe; `price`: omitted or equal to the pivot's source; `direction`: `both`, `bearish` or `bullish`): regular divergence. Bearish = a newly confirmed pivot high above the previous pivot high while the oscillator at the new pivot bar is lower than at the previous one; bullish = a lower pivot low with a higher oscillator. True only on the bar that confirms the new pivot (`right` bars after it), so it never looks ahead.
 - Checks: every bar of both signals equals an independent reference (pivots listed over the whole series, then compared pair by pair); the 700-bar runs equal the prefix of the full run; both fire on the synthetic bars; four helper mutants (no close back inside, no ATR distance, flipped oscillator test, dropped price test) are caught. Not run on a broker or live feed (UNTESTED_RUNTIME).
+- Tradovate: each bar's pivot, sweep and divergence state is computed from the closed bars before it and the bar itself (`this.bars[i]`), so `map()` running again for the forming bar changes nothing already closed, and the alert dot reads the closed bar. check_tradovate.mjs (BSV stub of the documented API in node:vm, not Tradovate) compares pivot values and both signals with its own reference on every bar, replays live updates, and catches the same four mutants. `visual.zone` stays TODO on Tradovate.
 
 ## Value panels (visual.table)
 
