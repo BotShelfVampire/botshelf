@@ -132,5 +132,16 @@ ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?a
   const html = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
   ok(html.includes('id="recipes"') && html.includes(rel) && ids.every(x => html.includes("<code>" + x + "</code>")), "Academy lists the teleop recipe with its taxonomy");
 }
+// practice log (#7 tranche 6): totals from saved evidence only, inconsistencies flagged
+{
+  const mk = (id, task, a, s, f, r, env, se) => ({ evidenceId: id, taskId: task, environment: env || "SIMULATION", episodes: { attempted: a, successful: s, failed: f, recoveryEpisodes: r }, safetyEvents: se || [] });
+  const S = P.summarize([mk("e1", "T1", 10, 7, 3, 1), mk("e2", "T1", 5, 5, 0, 0, "SIMULATION", ["x"]), mk("e3", "T2", 4, 3, 3, 0, "REAL_HARDWARE"), null, { evidenceId: "e4" }]);
+  ok(S.sessions === 3 && S.attempted === 19 && S.successful === 15 && S.failed === 6 && S.recovery === 1 && S.safetyEvents === 1, "practice log: totals from saved sessions only");
+  ok(Math.abs(S.successRate - 15 / 19) < 1e-12 && S.byTask.T1.sessions === 2 && S.byTask.T1.successful === 12 && S.byTask.T2.attempted === 4, "practice log: rate and per-task totals");
+  ok(S.inconsistent.length === 1 && S.inconsistent[0] === "e3" && S.nonSimulation === 1, "practice log: counts that do not add up and non-simulation sessions are flagged");
+  const E = P.summarize([]); ok(E.sessions === 0 && E.successRate === null, "practice log: empty log has no rate");
+  const N = P.summarize([mk("n", "T", -3, "2", 1.9, 0)]); ok(N.attempted === 0 && N.successful === 0 && N.failed === 1, "practice log: negative or non-number counts are not counted");
+  ok(html.includes('id="rp-log"') && html.includes('id="rp-log-clear"') && /not reviewed|nothing is uploaded, estimated or reviewed/.test(html), "practice log section on the Academy page");
+}
 console.log(JSON.stringify({ test: "robot-pilot", checks, failures }));
 process.exit(failures ? 1 : 0);
