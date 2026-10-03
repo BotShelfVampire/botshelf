@@ -1,0 +1,18 @@
+# BSV robots policy template
+#
+# Discovery-first / privacy-aware posture.
+# Review production paths before deployment.
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: GPTBot
+Disallow: /
+
+# Keep private/gated surfaces protected at the application/auth layer too.
+# robots.txt is NOT an access-control mechanism.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://botshelfvampire.com/sitemap.xml
