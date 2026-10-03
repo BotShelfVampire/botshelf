@@ -1,0 +1,19 @@
+//@version=6
+indicator("BSV ATR Risk Overlay", overlay=true)
+
+emaLength = input.int(20, "EMA length", minval=1)
+atrLength = input.int(14, "ATR length", minval=1)
+atrMultiple = input.float(1.5, "ATR multiple", minval=0.1, step=0.1)
+
+basis = ta.ema(close, emaLength)
+atr = ta.atr(atrLength)
+upper = basis + atr * atrMultiple
+lower = basis - atr * atrMultiple
+
+pBasis = plot(basis, "EMA basis", color=color.orange, linewidth=2)
+pUpper = plot(upper, "ATR upper", color=color.new(color.red, 25))
+pLower = plot(lower, "ATR lower", color=color.new(color.green, 25))
+fill(pUpper, pLower, color=color.new(color.gray, 92))
+
+// Visual planning aid only. It does not size a position or place a stop/order.
+// ORIGINAL BSV starter.
