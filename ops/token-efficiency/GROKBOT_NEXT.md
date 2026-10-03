@@ -12,6 +12,24 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
+# Status 2026-10-03 20:45 JST (New Bobby) — cycle 8 LIVE
+
+LIVE deploy: `6ac0e60e0dc0bad36673a1d4` (email_configured:true before/after). Chain: `6ac0e283` (intake) → `6ac0e4b6` (JForex) → `6ac0e60e` (EasyLanguage). Commits `5ce2fc6`, `453c0a0`, `4edf5be`.
+
+Shipped: (a) compile-result intake with the owner's most conservative answers (DECISIONS.md, design doc "implemented"); (b) JForex generator target (stub compile 14/14); (c) TradeStation EasyLanguage target (structural check 447/0); builder 15 tabs, parity 210/210; (d) `qa/c6-workflow-runner-checks.patch` now also runs MotiveWave/JForex stub compiles (setup-java 21), Vela engine test and EasyLanguage check, and triggers on `scripts/site/**`.
+
+Owner rule (20:46 JST): no brand-image changes (colors, logo, tone, taglines, visual design, hero copy) without owner approval; #bad4b7 stays as is.
+
+LIVE checks at the end: health OK, toolkit 56/81, trader gate 72/0, library gate 879/0, full CSP sweep 929/0, builder 15 tabs with 0 CSP violations.
+
+Next queue (in order):
+1. Owner: apply `qa/c6-workflow-runner-checks.patch` (needs `workflow` scope). `git apply --check` passes on the branch.
+2. Owner: review/reject QA report `crp_a7eb9f9cf32f2dd59b6f6ec9` in the intake queue (x-admin-secret); BSV has no admin secret.
+3. Real-platform evidence when available (JForex compile/demo, TradeStation Verify, MotiveWave SDK build, Lipi editor) — BSV evidence only if BSV ran it.
+4. Next generator ideas after API check: ATAS (C#), cTrader/NT order-free extras; owner to choose.
+
+---
+
 # Status 2026-10-03 20:00 JST (New Bobby) — cycle 7 LIVE
 
 LIVE deploy: `6ac0df169b77b9322b9ef9f4` (19:55 JST, email_configured:true before/after). Chain: `6ac0d65d` (gold→green) → `6ac0dad0` (Lipi) → `6ac0dcc9` (MotiveWave) → `6ac0df16` (Vela). Commits `65f2c89`, `e5f88af`, `f11b7f8`, `d240f67`, `b46f441`.
@@ -78,6 +96,8 @@ Integrate the current Trader catalog into the live site:
 - ProRealTime
 - MotiveWave
 - Vela
+- JForex
+- TradeStation EasyLanguage
 - OpenMarkets
 
 Required UX:

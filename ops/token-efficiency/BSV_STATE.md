@@ -49,6 +49,13 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
 
+## LIVE integration status (New Bobby, cycle 8, 2026-10-03 20:45 JST)
+
+- Production deploy: `6ac0e60e0dc0bad36673a1d4` (EasyLanguage, email_configured:true before/after). Cycle 8 chain: `6ac0df16` → `6ac0e283` (compile-result intake) → `6ac0e4b6` (JForex) → `6ac0e60e` (TradeStation EasyLanguage). Commits `5ce2fc6` (intake), `453c0a0` (JForex), `4edf5be` (EasyLanguage) on the PR #5 branch.
+- Compile-result intake (owner's most conservative answers): `/.netlify/functions/compile-report` (source `site-functions/compile-report.js`, installed by `install_compile_report_fn.py`). Email-verified session only (anon 401, foreign Origin 403, unknown field 400); store `compile_reports` in the existing Netlify Blobs setup keyed to the account id; no PII beyond the account email (looked up at review time); owner-only queue/review via `x-admin-secret`; states pending / approved-user-reported / rejected / needs-info (no verified state); never public; rejected deleted after 30 days; 10/day/account; duplicates merged. Builder: "Send to BSV (owner review)" button. LIVE: 1 QA report `crp_a7eb9f9cf32f2dd59b6f6ec9` (pending, notes "QA test by New Bobby — please reject").
+- Trader generator/builder targets (15): + **JForex** (`jforex`, Java `IStrategy`, console output, no orders; javac stub compile 14/14 via `check_jforex_stubs.sh`), + **TradeStation EasyLanguage** (`easylanguage`, indicator, closed-bar `Alert`; structural check 447/0 via `check_easylanguage_output.mjs`, not a TradeStation Verify). Parity 210/210, share/lint 936, builder js `bsv-builder.48bb5664.js`, 15 tabs.
+- Catalog status unchanged: UNTESTED_RUNTIME; Runtime-tested by BSV = 0. Images (logo/hero gold lettering) left as-is by owner decision.
+
 ## LIVE integration status (New Bobby, cycle 7, 2026-10-03 20:00 JST)
 
 - Production deploy: `6ac0df169b77b9322b9ef9f4` (19:55 JST, email_configured:true before/after). Cycle 7 chain: `6ac0d372` → `6ac0d65d` (19:21, gold→green base CSS) → `6ac0dad0` (19:37, GoCharting Lipi) → `6ac0dcc9` (19:45, MotiveWave) → `6ac0df16` (19:55, Vela). Commits `65f2c89` (recolor), `e5f88af` (n8n id), `f11b7f8` (Lipi), `d240f67` (MotiveWave), `b46f441` (Vela) on the PR #5 branch (not merged).
