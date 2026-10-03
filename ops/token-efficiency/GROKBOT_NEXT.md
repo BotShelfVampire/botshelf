@@ -12,6 +12,18 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
+# Status 2026-10-03 22:45 JST (New Bobby) — cycle 10 LIVE
+
+LIVE deploy: `6ac0f92445051fe09bf6fdbb` (21:46 JST). Commits `d030472`, `6b33e59`.
+
+Shipped: (a) ATAS on recipe pages (16 pre-generated starters) and in platform lists / hub counts (owner approval 21:33); (b) AmiBroker AFL builder target with a BSV AFL-subset parser/evaluator check; builder 17 tabs, parity 238/238; (c) CI patch adds `check_amibroker_afl.mjs`.
+
+Proposals (not done): AmiBroker on recipe pages and in platform lists / compatibility table / README (needs owner OK on wording).
+
+Hourly routine: `python3 /workspace/newbobby-mail/compile_reports_digest.py digest --email`.
+
+---
+
 # Status 2026-10-03 21:33 JST (New Bobby) — cycle 9 LIVE
 
 LIVE deploy: `6ac0efbe410eb1a190e44728` (email_configured:true before/after). Chain: `6ac0ee67` (intake reviewer credential) → `6ac0efbe` (ATAS). Commits `16930eb`, `dda6c0a`, `3b195ce`.

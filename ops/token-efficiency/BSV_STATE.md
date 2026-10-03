@@ -49,6 +49,14 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
 
+## LIVE integration status (New Bobby, cycle 10, 2026-10-03 22:45 JST)
+
+- Production deploy: `6ac0f92445051fe09bf6fdbb` (21:46 JST, email_configured:true before/after). Chain: `6ac0efbe` → `6ac0f924`. Commits `d030472` (ATAS on recipe pages + lists/counts), `6b33e59` (AmiBroker target + check).
+- ATAS (owner approval 21:33 JST): pre-generated starter on all 14 recipe pages and in zips; added to platform lists, hub platform count (16) and platform filter; only the ATAS entry and corrected counts (EN "sixteen pre-generated / seventeen builder targets", JA 16/17 — the JA line still said 13). Descriptive tone unchanged.
+- AmiBroker AFL (`amibroker`): builder/CLI target, builder-only (not on recipe pages or platform lists). Indicator only: `MA`/`EMA`/`RSIa`/`ATR`, `Plot`, completed-bar `AlertIf` (guide pattern, lookback 2), no `Buy`/`Sell`/`Short`/`Cover`. Check `check_amibroker_afl.mjs` = BSV AFL-subset parser/evaluator (551/0; negative tests: undocumented function, look-ahead `Ref`, forming-bar alert all fail). Not AmiBroker.
+- Builder: 17 tabs, parity 238/238, share/lint 1042/0, js `bsv-builder.9639e20b.js`. LIVE: toolkit 56/81, trader gate 72/0, library gate 879/0, CSP sweep 929/0, builder CDP 0 failures.
+- Catalog status unchanged: UNTESTED_RUNTIME; Runtime-tested by BSV = 0.
+
 ## LIVE integration status (New Bobby, cycle 9, 2026-10-03 21:33 JST)
 
 - Production deploy: `6ac0efbe410eb1a190e44728` (ATAS + intake disclosure, email_configured:true before/after). Cycle 9 chain: `6ac0e60e` → `6ac0ee67` (intake reviewer credential) → `6ac0efbe` (ATAS). Commits `16930eb` (reviewer credential), `dda6c0a` (DECISIONS/design), `3b195ce` (ATAS, EasyLanguage dep-order fix, builder disclosure).
