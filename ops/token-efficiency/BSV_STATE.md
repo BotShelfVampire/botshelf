@@ -1,6 +1,6 @@
 # BSV compact state
 
-Updated: 2026-10-03 20:00 JST
+Updated: 2026-10-04 00:41 JST
 
 ## Goal
 
@@ -48,6 +48,15 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - New Bobby is the operational successor and should continue the same BSV production role without restarting the project from scratch.
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
+
+## P0 tranche 2 LIVE (2026-10-04 00:41 JST)
+
+- Current production deploy: 6ac1200355a8945f1300a5b9. Chain: 6ac118a7 -> 6ac11c03 (#7 t2) -> 6ac11dac (#8 t2) -> 6ac12003 (#6 t2).
+- #7 t2: pilot-record fn. Private, SELF_REPORTED only, no auto-promotion, not a licence.
+- #8 t2: /transparency/ with real figures only, plus BreadcrumbList on 87 pages.
+- #6 t2: /requests/#builders + opportunities.json (live counts, catalogue gaps 34/41/2).
+- Reviewer: compile_reports_digest.py --kind compile|request|pilot. The hourly digest covers all three kinds, account IDs only.
+- Batch email send_report13.py sent. Next: #4, then tranche 3 of #8/#6/#7.
 
 ## P0 tranches LIVE (2026-10-04 00:05 JST)
 
