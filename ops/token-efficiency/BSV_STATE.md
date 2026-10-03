@@ -48,3 +48,18 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - New Bobby is the operational successor and should continue the same BSV production role without restarting the project from scratch.
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
+
+## LIVE integration status (New Bobby, 2026-10-03 16:14 JST)
+
+- Production deploy: `6ac0ab203f861b45e9b5ae67`. Chain from `6abefaf5`: `6ac0a8ff` → `6ac0a9e0` → `6ac0aa87` → `6ac0ab20`. Each one adds to the last; nothing was rolled back. The unpublished `6abf02a9` (skipped for credits) was **not** included.
+- Trader (existing category): https://botshelfvampire.com/trading/build/ is the "Build your own chart tool" hub.
+  - It holds 32 assets: 20 catalog entries and 12 recipes.
+  - It has filters for 11 platforms, type and test status.
+  - Vela is a first-class path. OpenMarkets is shown as data/agent integration.
+  - The entry block and chip are on /trading/.
+- AI (existing Library): https://botshelfvampire.com/library/toolkit/ has 12 items, organised by job and by framework: Dots, Hugging Face, Bionic, smolagents, Letta, OpenAI Agents SDK. The entry block is on /library/. The existing 7 platforms are untouched.
+- Source bodies are served only behind the email-verified session gate (`/trading/items|downloads/bsv-*`, `/library/source/*`). Summaries are public.
+- The site search index (`/search/`, `index.v20261003.json`) and `sitemap.xml` include the new public pages.
+- Generator: all 36 runs (12 recipes × Pine v6/MQL5/cTrader) pass. TODO counts are shown per target.
+- LIVE test: `python3 scripts/site/test_live_toolkit.py --live https://botshelfvampire.com` → ok. 47 public pages and 66 gated paths were checked.
+- Not verified: the logged-in (email-verified) view of the gated pages. No verified test session was available to the bot. Runtime-tested by BSV = 0.

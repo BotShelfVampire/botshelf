@@ -12,6 +12,19 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
+# Status 2026-10-03 16:14 JST (New Bobby)
+
+Tranches 1–4 are LIVE. See BSV_STATE.md "LIVE integration status" and scripts/site/README.md.
+Do not rebuild these surfaces from scratch. Re-run `scripts/site/build_live_toolkit.py` on a fresh production tree when the catalogs change.
+
+Next queue (in order):
+1. A gated in-browser recipe builder at /trading/items/bsv-builder.html. It edits blocks and renders Pine/MQL5/cTrader in the browser, using a browser port of generator/render.mjs.
+2. Logged-in QA of the gated pages, using an owner-provided verified test session.
+3. A Library teams/registry cross-link for the AI toolkit items (registry.json, /library/teams/).
+4. More trader platforms and recipes from ChatGPT source (MT4 renderer, Bookmap, cTrader Python), using the same pipeline.
+
+---
+
 # GrokBot — execute now
 
 Use this as the current BSV execution directive.

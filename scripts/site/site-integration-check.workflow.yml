@@ -1,0 +1,43 @@
+name: Site integration check
+
+on:
+  push:
+    paths:
+      - 'scripts/site/**'
+      - 'trader-toolkit/catalog.json'
+      - 'ai-toolkit/catalog.json'
+      - '.github/workflows/site-integration-check.yml'
+  pull_request:
+    paths:
+      - 'scripts/site/**'
+      - 'trader-toolkit/catalog.json'
+      - 'ai-toolkit/catalog.json'
+      - '.github/workflows/site-integration-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Compile site scripts and validate copy
+        run: |
+          python3 -m py_compile scripts/site/build_live_toolkit.py scripts/site/test_live_toolkit.py
+          python3 - <<'PY'
+          import json
+          copy = json.load(open('scripts/site/toolkit-site-copy.json'))
+          t = json.load(open('trader-toolkit/catalog.json')); a = json.load(open('ai-toolkit/catalog.json'))
+          missing = [e['id'] for e in t['entries'] if e['id'] not in copy['trader']] + [e['id'] for e in a['entries'] if e['id'] not in copy['ai']]
+          if missing:
+              print('::warning::catalog entries without live-site copy (title fallback will be used): ' + ', '.join(missing))
+          for s in {e['status'] for e in t['entries'] + a['entries']}:
+              assert 'VERIFIED' not in s.upper() or 'CI_PASS' in s, s
+          print('copy check ok')
+          PY
+      - name: Generator runs for every catalog recipe and target
+        run: |
+          for r in $(node -e "console.log(require('./trader-toolkit/catalog.json').recipes.join(' '))"); do
+            for t in pine-v6 mql5 ctrader; do node trader-toolkit/generator/render.mjs trader-toolkit/recipes/$r.json --target $t > /tmp/out.txt; test -s /tmp/out.txt; done
+          done
