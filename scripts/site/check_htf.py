@@ -9,6 +9,10 @@
     MQL5 : iBarShift(_Symbol, tf, iTime(chart bar), false) + 1 as CopyBuffer start_pos = last closed higher bar; the
            handle is created on that PERIOD; OnInit fails when the chart period is not lower.
     MQL4 : iBarShift(NULL, tf, iTime(NULL, 0, i), false) + 1 as the shift of iMA/iRSI/iATR on that PERIOD; same guard.
+    NinjaTrader 8: AddDataSeries in State.Configure, Calculate forced to OnBarClose there (the chart bars then only know the
+           last closed bar of the added series), indicator input from that series, values stored per chart bar in
+           BarsInProgress 0; DataLoaded throws when the chart timeframe is not lower
+           (https://ninjatrader.com/support/helpGuides/nt8/multi-time_frame__instruments.htm).
   A timeframe the target cannot name (e.g. 45 minutes on MT4/MT5) stays a TODO stub there.
 - every other target: each block that uses a higher timeframe is an unsupported stub with a TODO line, so nothing is
   computed on the chart timeframe. A timeframe the generator cannot read (e.g. weekly "W") is unsupported everywhere."""
@@ -19,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_live_toolkit as blt  # noqa: E402
 import build_request_market as brm  # noqa: E402
 REAL = {"backtrader", "backtesting-py", "nautilus"}
-IDIOM = {"pine-v6", "mql5", "mql4"}
+IDIOM = {"pine-v6", "mql5", "mql4", "ninjatrader"}
 src = (ROOT / "trader-toolkit/generator/render.mjs").read_text()
 checks = failures = 0
 def ok(c, m):
@@ -68,7 +72,27 @@ def mql4_problems(out, ids):
         if c[1] != "k": p.append(f"higher-timeframe indicator call not at the closed-bar shift: {c}")
     return p
 
-PROBLEMS = {"pine-v6": pine_problems, "mql5": mql5_problems, "mql4": mql4_problems}
+def nt_problems(out, ids):
+    p = []
+    cfg = re.search(r"else if \(State == State\.Configure\)\n            \{\n(.*?)\n            \}", out, re.S)
+    cfg = cfg[1] if cfg else ""
+    if not re.search(r"^                Calculate = Calculate\.OnBarClose;", cfg, re.M): p.append("Calculate not forced to OnBarClose in State.Configure")
+    if re.search(r"Calculate\.On(EachTick|PriceChange)", out): p.append("tick-level Calculate")
+    if "            if (BarsInProgress != 0) return;" not in out: p.append("no BarsInProgress filter")
+    series = re.findall(r"^                AddDataSeries\((BarsPeriodType\.(?:Minute|Day|Week), \d+)\); // BarsInProgress (\d+)$", cfg, re.M)
+    for i in ids:
+        m = re.search(rf"^                _{re.escape(i)} = (?:EMA|SMA|RSI)\((?:Opens|Highs|Lows|Closes|Medians|Typicals)\[(\d+)\], |^                _{re.escape(i)} = ATR\(BarsArray\[(\d+)\], ", out, re.M)
+        if not m: p.append(f"{i}: indicator input is not an added series"); continue
+        k = m[1] or m[2]
+        tf = [a for a, n in series if n == k]
+        if not tf: p.append(f"{i}: series {k} not added in State.Configure"); continue
+        if not re.search(rf"^            _htf_{re.escape(i)}\[0\] = CurrentBars\[{k}\] >= \d+ \? _{re.escape(i)}\[0\] : double\.NaN;", out, re.M): p.append(f"{i}: not stored per chart bar from the added series")
+        if not re.search(rf"^        private double V_{re.escape(i)}\(int ago\) \{{ return _htf_{re.escape(i)}\[ago\]; \}}", out, re.M): p.append(f"{i}: V_ does not read the stored closed-bar series")
+        kind, n = tf[0].replace("BarsPeriodType.", "").split(", ")
+        if not re.search(rf"if \(bsvChartMinutes >= \d+\) throw new ArgumentException\(\"BSV: the higher timeframe {kind} {n} must", out): p.append(f"{i}: no guard for {kind} {n}")
+    return p
+
+PROBLEMS = {"pine-v6": pine_problems, "mql5": mql5_problems, "mql4": mql4_problems, "ninjatrader": nt_problems}
 # Each mutant breaks the closed-bar rule; the static check must catch every one (otherwise it proves nothing).
 MUTANTS = {
     "pine-v6": [("drop [1]", lambda o: o.replace(")[1], lookahead", "), lookahead")), ("lookahead off", lambda o: o.replace("lookahead_on", "lookahead_off")),
@@ -79,6 +103,12 @@ MUTANTS = {
              ("newest-bar copy", lambda o: o.replace("   if (BarsCalculated(h_", "   CopyBuffer(h_ema, 0, 0, 1, v);\n   if (BarsCalculated(h_", 1))],
     "mql4": [("shift s", lambda o: o.replace("return s < 0 ? -1 : s + 1;", "return s < 0 ? -1 : s;")), ("shift i", lambda o: re.sub(r"(i(?:MA|RSI|ATR)\(NULL, PERIOD_\w+, [^;]*), k\)", r"\1, i)", o)),
              ("other period", lambda o: o.replace("iMA(NULL, PERIOD_H1", "iMA(NULL, PERIOD_H4")), ("no guard", lambda o: re.sub(r"   if \(PeriodSeconds\(PERIOD.*\n", "", o))],
+    "ninjatrader": [("OnEachTick", lambda o: o.replace("                Calculate = Calculate.OnBarClose; // forced", "                Calculate = Calculate.OnEachTick; // forced")),
+                    ("Calculate not forced", lambda o: o.replace("                Calculate = Calculate.OnBarClose; // forced", "                // forced")),
+                    ("no BarsInProgress filter", lambda o: o.replace("            if (BarsInProgress != 0) return;", "")),
+                    ("chart-series input", lambda o: re.sub(r"(_\w+ = (?:EMA|SMA|RSI)\()Closes\[\d+\]", r"\1Close", o)),
+                    ("read HTF indicator directly", lambda o: re.sub(r"return _htf_(\w+)\[ago\];", r"return _\1[ago];", o)),
+                    ("no guard", lambda o: re.sub(r"                if \(bsvChartMinutes.*\n", "", o))],
 }
 def render(path, t):
     return subprocess.run(["node", str(ROOT / "trader-toolkit/generator/render.mjs"), str(path), "--target", t], capture_output=True, text=True, check=True).stdout
@@ -108,9 +138,9 @@ for p in recipes:
                 mo = mut(out)
                 ok(mo != out and PROBLEMS[t](mo, refs), f"{p.stem} {t}: static check catches mutant '{name}'")
             dout = render(daily, t)
-            ok(not any(re.search(stubre(i), dout) for i in refs) and not PROBLEMS[t](dout, refs) and ('"1D"' in dout if t == "pine-v6" else "PERIOD_D1" in dout), f"{p.stem} {t}: daily timeframe uses the closed-bar idiom")
+            ok(not any(re.search(stubre(i), dout) for i in refs) and not PROBLEMS[t](dout, refs) and ({"pine-v6": '"1D"', "ninjatrader": "AddDataSeries(BarsPeriodType.Day, 1)"}.get(t, "PERIOD_D1") in dout), f"{p.stem} {t}: daily timeframe uses the closed-bar idiom")
             m45out = render(m45, t)
-            if t == "pine-v6": ok(not any(re.search(stubre(i), m45out) for i in refs) and '"45"' in m45out and not PROBLEMS[t](m45out, refs), f"{p.stem} {t}: 45 minutes readable on Pine")
+            if t in ("pine-v6", "ninjatrader"): ok(not any(re.search(stubre(i), m45out) for i in refs) and ('"45"' if t == "pine-v6" else "BarsPeriodType.Minute, 45") in m45out and not PROBLEMS[t](m45out, refs), f"{p.stem} {t}: 45 minutes readable on {t}")
             else: ok(all(re.search(stubre(i), m45out) for i in refs) and "BsvHtf" not in m45out, f"{p.stem} {t}: 45 minutes has no MT period, stays a TODO stub")
         else:
             ok(len(stub) == len(refs), f"{p.stem} {t}: every higher-timeframe block is an unsupported stub with a TODO line ({set(refs) - set(stub)} missing)")
