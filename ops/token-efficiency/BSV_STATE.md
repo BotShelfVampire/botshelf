@@ -49,17 +49,17 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
 
-## LIVE integration status (New Bobby, 2026-10-03 16:14 JST)
+## LIVE integration status (New Bobby, 2026-10-03 16:45 JST)
 
-- Production deploy: `6ac0ab203f861b45e9b5ae67`. Chain from `6abefaf5`: `6ac0a8ff` → `6ac0a9e0` → `6ac0aa87` → `6ac0ab20`. Each one adds to the last; nothing was rolled back. The unpublished `6abf02a9` (skipped for credits) was **not** included.
+- Production deploy: `6ac0b1259b77b94c2b9efa8c` (context `production`). Chain from `6abefaf5`: drafts `6ac0a8ff` → `6ac0a9e0` → `6ac0aa87` → `6ac0ab20` (published as drafts), then `--prod` deploys `6ac0ad52` (context fix) → `6ac0af32` (Library gate) → `6ac0b125` (builder + cross-links). Nothing was rolled back. The unpublished `6abf02a9` (skipped for credits) was **not** included. The never-published draft `6ac0a8e4` was deleted.
+- Incident (fixed): published drafts ran in `deploy-preview` context, so production-only env (SMTP, operator email) was missing from 16:04 to 16:23 JST. OTP registration/verify returned `error` and the operator digest paused. `--prod` redeploy fixed it; `/api/commerce/health` shows `email_configured:true` and the digest ran again at 16:25 JST.
 - Trader (existing category): https://botshelfvampire.com/trading/build/ is the "Build your own chart tool" hub.
-  - It holds 32 assets: 20 catalog entries and 12 recipes.
-  - It has filters for 11 platforms, type and test status.
-  - Vela is a first-class path. OpenMarkets is shown as data/agent integration.
-  - The entry block and chip are on /trading/.
-- AI (existing Library): https://botshelfvampire.com/library/toolkit/ has 12 items, organised by job and by framework: Dots, Hugging Face, Bionic, smolagents, Letta, OpenAI Agents SDK. The entry block is on /library/. The existing 7 platforms are untouched.
-- Source bodies are served only behind the email-verified session gate (`/trading/items|downloads/bsv-*`, `/library/source/*`). Summaries are public.
-- The site search index (`/search/`, `index.v20261003.json`) and `sitemap.xml` include the new public pages.
-- Generator: all 36 runs (12 recipes × Pine v6/MQL5/cTrader) pass. TODO counts are shown per target.
-- LIVE test: `python3 scripts/site/test_live_toolkit.py --live https://botshelfvampire.com` → ok. 47 public pages and 66 gated paths were checked.
-- Not verified: the logged-in (email-verified) view of the gated pages. No verified test session was available to the bot. Runtime-tested by BSV = 0.
+  - It holds 32 assets: 20 catalog entries and 12 recipes, plus the recipe builder.
+  - It has filters for 11 platforms, type and test status. Vela is a first-class path. OpenMarkets is shown as data/agent integration.
+  - Recipe builder: public summary https://botshelfvampire.com/trading/tools/bsv-builder.html; gated tool `/trading/items/bsv-builder.html` (edits blocks, renders Pine v6 / MQL5 / cTrader in the browser). Browser port output = `render.mjs` output for 36/36 cases.
+- AI (existing Library): https://botshelfvampire.com/library/toolkit/ has 12 items by job and framework (Dots, Hugging Face, Bionic, smolagents, Letta, OpenAI Agents SDK). Cross-linked both ways with the 10 Library AI Teams (`/library/teams/`).
+- Library team implementations (70): explanation/files/examples public; full prompt/config/code only at `/library/source/team-<runtime>-<team>.html` behind the verified session; still labelled free. `items.json` has no bodies. `*.bak*` backups (some held gated pages) and library generator scripts no longer deployed.
+- Gated paths: `/trading/items|sources|downloads/*`, `/library/source/*`, `/registered`, `/switchboard-cos`.
+- LIVE tests (all pass): `test_live_toolkit.py --live` (47 public + 66 gated); `test_library_gate.py --live --cookies` (70 bodies: anonymous no body + 302, test session 200 with exact body; items.json/search/sitemap/llms clean); gated 84 files anonymous 302 vs test session 200 byte-identical; builder rendered logged-in in headless Chrome.
+- Logged-in QA: operator test account `support@botshelfvampire.com` (name `OTP test`, classified test). Runtime-tested by BSV = 0.
+- Open (owner decision): the bodies are also in public GitHub repos (`botshelf-ai-team-registry`, `botshelf/packs`) that the pages link to; `/cross-ai/kits/research-desk-local/` (separate free kit) is public and overlaps two Open WebUI bodies; ~809 other Library items (skills, kimi, gemini, …) still show bodies publicly.

@@ -516,6 +516,7 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
 
     # gate: add /library/source/* to the existing fail-closed edge gate
     gp = site / "netlify/edge-functions/free-session-gate.ts"
+    gp = gp if gp.exists() else site.parent / "netlify/edge-functions/free-session-gate.ts"
     g = gp.read_text()
     if GATE_PATH not in g:
         g2 = g.replace('"/trading/downloads/*"]', f'"/trading/downloads/*", "{GATE_PATH}"]', 1)

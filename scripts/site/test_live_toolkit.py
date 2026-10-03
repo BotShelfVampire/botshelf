@@ -89,7 +89,9 @@ def main():
             f = site / p.lstrip("/")
             if p.endswith("/"): f = f / "index.html"
             return f.read_text() if f.exists() else None
-        gate = (site / "netlify/edge-functions/free-session-gate.ts").read_text()
+        gp = site / "netlify/edge-functions/free-session-gate.ts"
+        gp = gp if gp.exists() else site.parent / "netlify/edge-functions/free-session-gate.ts"
+        gate = gp.read_text()
         cfg = re.search(r"path:\s*\[(.*?)\]", gate, re.S).group(1)
         pats = [p.strip().strip('"') for p in cfg.split(",") if p.strip()]
         for g in gated:
