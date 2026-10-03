@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Session Breakout Alert Starter",
+  "description": "Session filter plus EMA/RSI context. The initial generator emits a TODO where a target cannot express a session filter safely.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "session",
+      "type": "filter.session",
+      "params": {
+        "session": "0800-1200",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "id": "ema",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 20
+      }
+    },
+    {
+      "id": "rsi",
+      "type": "indicator.rsi",
+      "params": {
+        "source": "close",
+        "length": 14
+      }
+    },
+    {
+      "id": "rsi_hot",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": ">",
+        "value": 55
+      }
+    },
+    {
+      "id": "long_setup",
+      "type": "signal.combine",
+      "params": {
+        "mode": "all",
+        "signals": [
+          "session",
+          "rsi_hot"
+        ]
+      }
+    },
+    {
+      "id": "plot_ema",
+      "type": "visual.plot",
+      "params": {
+        "source": "ema",
+        "title": "EMA 20"
+      }
+    },
+    {
+      "id": "alert_long",
+      "type": "alert.condition",
+      "params": {
+        "when": "long_setup",
+        "message": "BSV recipe: in-session momentum condition"
+      }
+    }
+  ]
+}
