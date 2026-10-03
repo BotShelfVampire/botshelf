@@ -424,7 +424,7 @@ def ai_records(repo: Path, copy: dict) -> list[dict]:
         for f in files:
             refs |= set(re.findall(r"https?://[^\s)<>`\"]+", f.read_text()))
         out.append({"id": e["id"], "title": e["title"], "framework": e["platform"], "type": e["type"], "status": e["status"], "featured": bool(e.get("featured")),
-                    "job": c["job"], "summary": c["summary"], "files": files, "base": pdir, "refs": sorted(u.rstrip(".,") for u in refs if "example" not in u)})
+                    "job": c["job"], "summary": c["summary"], "files": files, "base": pdir, "refs": sorted(u.rstrip(".,") for u in refs if not re.search(r"example|localhost|127\.0\.0\.1|botshelfvampire\.com", u))})
     return out
 
 

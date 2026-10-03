@@ -29,3 +29,8 @@
 - Every deploy: confirm `/api/commerce/health` shows `email_configured:true`, deploy with `--prod`, confirm again (`qa/deploy_prod.sh`). Gated changes are verified LIVE (anonymous 302, test session 200 + byte match).
 - Recipe builder share links/JSON carry only the user's own block config (whitelisted schema keys, plain param values). Never generated code or BSV source. The payload sits after `#` (not sent to a server); unchanged starters are shared by name; starter descriptions are dropped. Import/apply/download use the same sanitizer.
 - Site pages are served with CSP `style-src 'self'`: no inline `<style>`/`style=` in generated pages; ship CSS as hashed files. QA browser checks must forward the CSP header.
+- NinjaTrader 8 and Quantower are generator/builder targets (computing pattern like MQL5/cTrader). Catalog status stays UNTESTED_RUNTIME until real compile/runtime evidence exists.
+- Builder recipe check (lint) and compile checklist are advisory: they never block rendering, sharing or download. Auto-fixes are limited to a stable dependency reorder and removing an unused block on click.
+- AI per-task runners (LangGraph, CrewAI) never bundle Library team prompts. The user pastes the SYSTEM block from the gated `/library/source/team-<runtime>-<team>.html` page into `prompts/<task>.txt` (git-ignored). They write output only after an explicit "yes".
+- "Official references" on toolkit pages list external docs only (no localhost or botshelfvampire.com URLs).
+- Concurrent agents share the ops box and branch: before committing, deploying or posting the Issue #4 comment, fetch origin and check the latest Issue #4 comment and LIVE deploy, so the loop stays at one comment and no deploy is overwritten.
