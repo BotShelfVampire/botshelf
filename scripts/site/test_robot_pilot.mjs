@@ -63,8 +63,10 @@ for (const [name, extra, want] of [["over", { successful: "8", failed: "3" }, /m
 }
 const html = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
 ok(!/REAL_HARDWARE/.test(html), "page offers no real-hardware option");
-ok(/Practice records reviewed by BSV<\/span><span[^>]*>[^<]*<\/span><b>0<\/b>/.test(html), "page: reviewed records = 0");
-ok(/BSV has not run this curriculum itself yet/.test(html) && /Not a government licence/.test(html) && /Not permission to operate real hardware/.test(html), "page: boundary statements");
+ok(/id="rp-c-received">–</.test(html) && /id="rp-c-reviewed">–</.test(html), "page: counts not hard-coded (filled from the stats API)");
+ok(/never a licence, a certification or permission to operate real hardware/.test(html) && /stays SELF_REPORTED/.test(html), "page: send note keeps SELF_REPORTED / not a licence");
+ok(/pilot-record\?op=stats|pilot-record' \+ '\?op=stats|API \+ '\?op=stats'/.test(fs.readFileSync(path.join(site, "robot-pilot", jsf[0]), "utf8")), "record JS reads real counts from stats");
+ok(/BSV has not run this curriculum itself yet/.test(html) && /Not a government licence/.test(html) && /Not permission to operate real hardware/.test(html) && /never upgrades the record/.test(html), "page: boundary statements");
 ok(!/certified pilot|licensed pilot|BSV verified/i.test(html), "page: no licence/certification claims");
 ok(/href="\/requests\/\?area=robot-pilot&amp;kind=mission"/.test(html), "page: mission request link");
 ok(!/<script(?![^>]*\bsrc=)(?![^>]*application\/(ld\+)?json)[^>]*>/.test(html), "page: no inline executable script");

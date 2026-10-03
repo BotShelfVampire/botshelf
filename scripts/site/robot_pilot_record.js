@@ -1,5 +1,5 @@
 // BSV Robot Pilot practice record builder (browser + node). Builds documents that follow
-// teleop-session-evidence v0.1 and robot-pilot-profile v0.1. Nothing is sent to BSV.
+// teleop-session-evidence v0.1 and robot-pilot-profile v0.1. Sent to BSV only when the user presses Send (private review).
 (function (root) {
   'use strict';
   function rid(n) { var a = '', c = '0123456789abcdef'; var r = (root.crypto && root.crypto.getRandomValues) ? root.crypto.getRandomValues(new Uint8Array(n)) : null;
@@ -72,5 +72,16 @@
     $('#rp-dl-rec').addEventListener('click', function () { var o = current(); if (show(o)) dl(o.profile.practiceRecords[0].recordId + '.practice-record.json', o.profile); });
     $('#rp-save').addEventListener('click', function () { var o = current(); if (!show(o)) return; var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} a.push(o.evidence); try { root.localStorage.setItem(KEY, JSON.stringify(a.slice(-20))); } catch (e) {} $('#rp-saved').textContent = a.length + ' saved in this browser'; });
     try { var a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); if (a.length) $('#rp-saved').textContent = a.length + ' saved in this browser'; } catch (e) {}
+    var API = '/.netlify/functions/pilot-record';
+    fetch(API + '?op=stats', { credentials: 'omit' }).then(function (r) { return r.json(); }).then(function (j) { if (j && j.ok) { $('#rp-c-received').textContent = String(j.counts.received); $('#rp-c-reviewed').textContent = String(j.counts.reviewed); } }).catch(function () {});
+    $('#rp-send').addEventListener('click', function () { var o = current(); if (!show(o)) return; var m = $('#rp-msg'), b = $('#rp-send'); b.disabled = true;
+      fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ evidence: o.evidence }) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { s: r.status, j: j }; }); })
+        .then(function (x) { b.disabled = false;
+          if (x.s === 201 || (x.s === 200 && x.j.duplicate)) { m.className = 'rq-msg ok'; m.textContent = (x.j.duplicate ? 'Already sent' : 'Sent privately') + ' (' + x.j.id + '). Status: SELF_REPORTED, pending review. Not a licence or certification.'; }
+          else if (x.s === 401) { m.className = 'rq-msg err'; m.textContent = 'Sign in with your verified email first, then send again. '; var a = root.document.createElement('a'); a.href = '/register.html?next=/robot-pilot/'; a.textContent = 'Register / sign in'; m.appendChild(a); }
+          else if (x.s === 429) { m.className = 'rq-msg err'; m.textContent = 'Daily limit reached (10 records per day).'; }
+          else { m.className = 'rq-msg err'; m.textContent = 'Not sent: ' + (x.j.reason || x.s); } })
+        .catch(function () { b.disabled = false; m.className = 'rq-msg err'; m.textContent = 'Not sent: network error'; }); });
   });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -4,7 +4,7 @@
 - Renders the original BSV simulation curriculum (robot-pilot/curricula/isaac-teleop-so101-sim-v1.json) and links the
   official NVIDIA docs (checked 200 on 2026-10-03; Isaac Teleop docs now live under nvidia.github.io/IsaacCapture).
 - Practice record tool: builds teleop-session-evidence v0.1 + robot-pilot-profile v0.1 JSON in the browser
-  (SIMULATION only, SELF_REPORTED / UNREVIEWED). Nothing is sent to BSV.
+  (SIMULATION only, SELF_REPORTED / UNREVIEWED). Optional private send to pilot-record.js (verified session).
 - Mission request = Request Market with area robot-pilot (/requests/?area=robot-pilot&kind=mission).
 - Publishes the three schemas at their $id URLs and the curriculum JSON.
 """
@@ -63,7 +63,8 @@ def page(site, cur, css_hrefs, js_href):
         '</div><aside class="hero-stats"><div class="stat-lines">'
         f'<div>{both("Curricula", "カリキュラム")}<b>1</b></div>'
         f'<div>{both("Environment", "環境")}<b>SIM</b></div>'
-        f'<div>{both("Practice records reviewed by BSV", "BSVが確認した練習記録")}<b>0</b></div>'
+        f'<div>{both("Practice records sent for review", "確認に送られた練習記録")}<b id="rp-c-received">–</b></div>'
+        f'<div>{both("Looked at by a BSV reviewer", "BSVの確認担当が確認")}<b id="rp-c-reviewed">–</b></div>'
         '</div></aside></section>'
         '<div class="container subnav"><a class="chip" href="#boundary">' + both("What a record is not", "記録の範囲") + '</a><a class="chip" href="#curriculum">' + both("SO-101 simulation curriculum", "SO-101 シミュレーション教材") + '</a>'
         '<a class="chip" href="#record">' + both("Practice record", "練習記録") + '</a><a class="chip" href="/requests/?area=robot-pilot&amp;kind=mission">' + both("Request a mission", "ミッションをリクエスト") + '</a></div>'
@@ -71,7 +72,7 @@ def page(site, cur, css_hrefs, js_href):
         f'<li>{both("Not a government licence or a manufacturer certification.", "国の免許やメーカーの認定ではありません。")}</li>'
         f'<li>{both("Not permission to operate real hardware. Real-hardware control needs the robot owner's authorisation and their local safety rules (supervisor and emergency stop where required).", "実機を操作してよいという許可ではありません。実機の操作には、ロボットの所有者の許可と、その場の安全ルール（必要に応じて監督者・非常停止）が必要です。")}</li>'
         f'<li>{both("Not proof of general ability across robots. A record covers one exact task, robot, runtime, input device and revision.", "ロボット全般の能力の証明ではありません。記録の対象は、特定のタスク・ロボット・実行環境・入力装置・リビジョンだけです。")}</li>'
-        f'<li>{both("Self-reported until reviewed. BSV does not review practice records yet.", "確認されるまでは自己申告です。BSVはまだ練習記録の確認をしていません。")}</li>'
+        f'<li>{both("Self-reported. A BSV review only means the evidence was looked at; it never upgrades the record.", "自己申告です。BSVの確認は証跡を見たという意味だけで、記録の格が上がることはありません。")}</li>'
         '</ul></div></section>'
         f'<section class="container bb-section" id="curriculum"><h2>{esc(cur["title"])}</h2>'
         f'<p class="small">Runtime: {esc(cur["runtime"])} · Embodiment: {esc(cur["embodiment"])} · Input: {esc(cur["inputDevice"])} · Environment: {esc(cur["environment"])} · '
@@ -81,7 +82,7 @@ def page(site, cur, css_hrefs, js_href):
         f'<ol class="rp-mod">{"".join(mods)}</ol>'
         f'<p class="small muted">{both("Completion status in this curriculum: SELF_REPORTED (minimum reviewed sessions: 0).", "このカリキュラムの修了状態: 自己申告（必要な確認済みセッション数: 0）。")}</p></section>'
         f'<section class="container bb-section" id="record"><h2>{both("Practice record (session evidence)", "練習記録（セッションの証跡）")}</h2>'
-        f'<p class="small">{both("Fill this in after a simulation session. It builds two JSON files: session evidence (teleop-session-evidence v0.1, review status UNREVIEWED) and a practice record (robot-pilot-profile v0.1, SELF_REPORTED). Everything stays in this browser; nothing is sent to BSV.", "シミュレーションのセッション後に入力します。2つのJSONを作ります: セッションの証跡（teleop-session-evidence v0.1、確認状態 UNREVIEWED）と練習記録（robot-pilot-profile v0.1、SELF_REPORTED）。入力はこのブラウザーの中だけにあり、BSVには送られません。")}</p>'
+        f'<p class="small">{both("Fill this in after a simulation session. It builds two JSON files: session evidence (teleop-session-evidence v0.1, review status UNREVIEWED) and a practice record (robot-pilot-profile v0.1, SELF_REPORTED). It stays in this browser unless you press Send.", "シミュレーションのセッション後に入力します。2つのJSONを作ります: セッションの証跡（teleop-session-evidence v0.1、確認状態 UNREVIEWED）と練習記録（robot-pilot-profile v0.1、SELF_REPORTED）。「送る」を押さない限り、このブラウザーの中だけにあります。")}</p>'
         '<form class="rq-form" id="rp-form" novalidate>'
         f'<div class="rq-row">{inp("taskId", "Task id (official)", "タスクID（公式）", extra="list=\"rp-tasks\" maxlength=\"160\"")}<datalist id="rp-tasks">{opts}</datalist>'
         f'{inp("embodiment", "Embodiment", "ロボット", extra="value=\"" + esc(cur["embodiment"]) + "\" maxlength=\"160\"")}</div>'
@@ -96,7 +97,9 @@ def page(site, cur, css_hrefs, js_href):
         f'<div class="rp-btns"><button type="submit" class="btn primary">{both("Check record", "記録を確認")}</button>'
         f'<button type="button" class="btn" id="rp-dl-ev">{both("Download session evidence", "証跡をダウンロード")}</button>'
         f'<button type="button" class="btn" id="rp-dl-rec">{both("Download practice record", "練習記録をダウンロード")}</button>'
-        f'<button type="button" class="btn" id="rp-save">{both("Save in this browser", "このブラウザーに保存")}</button></div>'
+        f'<button type="button" class="btn" id="rp-save">{both("Save in this browser", "このブラウザーに保存")}</button>'
+        f'<button type="button" class="btn" id="rp-send">{both("Send to BSV for private review", "BSVに非公開で確認を依頼")}</button></div>'
+        f'<p class="small muted">{both("Sending is optional and needs a verified email. The record is stored privately; only the owner and the BSV reviewer see it. Your pilot id is replaced by a pseudonymous id tied to your account. A review means a BSV reviewer looked at the evidence; the record stays SELF_REPORTED and is never a licence, a certification or permission to operate real hardware.", "送信は任意で、メール確認が必要です。記録は非公開で保存し、見るのはオーナーとBSVの確認担当だけです。パイロットIDはアカウントに結びついた仮名のIDに置き換えます。確認はBSVの確認担当が証跡を見たという意味で、記録は自己申告（SELF_REPORTED）のままです。免許・認定・実機操作の許可にはなりません。")}</p>'
         '<p class="rq-msg" id="rp-msg" role="status"></p><p class="small muted" id="rp-saved"></p>'
         '<pre class="rp-preview" id="rp-preview" aria-label="JSON preview"></pre></form>'
         f'<p class="small"><a href="/schemas/teleop-session-evidence-v0.1.json">teleop-session-evidence v0.1</a> · <a href="/schemas/robot-pilot-profile-v0.1.json">robot-pilot-profile v0.1</a></p></section>'
