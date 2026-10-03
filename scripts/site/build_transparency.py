@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "This list is also published as JSON (/transparency/changes.json) and as an Atom feed; the request form offers the builder's trading platforms as tap-to-add picks; the practice log can be backed up as one JSON file and re-imported (kept in the browser, nothing uploaded).", "/transparency/changes.json"),
     ("2026-10-04", "Liquidity sweep candidates (signal.liquidity_sweep) and regular divergence (signal.divergence) rendered on backtrader, Backtesting.py and NautilusTrader, checked bar by bar against an independent reference with a no-lookahead prefix test. Candidates only; not run on a broker or live feed.", "/trading/build/coverage/"),
     ("2026-10-04", "thinkorswim (thinkScript) now reads the last closed higher-timeframe bar (secondary aggregation with [1] taken in that aggregation, never mixed with chart prices); BSV's thinkScript-subset evaluator models secondary contexts, compares with an hourly reference and checks it never looks ahead. Not run in thinkorswim.", "/trading/build/coverage/"),
     ("2026-10-04", "AmiBroker (AFL) now reads the last closed higher-timeframe bar (TimeFrameSet + Ref(x, -1) + TimeFrameExpand expandFirst, as the AFL guide advises for trading rules); BSV's AFL-subset evaluator compares it with an hourly reference and checks it never looks ahead. Not run in AmiBroker.", "/trading/build/coverage/"),
@@ -80,6 +81,26 @@ def figures(site: Path) -> dict:
             "build_total": sum(status.values()), "build_status": dict(sorted(status.items())), "targets": [blt.html.unescape(t) if hasattr(blt, "html") else t for t in tabs]}
 
 
+def change_feeds(today):
+    """The same dated list as section 7, as JSON and as an Atom feed (dates are JST; entry ids are stable)."""
+    import hashlib
+    from xml.sax.saxutils import escape as xe
+    rows = [{"date": d, "text": t, "url": ORIGIN + u, "id": "tag:botshelfvampire.com," + d + ":changes/" + hashlib.sha1((d + "\n" + t).encode()).hexdigest()[:12]} for d, t, u in CHANGES]
+    j = {"name": "BotShelf Vampire: recent material public changes", "page": ORIGIN + "/transparency/#changes", "dates": "Asia/Tokyo (JST), date only",
+         "note": "The same list as section 7 of the Transparency Center, newest first. Each line describes a change that is live on the site; checks named there are BSV's own checks, not runs on the platforms.",
+         "built": today, "count": len(rows), "changes": rows}
+    upd = (max(d for d, _, _ in CHANGES) if CHANGES else today) + "T00:00:00+09:00"
+    a = ['<?xml version="1.0" encoding="utf-8"?>', '<feed xmlns="http://www.w3.org/2005/Atom">',
+         '<title>BotShelf Vampire: recent material public changes</title>', f'<id>{ORIGIN}/transparency/changes.atom</id>',
+         f'<link rel="self" type="application/atom+xml" href="{ORIGIN}/transparency/changes.atom"/>', f'<link rel="alternate" type="text/html" href="{ORIGIN}/transparency/#changes"/>',
+         f'<updated>{upd}</updated>', '<author><name>BotShelf Vampire</name><email>support@botshelfvampire.com</email></author>']
+    for r in rows:
+        a += ['<entry>', f'<id>{r["id"]}</id>', f'<title>{xe(r["text"][:120] + ("…" if len(r["text"]) > 120 else ""))}</title>', f'<updated>{r["date"]}T00:00:00+09:00</updated>',
+              f'<link rel="alternate" type="text/html" href="{xe(r["url"])}"/>', f'<summary>{xe(r["text"])}</summary>', '</entry>']
+    a.append('</feed>')
+    return json.dumps(j, ensure_ascii=False, indent=1) + "\n", "\n".join(a) + "\n"
+
+
 def page(site, F, css_href, js_href, today):
     for k, page_, sent in bd.FACTS:
         if sent not in bd.visible_text(site / page_):
@@ -112,7 +133,7 @@ def page(site, F, css_href, js_href, today):
               f'<li>{both("Request Market counts and practice-record counts are what users sent; requests and records are self-reported.", "Request Market と練習記録の数は、利用者が送ったものです。リクエストと記録は自己申告です。")}</li></ul>'
               f'<div class="rq-counts"><div>{both("Requests received", "受け付けたリクエスト")}<b id="tc-rq-received">–</b></div><div>{both("Requests listed", "公開中のリクエスト")}<b id="tc-rq-published">–</b></div>'
               f'<div>{both("Practice records received", "受け付けた練習記録")}<b id="tc-rp-received">–</b></div><div>{both("Looked at by a BSV reviewer", "BSVの確認担当が確認")}<b id="tc-rp-reviewed">–</b></div></div>')
-        + sec("changes", "7. Recent material changes", "7. 最近の大きな変更", f"<ul>{ch}</ul>")
+        + sec("changes", "7. Recent material changes", "7. 最近の大きな変更", f'<ul>{ch}</ul><p class="small">{both("The same list, machine-readable:", "同じ一覧（機械可読）:")} <a href="/transparency/changes.json">changes.json</a> · <a href="/transparency/changes.atom">{both("Atom feed", "Atomフィード")}</a></p>')
         + sec("incidents", "8. Incident history", "8. 障害の履歴", f'<p>{both("No incident records are published yet. An incident is added here only after its facts (start, end, affected surface, impact, cause, fix) are verified.", "障害の記録はまだ載せていません。開始・終了・影響範囲・影響・原因・対応の事実を確かめてから載せます。")}</p>')
         + sec("support", "9. Support and dispute path", "9. 問い合わせ・異議", f'<ul>{q("support_email")}{q("refunds")}{q("payout_hold_reason")}</ul>')
         + sec("privacy", "10. Privacy: what BSV does and does not publish", "10. プライバシー: BSVが公開するもの・しないもの", f'<ul>{q("public_contact")}'
@@ -122,7 +143,7 @@ def page(site, F, css_href, js_href, today):
     )
     h = blt.trader_shell(site, "Transparency Center — rules and figures you can check · BotShelf Vampire",
                          "How BotShelf Vampire works: buyer access, seller payouts, fees, verification labels and coverage, quoted from production pages, with figures counted from public files.",
-                         "/transparency/", body, extra_head=f'<link rel="stylesheet" href="{css_href}"><script src="{js_href}" defer></script>')
+                         "/transparency/", body, extra_head=f'<link rel="stylesheet" href="{css_href}"><link rel="alternate" type="application/atom+xml" title="BotShelf Vampire: recent material public changes" href="/transparency/changes.atom"><script src="{js_href}" defer></script>')
     foot = ('<footer class="site-footer"><div class="container"><p data-lang="en">If this page and a linked production page or the current checkout ever disagree, the production page and the checkout win. Report a mismatch to support@botshelfvampire.com.</p>'
             '<p data-lang="ja">このページとリンク先の本番ページ・現在のチェックアウトが食い違う場合は、本番ページとチェックアウトが優先です。食い違いは support@botshelfvampire.com へお知らせください。</p></div></footer>')
     h = re.sub(r'<footer class="site-footer">.*?</footer>', foot, h, count=1, flags=re.S)
@@ -145,6 +166,7 @@ def main():
     js_n = f"transparency.{h8(JS)}.js"; (d / js_n).write_text(JS)
     rq_css = [p.name for p in (site / "requests").glob("request-market.*.css")]
     (d / "index.html").write_text(page(site, F, f"/requests/{rq_css[0]}", f"/transparency/{js_n}", today))
+    cj, ca = change_feeds(today); (d / "changes.json").write_text(cj); (d / "changes.atom").write_text(ca)
     smp = site / "sitemap.xml"; s = smp.read_text(); u = ORIGIN + "/transparency/"
     if f"<loc>{u}</loc>" not in s:
         smp.write_text(s.replace("</urlset>", f"  <url><loc>{u}</loc><lastmod>{today}</lastmod></url>\n</urlset>"))
