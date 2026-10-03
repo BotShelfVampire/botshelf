@@ -23,11 +23,14 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Tradovate (JavaScript custom indicator) starters listed; 19 builder targets.", "/trading/build/"),
+    ("2026-10-04", "Request Market builder view: live request counts by area and catalogue gaps (no estimates).", "/requests/#builders"),
+    ("2026-10-04", "Transparency Center published (quoted rules and counted figures only).", "/transparency/"),
     ("2026-10-04", "Robot Pilot practice records can be sent for private review (self-reported; never a licence or certification).", "/robot-pilot/"),
     ("2026-10-04", "Robot Pilot Academy (simulation-first curriculum, browser practice record, mission requests).", "/robot-pilot/"),
     ("2026-10-03", "Request Market: verified-email requests, reviewed before listing; counts read from the store.", "/requests/"),
     ("2026-10-03", "Machine-readable trust facts at /.well-known/bsv-trust.json; robots.txt allows OAI-SearchBot and disallows GPTBot.", "/.well-known/bsv-trust.json"),
-    ("2026-10-03", "AmiBroker (AFL) and thinkorswim (thinkScript) starters listed; 18 builder targets.", "/trading/build/"),
+    ("2026-10-03", "AmiBroker (AFL), thinkorswim (thinkScript) and Tradovate (JavaScript) starters listed; 18 builder targets.", "/trading/build/"),
 ]
 
 
@@ -112,7 +115,7 @@ def main():
     site = Path(a.site); blt.assets(site)
     today = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).date().isoformat()
     F = figures(site)
-    if len(F["targets"]) < 18 or F["build_total"] == 0:
+    if len(F["targets"]) < 19 or F["build_total"] == 0:
         sys.exit(f"transparency: could not read figures {F}")
     d = site / "transparency"; d.mkdir(exist_ok=True)
     for old in d.glob("transparency.*"):

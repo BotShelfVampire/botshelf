@@ -57,6 +57,7 @@ Other current targets:
 --target atas            # ATAS C# indicator (lines + closed-bar alerts, no orders)
 --target amibroker       # AmiBroker AFL indicator (Plot + completed-bar AlertIf, no orders)
 --target thinkscript     # thinkorswim thinkScript study (plots + closed-bar Alert, no orders)
+--target tradovate       # Tradovate custom indicator, JavaScript (plots + closed-bar alert dots, no orders)
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.
