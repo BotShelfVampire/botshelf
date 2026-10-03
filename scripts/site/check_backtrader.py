@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RECIPES = ROOT / "trader-toolkit/recipes"
 import backtrader as bt  # noqa: E402
 
-checks = failures = files = alerts_seen = panels_seen = 0
+checks = failures = files = alerts_seen = panels_seen = htf_seen = 0
 import bsv_py_reference as BSVREF  # noqa: E402
 def ok(c, f, m):
     global checks, failures
@@ -72,7 +72,7 @@ for f in sorted(RECIPES.glob("*.json")):
     for b in recipe["blocks"]:
         k = re.sub(r"[^A-Za-z0-9_]", "_", b["id"])
         if b["type"] in ("indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr"):
-            got = [r.get(k, NAN) for r in rec["subs"]]; want = V[b["id"]]
+            got = [r.get(b["id"], NAN) for r in rec["sig"]] if (b.get("params") or {}).get("timeframeRef") else [r.get(k, NAN) for r in rec["subs"]]; want = V[b["id"]]
             worst = max((abs(g - w) / max(1, abs(w)) for g, w in zip(got, want) if fin(w)), default=0); warm = sum(1 for g, w in zip(got, want) if not fin(w) and fin(g))
             ok(worst < 1e-9 and warm == 0 and all(fin(g) for g, w in zip(got, want) if fin(w)), name, f"{b['id']} ({b['type']}) equals reference: worst {worst}, early values {warm}")
         if re.match(r"^(signal\.(cross|threshold|combine)|filter\.session)$", b["type"]):
@@ -96,7 +96,11 @@ for f in sorted(RECIPES.glob("*.json")):
         ok(okp, name, f"value panel on the last bar equals the reference {why}")
         ok(len(re.findall(r"TODO [A-Za-z0-9_]+: visual\.table ", code)) == skipped and "TODO unsupported block visual.table" not in code, name, f"panel TODO lines for fields that cannot be shown ({skipped})")
         panels_seen += len(want_p)
+    if BSVREF.uses_htf(recipe):  # higher timeframe: no lookahead, closed periods only, fails loudly on too-coarse bars
+        BSVREF.htf_checks(recipe, lambda c: subprocess.run([sys.executable, str(mp), str(c)], capture_output=True, text=True, timeout=300), tmp, ok, name)
+        BSVREF.htf_mutations(recipe, code, tmp, sys.executable, ok, name)  # the same helper is emitted for all three Python targets
+        htf_seen += 1
     ok(sorted(map(tuple, got)) == sorted(map(tuple, want)) and len(got) == len(set(map(tuple, got))), name, f"alerts printed {len(got)} expected {len(want)}")
-print(json.dumps({"target": "backtrader", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen,
+print(json.dumps({"target": "backtrader", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen,
                   "backtrader": bt.__version__, "note": "run inside the backtrader library on synthetic bars; not a broker, live-feed or platform runtime test"}))
 sys.exit(1 if failures else 0)

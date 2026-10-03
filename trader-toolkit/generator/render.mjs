@@ -43,7 +43,7 @@ if (!renderers[target]) {
   throw new Error(`Unsupported target: ${target}`);
 }
 
-process.stdout.write(renderers[target](recipe));
+process.stdout.write(renderFor(target, renderers[target], recipe));
 
 function validateRecipe(recipe) {
   if (recipe?.schemaVersion !== '0.1') throw new Error('schemaVersion must be 0.1');
@@ -72,6 +72,39 @@ function validateRecipe(recipe) {
   }
 }
 
+// Higher timeframe (data.higher_timeframe + timeframeRef). Real higher-timeframe values are rendered only on targets
+// where a BSV check runs them (htfRealTargets()): built from closed higher-timeframe bars only, so no value repaints or
+// looks ahead. On every other target the blocks that use a higher timeframe are rendered as unsupported stubs (empty
+// value / false signal + a TODO line) instead of being computed on the chart timeframe.
+function htfRealTargets() { return ['backtrader', 'backtesting-py', 'nautilus']; }
+function htfMinutes(b) {
+  const t = String((b && b.params && b.params.timeframe) ?? '').trim().toUpperCase();
+  if (/^\d+$/.test(t)) return Number(t) >= 1 && Number(t) <= 10080 ? Number(t) : null;
+  const m = t.match(/^(\d*)D$/); if (m) return (Number(m[1]) || 1) <= 7 ? (Number(m[1]) || 1) * 1440 : null;
+  return null;  // weeks, months and other strings: not rendered
+}
+function htfSource(recipe, b) {  // the data.higher_timeframe block an indicator reads, or null when it cannot be rendered
+  const r = b.params && b.params.timeframeRef, d = r && blockMap(recipe).get(r);
+  if (!d || d.type !== 'data.higher_timeframe' || htfMinutes(d) === null || !/^indicator\.(ema|sma|rsi|atr)$/.test(b.type)) return null;
+  return d;
+}
+function htfPrep(recipe, real) {
+  const out = JSON.parse(JSON.stringify(recipe));
+  out.bsvHtfReal = !!real;
+  out.blocks = out.blocks.map(b => {
+    if (!(b.params && b.params.timeframeRef)) return b;
+    if (real && htfSource(recipe, b)) return b;
+    return { id: b.id, type: 'data.higher_timeframe', params: Object.assign({}, b.params, { bsvHtfOf: b.type }) };
+  });
+  return out;
+}
+function renderFor(t, fn, recipe) { return fn(htfPrep(recipe, htfRealTargets().includes(t))); }
+function htfNotes(recipe, prefix) {  // one line per block that uses a higher timeframe, saying how this target treats it
+  return recipe.blocks.filter(b => b.params && b.params.timeframeRef).map(b => b.type === 'data.higher_timeframe'
+    ? `${prefix} TODO ${b.id}: ${b.params.bsvHtfOf || 'block'} on higher timeframe ${b.params.timeframeRef} is not computed for this target (left empty), never on the chart timeframe.`
+    : `${prefix} ${b.id}: ${b.type} on higher timeframe ${b.params.timeframeRef} (closed higher-timeframe bars only).`);
+}
+
 function referencesFor(block) {
   const p = block.params || {};
   switch (block.type) {
@@ -96,8 +129,8 @@ function tableSpec(recipe, b) {
     if (seen.has(ref)) return '';
     seen.add(ref);
     const d = map.get(ref), q = d.params || {};
+    if (q.timeframeRef && !(recipe.bsvHtfReal && htfSource(recipe, d))) return `${ref} uses higher timeframe ${q.timeframeRef}, which this target does not compute (not shown rather than computed on the chart timeframe)`;
     if (!tableValueType(d.type)) return `${ref} (${d.type}) is not rendered yet`;
-    if (q.timeframeRef) return `${ref} uses timeframe ${q.timeframeRef}, which is not rendered yet`;
     for (const r of referencesFor(d)) { const w = why(r, seen); if (w) return w; }
     return '';
   };
@@ -1959,6 +1992,79 @@ function pyText(s, max = 200) {
   return JSON.stringify(String(s ?? '').replace(/[\r\n\u2028\u2029]/g, ' ').trim().slice(0, max));
 }
 
+function pyHtfLines() {
+  // Pure-Python higher-timeframe bars (shared by the Python targets). A higher-timeframe bar is used only once a chart
+  // bar of the next higher-timeframe period has arrived, so it is always closed: no repaint, no lookahead.
+  return [
+    'class BsvHtf:',
+    '    """Higher-timeframe bars built from the chart bars; only closed ones are used. Periods are aligned to UTC',
+    '    (Unix time) and bar times are read as bar-open times. Refuses to run if chart bars are not shorter."""',
+    '    def __init__(self, minutes):',
+    '        self.sec, self.done, self.cur, self.last, self.step, self.memo = int(minutes) * 60, [], None, None, None, {}',
+    '    def update(self, t, o, h, l, c):  # t = chart bar time in Unix seconds (UTC); call once per completed chart bar',
+    '        if self.last is not None:',
+    '            if t <= self.last:',
+    '                raise SystemExit("BSV higher timeframe: bar times must increase")',
+    '            self.step = t - self.last if self.step is None else min(self.step, t - self.last)',
+    '            if self.step >= self.sec:',
+    '                raise SystemExit("BSV higher timeframe: chart bars must be shorter than %d minutes; not computing it on the chart timeframe" % (self.sec // 60))',
+    '        self.last = t',
+    '        k = int(t // self.sec)',
+    '        if self.cur is not None and self.cur[0] == k:',
+    '            self.cur[2], self.cur[3], self.cur[4] = max(self.cur[2], h), min(self.cur[3], l), c',
+    '            return',
+    '        if self.cur is not None:',
+    '            self.done.append(tuple(self.cur[1:]))  # the previous period is now closed',
+    '            self.memo = {}',
+    '        self.cur = [k, o, h, l, c]',
+    '    def value(self, kind, source, n):  # indicator on the closed higher-timeframe bars; NaN while warming up',
+    '        key = (kind, source, n)',
+    '        if key not in self.memo:',
+    '            self.memo[key] = bsv_htf_last(self.done, kind, source, n)',
+    '        return self.memo[key]',
+    '',
+    '',
+    'def bsv_htf_rma(x, n):  # Wilder average seeded with the simple average of the first n values; last value',
+    '    if len(x) < n:',
+    '        return NAN',
+    '    r = sum(x[:n]) / n',
+    '    for v in x[n:]:',
+    '        r = (r * (n - 1) + v) / n',
+    '    return r',
+    '',
+    '',
+    'def bsv_htf_last(bars, kind, source, n):',
+    '    if kind == "atr":',
+    '        return bsv_htf_rma([max(bars[i][1], bars[i - 1][3]) - min(bars[i][2], bars[i - 1][3]) for i in range(1, len(bars))], n)',
+    '    px = {"open": lambda b: b[0], "high": lambda b: b[1], "low": lambda b: b[2], "close": lambda b: b[3], "hl2": lambda b: (b[1] + b[2]) / 2,',
+    '          "hlc3": lambda b: (b[1] + b[2] + b[3]) / 3, "ohlc4": lambda b: (b[0] + b[1] + b[2] + b[3]) / 4}[source]',
+    '    x = [px(b) for b in bars]',
+    '    if kind == "sma":',
+    '        return sum(x[-n:]) / n if len(x) >= n else NAN',
+    '    if kind == "ema":',
+    '        if len(x) < n:',
+    '            return NAN',
+    '        e, a = sum(x[:n]) / n, 2.0 / (n + 1)',
+    '        for v in x[n:]:',
+    '            e = a * v + (1 - a) * e',
+    '        return e',
+    '    up = bsv_htf_rma([max(x[i] - x[i - 1], 0) for i in range(1, len(x))], n)',
+    '    dn = bsv_htf_rma([max(x[i - 1] - x[i], 0) for i in range(1, len(x))], n)',
+    '    if up != up:',
+    '        return NAN',
+    '    return 50.0 if up + dn == 0 else (100.0 if dn == 0 else 100.0 * up / (up + dn))  # Wilder RSI',
+    '',
+    '',
+  ];
+}
+function pyHtfUses(recipe) {  // [{block, src, minutes}] for indicators rendered on a higher timeframe
+  return recipe.blocks.map(b => ({ b, src: recipe.bsvHtfReal ? htfSource(recipe, b) : null })).filter(x => x.src).map(x => ({ block: x.b, src: x.src, minutes: htfMinutes(x.src) }));
+}
+function pyHtfCall(u, obj) {
+  const kind = u.block.type.split('.')[1], q = u.block.params || {};
+  return `${obj}.value(${pyText(kind)}, ${pyText(kind === 'atr' ? 'close' : sourceName(q.source))}, ${Number(q.length) | 0})`;
+}
+
 function renderBacktrader(recipe) {
   // backtrader (Python) indicator + an alert-only Strategy, using backtrader's documented indicators
   // (bt.ind.EMA / SMA / RSI (Wilder, safediv) / ATR) and GenericCSVData. Strategy.next() only sees completed bars.
@@ -1971,7 +2077,8 @@ function renderBacktrader(recipe) {
     const f = (n) => `d.${n}[${k}]`;
     return { open: f('open'), high: f('high'), low: f('low'), close: f('close'), hl2: `(${f('high')} + ${f('low')}) / 2`, hlc3: `(${f('high')} + ${f('low')} + ${f('close')}) / 3`, ohlc4: `(${f('open')} + ${f('high')} + ${f('low')} + ${f('close')}) / 4` }[ref];
   };
-  const isInd = (ref) => /^indicator\.(ema|sma|rsi|atr)$/.test(map.get(ref)?.type || '');
+  const htf = pyHtfUses(recipe), htfIds = new Set(htf.map(u => u.block.id)), htfSrc = [...new Set(htf.map(u => u.src.id))];
+  const isInd = (ref) => /^indicator\.(ema|sma|rsi|atr)$/.test(map.get(ref)?.type || '') && !htfIds.has(ref);
   const val = (ref, prev = false) => isPrice(ref) ? pxv(ref, prev ? -1 : 0)
     : isBoolType(map.get(ref)?.type) ? `(1.0 if ${prev ? 'p' : 's'}.get(${pyText(ref)}) else 0.0)`
     : isInd(ref) ? `self.i_${id(ref)}[${prev ? -1 : 0}]` : `${prev ? 'p' : 's'}.get(${pyText(ref)}, NAN)`;
@@ -1990,6 +2097,7 @@ function renderBacktrader(recipe) {
   L.push('import math');
   L.push('import sys');
   if (recipe.blocks.some(b => b.type === 'filter.session')) L.push('from datetime import timezone', 'from zoneinfo import ZoneInfo');
+  else if (htf.length) L.push('from datetime import timezone');
   L.push('');
   L.push('import backtrader as bt');
   L.push('');
@@ -2003,6 +2111,7 @@ function renderBacktrader(recipe) {
     L.push('');
     L.push('');
   }
+  if (htf.length) pyHtfLines().forEach(x => L.push(x));
   const noLines = !lines.length;
   if (noLines) lines.push('idle');  // backtrader needs at least one line; this one stays NaN and is not plotted
   L.push(`class ${cls}(bt.Indicator):`);
@@ -2017,6 +2126,7 @@ function renderBacktrader(recipe) {
   let nInd = 0;
   for (const b of recipe.blocks) {
     const q = b.params || {}, k = id(b.id), src = /^indicator\.(ema|sma|rsi)$/.test(b.type) ? pxl[sourceName(q.source)] : null;
+    if (htfIds.has(b.id)) continue;  // computed in next() from closed higher-timeframe bars
     if (b.type === 'indicator.ema') { L.push(`        self.i_${k} = bt.ind.EMA(${src}, period=${q.length})`); nInd++; }
     if (b.type === 'indicator.sma') { L.push(`        self.i_${k} = bt.ind.SMA(${src}, period=${q.length})`); nInd++; }
     if (b.type === 'indicator.rsi') { L.push(`        self.i_${k} = bt.ind.RSI(${src}, period=${q.length}, safediv=True)  # Wilder smoothing; 100 when there are no down moves, 50 when flat`); nInd++; }
@@ -2024,6 +2134,7 @@ function renderBacktrader(recipe) {
     if (b.type === 'filter.session') { const tz = String(q.timezone || 'Etc/UTC'); if (!/^[A-Za-z_]+(\/[A-Za-z0-9_+\-]+)*$/.test(tz)) throw new Error(`Invalid timezone in ${b.id}`); if (!tzs.includes(tz)) tzs.push(tz); }
   }
   tzs.forEach((tz, n) => L.push(`        self.tz${n} = ZoneInfo(${pyText(tz)})`));
+  htfSrc.forEach(h => L.push(`        self.htf_${id(h)} = BsvHtf(${htfMinutes(map.get(h))})  # ${tsNote(h)}: closed higher-timeframe bars only`));
   L.push('');
   L.push('    def prenext(self):');
   L.push('        self.next()  # also evaluate while the slowest average is still warming up (its values are NaN)');
@@ -2031,10 +2142,22 @@ function renderBacktrader(recipe) {
   L.push('    def next(self):');
   L.push('        d, p, s = self.data, self._prev, {}');
   L.push('        first = len(self) < 2');
+  if (htfSrc.length) L.push('        t_unix = d.datetime.datetime(0).replace(tzinfo=timezone.utc).timestamp()');
+  htfSrc.forEach(h => L.push(`        self.htf_${id(h)}.update(t_unix, d.open[0], d.high[0], d.low[0], d.close[0])`));
   for (const b of depOrder(recipe)) {
     const q = b.params || {}, k = pyText(b.id);
     switch (b.type) {
-      case 'indicator.ema': case 'indicator.sma': case 'indicator.rsi': case 'indicator.atr': case 'visual.plot': case 'alert.condition': case 'visual.table':
+      case 'indicator.ema': case 'indicator.sma': case 'indicator.rsi': case 'indicator.atr': {
+        const u = htf.find(x => x.block.id === b.id);
+        if (u) L.push(`        s[${k}] = ${pyHtfCall(u, 'self.htf_' + id(u.src.id))}  # timeframe ${tsNote(u.src.params.timeframe)}, closed bars only`);
+        break;
+      }
+      case 'visual.plot': case 'alert.condition': case 'visual.table':
+        break;
+      case 'data.higher_timeframe':
+        if (htfSrc.includes(b.id)) break;
+        L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`);
+        L.push(`        s[${k}] = NAN`);
         break;
       case 'filter.session': {
         const ss = parseSession(q), n = tzs.indexOf(String(q.timezone || 'Etc/UTC'));
@@ -2125,6 +2248,7 @@ function renderBacktestingPy(recipe) {
   const isPx = (ref) => Object.prototype.hasOwnProperty.call(PX, ref) && !map.has(ref);
   const val = (ref) => isPx(ref) ? PX[ref] : !map.has(ref) ? 'NANS' : isBoolType(map.get(ref).type) ? `s[${pyText(ref)}].astype(float)` : `v[${pyText(ref)}]`;
   const bool = (ref) => map.has(ref) && isBoolType(map.get(ref).type) ? `s[${pyText(ref)}]` : `(np.isfinite(${val(ref)}) & (${val(ref)} != 0))`;
+  const htf = pyHtfUses(recipe), htfSrc = [...new Set(htf.map(u => u.src.id))];
   const cls = 'Bsv' + className(recipe);
   const L = [];
   L.push('# ORIGINAL BSV STARTER — Backtesting.py alert-only strategy (Python).');
@@ -2195,6 +2319,18 @@ function renderBacktestingPy(recipe) {
   L.push('    return np.asarray(t.hour * 60 + t.minute)');
   L.push('');
   L.push('');
+  if (htf.length) {
+    L.push('NAN = float("nan")');
+    pyHtfLines().forEach(x => L.push(x));
+    L.push('def bsv_htf_series(index, o, h, l, c, minutes, kind, source, n):  # bar i sees closed higher-timeframe bars only');
+    L.push('    t = pd.DatetimeIndex(index)');
+    L.push('    t = t.tz_localize("UTC") if t.tz is None else t');
+    L.push('    x, out = BsvHtf(minutes), np.full(len(c), np.nan)');
+    L.push('    for i in range(len(c)):');
+    L.push('        x.update(t[i].timestamp(), float(o[i]), float(h[i]), float(l[i]), float(c[i]))');
+    L.push('        out[i] = x.value(kind, source, n)');
+    L.push('    return out');
+  }
   L.push(`class ${cls}(Strategy):`);
   L.push(`    messages = (${alerts.map(b => pyText(b.params?.message || b.id)).join(', ')}${alerts.length === 1 ? ',' : ''})`);
   L.push('');
@@ -2207,6 +2343,9 @@ function renderBacktestingPy(recipe) {
   L.push('        with np.errstate(invalid="ignore"):');
   for (const b of depOrder(recipe)) {
     const q = b.params || {}, k = pyText(b.id);
+    const u = htf.find(x => x.block.id === b.id);
+    if (u) { L.push(`            v[${k}] = bsv_htf_series(d.index, o, h, l, c, ${u.minutes}, ${pyHtfCall(u, 'X').replace(/^X\.value\(/, '').replace(/\)$/, '')})  # timeframe ${tsNote(u.src.params.timeframe)}, closed bars only`); continue; }
+    if (b.type === 'data.higher_timeframe' && htfSrc.includes(b.id)) continue;
     switch (b.type) {
       case 'indicator.ema': L.push(`            v[${k}] = bsv_ema(${PX[sourceName(q.source)]}, ${Number(q.length) | 0})`); break;
       case 'indicator.sma': L.push(`            v[${k}] = bsv_sma(${PX[sourceName(q.source)]}, ${Number(q.length) | 0})`); break;
@@ -2303,6 +2442,7 @@ function renderNautilus(recipe) {
     : map.has(ref) && isBoolType(map.get(ref).type) ? `(1.0 if ${prev ? 'ps' : 's'}.get(${pyText(ref)}) else 0.0)`
     : `${prev ? 'pv' : 'v'}.get(${pyText(ref)}, NAN)`;
   const bool = (ref) => map.has(ref) && isBoolType(map.get(ref).type) ? `bool(s.get(${pyText(ref)}))` : `bsv_true(${val(ref)})`;
+  const htf = pyHtfUses(recipe), htfIds = new Set(htf.map(u => u.block.id)), htfSrc = [...new Set(htf.map(u => u.src.id))];
   const cls = 'Bsv' + className(recipe);
   const tzs = [];
   for (const b of recipe.blocks) if (b.type === 'filter.session') {
@@ -2403,6 +2543,7 @@ function renderNautilus(recipe) {
   L.push('        return self.rma.update(max(h, pc) - min(l, pc))');
   L.push('');
   L.push('');
+  if (htf.length) pyHtfLines().forEach(x => L.push(x));
   L.push(`class ${cls}Config(StrategyConfig, frozen=True):`);
   L.push('    bar_type: str');
   L.push('');
@@ -2415,12 +2556,14 @@ function renderNautilus(recipe) {
   L.push('        self._pv, self._ps = {}, {}');
   for (const b of recipe.blocks) {
     const q = b.params || {}, k = id(b.id);
+    if (htfIds.has(b.id)) continue;
     if (b.type === 'indicator.ema') L.push(`        self.i_${k} = BsvEma(${Number(q.length) | 0})`);
     if (b.type === 'indicator.sma') L.push(`        self.i_${k} = BsvSma(${Number(q.length) | 0})`);
     if (b.type === 'indicator.rsi') L.push(`        self.i_${k} = BsvRsi(${Number(q.length) | 0})`);
     if (b.type === 'indicator.atr') L.push(`        self.i_${k} = BsvAtr(${Number(q.length) | 0})`);
   }
   tzs.forEach((tz, n) => L.push(`        self.tz${n} = ZoneInfo(${pyText(tz)})`));
+  htfSrc.forEach(h => L.push(`        self.htf_${id(h)} = BsvHtf(${htfMinutes(map.get(h))})  # ${tsNote(h)}: closed higher-timeframe bars only`));
   L.push('');
   L.push('    def on_start(self):');
   L.push('        self.subscribe_bars(BarType.from_str(self.config.bar_type))');
@@ -2430,8 +2573,12 @@ function renderNautilus(recipe) {
   L.push('        v = {"open": o, "high": h, "low": l, "close": c, "hl2": (h + l) / 2, "hlc3": (h + l + c) / 3, "ohlc4": (o + h + l + c) / 4}');
   L.push('        pv, s = self._pv, {}');
   L.push('        when = EPOCH + timedelta(microseconds=bar.ts_event // 1000)');
+  htfSrc.forEach(h => L.push(`        self.htf_${id(h)}.update(bar.ts_event / 1e9, o, h, l, c)`));
   for (const b of depOrder(recipe)) {
     const q = b.params || {}, k = pyText(b.id), ik = id(b.id);
+    const u = htf.find(x => x.block.id === b.id);
+    if (u) { L.push(`        v[${k}] = ${pyHtfCall(u, 'self.htf_' + id(u.src.id))}  # timeframe ${tsNote(u.src.params.timeframe)}, closed bars only`); continue; }
+    if (b.type === 'data.higher_timeframe' && htfSrc.includes(b.id)) continue;
     switch (b.type) {
       case 'indicator.ema': case 'indicator.sma': case 'indicator.rsi':
         L.push(`        v[${k}] = self.i_${ik}.update(v[${pyText(sourceName(q.source))}])`); break;

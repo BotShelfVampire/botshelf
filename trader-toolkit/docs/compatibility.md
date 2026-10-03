@@ -27,6 +27,16 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | NautilusTrader | Python library (backtesting / live framework, 1.x API) | generator target (`nautilus`: alert-only `Strategy` + frozen `StrategyConfig`, pure-Python EMA/SMA/RSI/ATR updated in `on_bar()` from bars 0..i, ALERT lines on completed bars, csv-module CSV loader, `BacktestEngine` on the test EUR/USD instrument; no orders, no network calls) | Executed by BSV in the NautilusTrader library (1.231.0) on synthetic bars (`check_nautilus.py`); not a broker, venue or live-feed run, runtime verification still required |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
 
+## Higher timeframe (data.higher_timeframe + timeframeRef)
+
+Correction (2026-10-04): earlier outputs on every target computed indicators marked with a higher timeframe on the chart timeframe, without saying so. Now:
+
+- backtrader, Backtesting.py and NautilusTrader compute them from **closed higher-timeframe bars only**. Periods are aligned to UTC and bar times are read as bar-open times; a period is used only after a chart bar of the next period has arrived, so values never repaint or look ahead (a value can trail the period close by one chart bar). The script stops with an error if chart bars are not shorter than the higher timeframe. Timeframes: minutes (`"60"`) or days (`"D"`, up to `"7D"`).
+- Every other target leaves those blocks as unsupported stubs with a TODO line (empty value, false signal). They are never computed on the chart timeframe. On Pine the missing identifier stops compilation.
+- Weekly and monthly timeframes are unsupported on every target.
+
+Checks: `check_backtrader.py`, `check_backtesting_py.py` and `check_nautilus.py` (every bar equals an independent reference; a run cut in the middle of a period prints the full-data values; coarse bars stop the script; three deliberately broken helpers are caught) and `check_htf.py` (all 22 targets).
+
 ## Value panels (visual.table)
 
 Since 2026-10-04 the generator renders `visual.table` (a value panel: the listed fields' values on the latest completed bar) on 6 of the 22 targets. These are the targets where a BSV check covers the output:

@@ -34,6 +34,41 @@ def rma(x, p):
     return out
 TR = [NAN] + [max(bars[i]["high"], bars[i - 1]["close"]) - min(bars[i]["low"], bars[i - 1]["close"]) for i in range(1, NB)]
 
+def htf_minutes(b):
+    t = str((b.get("params") or {}).get("timeframe", "")).strip().upper()
+    if t.isdigit(): return int(t)
+    m = re.match(r"^(\d*)D$", t)
+    return (int(m[1] or 1)) * 1440 if m else None
+
+
+def htf_series(t, p, minutes):
+    """Reference for an indicator on a higher timeframe, written separately from the generator: group the chart bars
+    into UTC-aligned periods, compute the indicator over the period bars, and give chart bar i the value of the last
+    period that ended before bar i's period began (closed higher-timeframe bars only)."""
+    sec, groups = minutes * 60, []
+    for i, b_ in enumerate(bars):
+        k = int(b_["t"].timestamp() // sec)
+        if groups and groups[-1][0] == k: groups[-1][1].append(i)
+        else: groups.append((k, [i]))
+    hb = [{"open": bars[g[0]]["open"], "high": max(bars[j]["high"] for j in g), "low": min(bars[j]["low"] for j in g), "close": bars[g[-1]]["close"]} for _, g in groups]
+    P = {k: [x[k] for x in hb] for k in ("open", "high", "low", "close")}
+    P["hl2"] = [(x["high"] + x["low"]) / 2 for x in hb]; P["hlc3"] = [(x["high"] + x["low"] + x["close"]) / 3 for x in hb]
+    P["ohlc4"] = [(x["open"] + x["high"] + x["low"] + x["close"]) / 4 for x in hb]
+    n, x = p["length"], P[p.get("source", "close")]
+    if t == "indicator.sma": ser = sma(x, n)
+    elif t == "indicator.ema": ser = ema(x, n)
+    elif t == "indicator.rsi":
+        G, Lo = rma([max(x[i] - x[i - 1], 0) for i in range(1, len(x))], n), rma([max(x[i - 1] - x[i], 0) for i in range(1, len(x))], n)
+        ser = [NAN] + [NAN if not fin(u) else (50.0 if u + d == 0 else (100.0 if d == 0 else 100 * u / (u + d))) for u, d in zip(G, Lo)]
+    else:
+        tr = [max(hb[i]["high"], hb[i - 1]["close"]) - min(hb[i]["low"], hb[i - 1]["close"]) for i in range(1, len(hb))]
+        ser = [NAN] + rma(tr, n)
+    out = []
+    for g, (_, idx) in enumerate(groups):
+        out += [ser[g - 1] if g >= 1 else NAN] * len(idx)
+    return out
+
+
 def reference(recipe):
     by = {b["id"]: b for b in recipe["blocks"]}; V, S = {}, {}
     isb = lambda t: bool(re.match(r"^(signal|filter|alert)\.", t or ""))
@@ -45,6 +80,9 @@ def reference(recipe):
     def comp(b):
         if not b or b["id"] in done: return
         done.add(b["id"]); p = b.get("params") or {}; t = b["type"]
+        src = by.get(p.get("timeframeRef")) if p.get("timeframeRef") else None
+        if src is not None and src["type"] == "data.higher_timeframe" and htf_minutes(src) and t in ("indicator.sma", "indicator.ema", "indicator.rsi", "indicator.atr"):
+            V[b["id"]] = htf_series(t, p, htf_minutes(src)); return
         if t == "indicator.sma": V[b["id"]] = sma(PX[p.get("source", "close")], p["length"])
         elif t == "indicator.ema": V[b["id"]] = ema(PX[p.get("source", "close")], p["length"])
         elif t == "indicator.rsi":
@@ -75,10 +113,11 @@ def reference(recipe):
 
 
 
-def write_csv(path):
+def write_csv(path, n=None, every=1):
+    """All bars, or the first n bars (n), or every k-th bar (every=k: coarser bars for the fail-loudly check)."""
     with open(path, "w", newline="") as fh:
         w = csv.writer(fh); w.writerow(["datetime", "open", "high", "low", "close", "volume"])
-        for b in bars: w.writerow([b["t"].strftime("%Y-%m-%d %H:%M:%S"), repr(b["open"]), repr(b["high"]), repr(b["low"]), repr(b["close"]), 0])
+        for b in bars[:n][::every]: w.writerow([b["t"].strftime("%Y-%m-%d %H:%M:%S"), repr(b["open"]), repr(b["high"]), repr(b["low"]), repr(b["close"]), 0])
 
 
 def use_rounded(nd):
@@ -109,13 +148,13 @@ def _deps(b):
     return []
 
 
-def panel_expect(recipe, V, S):
+def panel_expect(recipe, V, S, at=-1):
     by = {b["id"]: b for b in recipe["blocks"]}
     def shown(ref, seen):
         if ref not in by: return ref in PX_NAMES
         if ref in seen: return True
         seen.add(ref); b = by[ref]
-        if b["type"] not in PANEL_TYPES or (b.get("params") or {}).get("timeframeRef"): return False
+        if b["type"] not in PANEL_TYPES: return False  # higher-timeframe fields are shown: the Python targets compute them
         return all(shown(r, seen) for r in _deps(b) if r)
     out, skipped = [], 0
     for b in recipe["blocks"]:
@@ -124,9 +163,9 @@ def panel_expect(recipe, V, S):
         cells = []
         for f in p.get("fields") or []:
             if not shown(f, set()): skipped += 1; continue
-            if f in S: cells.append((f, "bool", bool(S[f][-1])))
-            elif f in V: cells.append((f, "num", V[f][-1]))
-            else: cells.append((f, "num", PX[f][-1] if f in PX else NAN))
+            if f in S: cells.append((f, "bool", bool(S[f][at])))
+            elif f in V: cells.append((f, "num", V[f][at]))
+            else: cells.append((f, "num", PX[f][at] if f in PX else NAN))
         if not cells: skipped += 1
         else: out.append((str(p.get("title") or b["id"]).strip(), cells))
     return out, skipped
@@ -155,3 +194,49 @@ def panels_match(got, want):
                 except ValueError: return False, f"{t}.{n}: {g} is not a number"
                 if abs(x - w) > 1e-5 * max(abs(w), 1e-9): return False, f"{t}.{n}: {g} != {w}"
     return True, ""
+
+
+# ---- higher timeframe (data.higher_timeframe), shared by the Python target checks
+def uses_htf(recipe):
+    return any((b.get("params") or {}).get("timeframeRef") for b in recipe["blocks"])
+
+
+def htf_checks(recipe, run_script, tmp, ok, name):
+    """run_script(csv_path) -> CompletedProcess of the generated script. Three checks on the generated code:
+    (1) values never look ahead: a run on the first CUT bars prints, on its last bar, exactly the reference values for
+    bar CUT-1 of the full data (CUT is in the middle of a higher-timeframe period); (2) the reference keeps each value
+    constant inside a period (closed higher-timeframe bars only); (3) chart bars that are not shorter than the higher
+    timeframe make the script stop with an error instead of computing it on the chart timeframe."""
+    V, S, _, _ = reference(recipe)
+    cut = 702  # 702 * 15 min = 175.5 h: the run ends in the middle of an hour
+    p = tmp / "htf_cut.csv"; write_csv(p, n=cut)
+    out = run_script(p)
+    want, _ = panel_expect(recipe, V, S, at=cut - 1)
+    good, why = panels_match(parse_panels(out.stdout), want)
+    ok(out.returncode == 0 and good and bool(want), name, f"higher timeframe: a run cut at bar {cut} prints the full-data values of bar {cut - 1} (no lookahead) {why}")
+    by = {b["id"]: b for b in recipe["blocks"]}
+    for b in recipe["blocks"]:
+        src = by.get((b.get("params") or {}).get("timeframeRef"))
+        if not src: continue
+        sec = htf_minutes(src) * 60; ser = V[b["id"]]
+        per = [int(x["t"].timestamp() // sec) for x in bars]
+        flat = all((ser[i] == ser[i - 1]) or (not fin(ser[i]) and not fin(ser[i - 1])) for i in range(1, NB) if per[i] == per[i - 1])
+        ok(flat and sum(1 for v in ser if fin(v)) > 0, name, f"higher timeframe: reference {b['id']} changes only when a period closes")
+    p2 = tmp / "htf_coarse.csv"; write_csv(p2, every=max(1, int(htf_minutes(next(x for x in recipe["blocks"] if x["type"] == "data.higher_timeframe")) // 15)))
+    out2 = run_script(p2)
+    ok(out2.returncode != 0 and "must be shorter" in (out2.stderr + out2.stdout), name, "higher timeframe: chart bars as long as the higher timeframe stop the script with an error")
+
+
+HTF_MUTATIONS = {  # deliberately broken copies of the generated helper: each one must fail htf_checks
+    "uses the open period (lookahead)": ("bsv_htf_last(self.done, kind, source, n)", "bsv_htf_last(self.done + [tuple(self.cur[1:])], kind, source, n)"),
+    "computes on the chart timeframe": ("self.sec, self.done, self.cur, self.last, self.step, self.memo = int(minutes) * 60", "self.sec, self.done, self.cur, self.last, self.step, self.memo = 1"),
+    "does not stop on coarse bars": ('raise SystemExit("BSV higher timeframe: chart bars must be shorter', 'print("BSV higher timeframe: chart bars must be shorter'),
+}
+
+
+def htf_mutations(recipe, code, tmp, python, ok, name):
+    import subprocess
+    for label, (a, b) in HTF_MUTATIONS.items():
+        mp = tmp / "htf_mutant.py"; mp.write_text(code.replace(a, b)); res = []
+        htf_checks(recipe, lambda c: subprocess.run([python, str(mp), str(c)], capture_output=True, text=True, timeout=300), tmp, lambda c, n, m: res.append(bool(c)), name)
+        ok(a in code and not all(res), name, f"higher-timeframe check catches a helper that {label}")

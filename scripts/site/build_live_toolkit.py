@@ -115,6 +115,7 @@ STEP_TXT = [
     T("If you list the result on BSV, state original/adapted source, platform/version, prerequisites, what is tested, what is not, limitations — and no unsupported performance claims.",
       "BSVに出品するなら、オリジナルか改変か、プラットフォームとバージョン、前提条件、検証済みの範囲と未検証の範囲、制約を書きます。根拠のない成績は書きません。"),
 ]
+HTF_REAL = ("backtrader", "backtesting-py", "nautilus")  # real higher-timeframe values; must match htfRealTargets() in render.mjs
 TARGETS = [("pine-v6", "TradingView · Pine v6", ".pine"), ("mql5", "MT5 · MQL5", ".mq5"), ("ctrader", "cTrader · C#", ".cs"),
            ("mql4", "MT4 · MQL4", ".mq4"), ("ctrader-python", "cTrader · Python", ".py"), ("bookmap-python", "Bookmap · Python", ".py"),
            ("ninjatrader", "NinjaTrader 8 · NinjaScript", ".cs"), ("quantower", "Quantower · C#", ".cs"),
@@ -285,6 +286,11 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
         if r["type"] == "recipe":
             rows = "".join(f'<tr><td><code>{esc(i)}</code></td><td><code>{esc(t)}</code></td></tr>' for i, t in r["blocks"])
             sections.append(f'<h2>{both(T("Blocks in this recipe", "このレシピのブロック"))}</h2><table class="qa-table"><thead><tr><th>id</th><th>type</th></tr></thead><tbody>{rows}</tbody></table>')
+            if '"timeframeRef"' in r["json"]:  # higher-timeframe honesty notice (2026-10-04 correction)
+                real = [lab for t, lab, _ in TARGETS if t in HTF_REAL]
+                sections.append(f'<h2 id="higher-timeframe">{both(T("Higher timeframe: where it is computed", "上位足：計算する出力先"))}</h2>'
+                                f'<p>{both(T("Blocks marked with a higher timeframe are computed from closed higher-timeframe bars only (no repaint, no lookahead) on " + ", ".join(real) + ", checked by BSV inside those libraries on synthetic bars. On the other " + str(len(TARGETS) - len(real)) + " targets they are left as unsupported stubs with a TODO line (empty value, false signal), never computed on the chart timeframe.", "上位足を指定したブロックは、" + "・".join(real) + " では確定した上位足だけから計算します（描き直し・先読みなし。BSVがそれぞれのライブラリ内で合成データを使って確認）。ほかの" + str(len(TARGETS) - len(real)) + "の出力先では、TODO付きの未対応スタブ（値は空、シグナルはfalse）のままにしており、表示中の足で計算することはありません。"))}</p>'
+                                f'<p class="small">{both(T("Correction (2026-10-04): earlier starters for this recipe computed these blocks on the chart timeframe without saying so. Download the starters again.", "訂正（2026-10-04）：このレシピの以前のひな形は、何の注記もなくこれらのブロックを表示中の足で計算していました。ひな形をダウンロードし直してください。"))} <a href="/trading/build/coverage.json">coverage.json</a></p>')
             orows = "".join(
                 f'<tr><td>{esc(o["label"])}</td><td>{o["todos"]}</td></tr>' for o in r["outputs"])
             sections.append(f'<h2>{both(T("Pre-generated starters", "生成済みのひな形"))}</h2>'
