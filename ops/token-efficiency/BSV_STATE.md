@@ -49,6 +49,11 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
 
+## P0 tranches LIVE (2026-10-04 00:05 JST)
+
+- Production deploy `6ac118a7dedefaa8327591fb`. Chain `6ac10b3f` → `6ac1130a` (#8) → `6ac115c3` (#6) → `6ac118a7` (#7).
+- New public surfaces: `/requests/` (Request Market, demand-request fn, review before listing, real counts), `/robot-pilot/` (Academy, browser-only practice record, SIMULATION only), `/.well-known/bsv-trust.json`, `/schemas/*-v0.1.json`. robots: OAI-SearchBot allow (same Disallow list), GPTBot disallow.
+
 ## LIVE integration status (New Bobby, cycle 11, 2026-10-03 23:25 JST)
 
 - Production deploy: `6ac10b3f9b77b9322f9ef9ec` (23:03 JST, email_configured:true before/after). Chain: `6ac0f924` → `6ac10b3f`. Commits `4c4642a` (thinkScript target + check), `a9029b2` (AmiBroker + thinkorswim listed).
