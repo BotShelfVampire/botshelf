@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botshelfvampire.com/schemas/robot-pilot-profile-v0.1.json",
+  "title": "BSV Robot Pilot Profile",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "pilotId",
+    "visibility",
+    "practiceRecords"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1"
+    },
+    "pilotId": {
+      "type": "string",
+      "pattern": "^pilot_[a-z0-9_-]+$"
+    },
+    "displayName": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 80
+    },
+    "visibility": {
+      "enum": [
+        "PRIVATE",
+        "PUBLIC"
+      ]
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "remoteCapable": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "practiceRecords": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "recordId",
+          "taskId",
+          "runtime",
+          "embodiment",
+          "environment",
+          "status",
+          "evidenceIds"
+        ],
+        "properties": {
+          "recordId": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "runtimeVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "embodiment": {
+            "type": "string"
+          },
+          "inputDevice": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "environment": {
+            "enum": [
+              "SIMULATION",
+              "REAL_HARDWARE",
+              "MIXED"
+            ]
+          },
+          "status": {
+            "enum": [
+              "SELF_REPORTED",
+              "REVIEWED",
+              "PARTIAL",
+              "BLOCKED"
+            ]
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "publicContact": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "xUrl": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "email"
+        }
+      }
+    }
+  }
+}
