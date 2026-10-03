@@ -1,0 +1,83 @@
+{
+  "schemaNote": "BSV teleop recipe v0.1 (draft format, original BSV material). Not an official NVIDIA procedure.",
+  "recipeId": "bsv-teleop-so101-sim-practice-session-v1",
+  "title": "SO-101 simulation practice session",
+  "status": "UNTESTED_RUNTIME",
+  "statusNote": "Written by BSV from the curriculum below; BSV has not run this procedure in Isaac Lab or Isaac Teleop. Follow NVIDIA's current official instructions wherever they differ.",
+  "environment": "SIMULATION",
+  "curriculumId": "rpc_isaacteleop_so101_sim_v1",
+  "license": "MIT",
+  "notIncluded": [
+    "Controller mapping and retargeting settings: they depend on your input device and the official task id, so record the ones you used instead of copying a preset.",
+    "Real-hardware steps: this recipe is simulation only. Real-hardware authority belongs to the hardware owner or partner."
+  ],
+  "sop": {
+    "before": [
+      "Note the Isaac Lab and Isaac Teleop versions (or source revisions) and the official task id you will run.",
+      "Launch the task, confirm the input device moves the simulated follower, and run one reset before recording.",
+      "Decide the session goal (attempted episodes, time box) and write it in the session note."
+    ],
+    "during": [
+      "Record every attempted episode, including failures; do not delete failed episodes.",
+      "Label each episode right after it ends: SUCCESS, FAILURE or PARTIAL, and a failure category when it is not a success.",
+      "Reset between episodes using the documented reset path; note any reset that did not return the scene to its start state.",
+      "Stop the session if the simulator becomes unstable, and note it as a safety/reset event."
+    ],
+    "after": [
+      "Count attempted, successful and failed episodes and episodes that needed recovery.",
+      "Review at least one failed episode and write one concrete change for the next session.",
+      "Build the session evidence and practice record on the Academy page; keep the dataset reference you recorded."
+    ]
+  },
+  "resetProcedure": [
+    "Disengage control before resetting.",
+    "Use the task's documented reset, not a manual drag of objects.",
+    "Confirm the follower and objects are back at the start state before engaging control again.",
+    "If a reset fails twice, end the episode as FAILURE with category reset-failure and note it."
+  ],
+  "failureTaxonomy": [
+    { "id": "grasp-miss", "label": "Gripper closed without holding the object" },
+    { "id": "drop", "label": "Object was held, then dropped before the goal" },
+    { "id": "collision", "label": "Follower or object hit the scene in a way that ended the attempt" },
+    { "id": "goal-miss", "label": "Object reached the area but not the goal pose or region" },
+    { "id": "timeout", "label": "Attempt ran past the time box you set" },
+    { "id": "tracking-loss", "label": "Input device tracking was lost or jumped" },
+    { "id": "input-lag", "label": "Control lag made the attempt uncontrollable" },
+    { "id": "reset-failure", "label": "Scene did not return to its start state" },
+    { "id": "sim-instability", "label": "Simulator physics or rendering became unstable" },
+    { "id": "operator-abort", "label": "Operator stopped the attempt on purpose" }
+  ],
+  "annotationLabels": ["SUCCESS", "FAILURE", "PARTIAL"],
+  "episodeAcceptance": [
+    "The episode was recorded through the official demonstration-recording path.",
+    "It has a label (SUCCESS, FAILURE or PARTIAL) and, unless SUCCESS, a failure category from this taxonomy.",
+    "It started from a confirmed reset state.",
+    "It is kept in the dataset even when it failed; exclusions are written in the session note with a reason."
+  ],
+  "recoveryProcedure": [
+    "If control behaves unexpectedly, disengage first, then reset.",
+    "After a tracking-loss or input-lag failure, check the device before the next episode and note what you changed.",
+    "Count an episode as a recovery episode when you had to recover the object or scene mid-attempt."
+  ],
+  "dataExport": {
+    "format": "teleop-session-evidence v0.1",
+    "schema": "https://botshelfvampire.com/schemas/teleop-session-evidence-v0.1.json",
+    "fieldMap": {
+      "runtime version": "runtimeVersion",
+      "source revision": "sourceRevision",
+      "official task id": "taskId",
+      "input device": "inputDevice",
+      "attempted / successful / failed episodes": "episodes",
+      "recovery episodes": "episodes.recoveryEpisodes",
+      "safety and reset events": "safetyEvents",
+      "dataset reference": "dataArtifacts",
+      "failure counts by category": "metrics"
+    }
+  },
+  "replayChecklist": [
+    "Play back at least one SUCCESS and one FAILURE episode if you have both.",
+    "Check that the label matches what happened in the replay.",
+    "Check that the failure category is the first thing that went wrong, not the last.",
+    "Note any episode whose replay does not match the recorded label, and fix the label before review."
+  ]
+}

@@ -77,5 +77,22 @@ ok(sm.includes("<loc>https://botshelfvampire.com/robot-pilot/</loc>"), "sitemap 
 for (const n of ["teleop-session-evidence-v0.1.json", "robot-pilot-profile-v0.1.json", "robot-pilot-curriculum-v0.1.json"]) ok(sch(n).$id === "https://botshelfvampire.com/schemas/" + n, "schema at $id " + n);
 const rq = fs.readdirSync(path.join(site, "requests")).filter(f => f.endsWith(".js")).map(f => fs.readFileSync(path.join(site, "requests", f), "utf8")).join("");
 ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?area=robot-pilot&kind=mission");
+// Teleop recipe library (#7 tranche 3)
+{
+  const rel = "robot-pilot/teleop-recipes/so101-sim-practice-session-v1.json";
+  const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../..");
+  const pub = fs.readFileSync(path.join(site, rel), "utf8"), r = JSON.parse(pub);
+  ok(pub === fs.readFileSync(path.join(repoRoot, rel), "utf8"), "teleop recipe published byte-identical");
+  ok(r.environment === "SIMULATION" && r.status === "UNTESTED_RUNTIME" && /not run/i.test(r.statusNote), "teleop recipe: simulation only, untested status stated");
+  const ids = r.failureTaxonomy.map(t => t.id);
+  ok(ids.length >= 5 && new Set(ids).size === ids.length && ids.every(x => /^[a-z]+(-[a-z]+)*$/.test(x)), "teleop recipe: unique kebab-case failure ids");
+  const ev = sch("teleop-session-evidence-v0.1.json");
+  ok(Object.values(r.dataExport.fieldMap).every(v => v.split(".")[0] in ev.properties), "teleop recipe: export map points at real evidence fields");
+  ok(r.dataExport.schema === ev.$id, "teleop recipe: export schema is the published evidence schema");
+  ok(r.notIncluded.some(x => /controller mapping/i.test(x)) && r.notIncluded.some(x => /real-hardware/i.test(x)), "teleop recipe: device mapping and hardware steps explicitly not included");
+  ok(!/certif|licensed pilot|verified by bsv|official nvidia procedure(?! )/i.test(JSON.stringify(r).replace("Not an official NVIDIA procedure", "")), "teleop recipe: no certification or official claims");
+  const html = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
+  ok(html.includes('id="recipes"') && html.includes(rel) && ids.every(x => html.includes("<code>" + x + "</code>")), "Academy lists the teleop recipe with its taxonomy");
+}
 console.log(JSON.stringify({ test: "robot-pilot", checks, failures }));
 process.exit(failures ? 1 : 0);
