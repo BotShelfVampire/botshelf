@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "0.1",
+  "name": "ATR Risk Overlay Starter",
+  "description": "ATR calculation with an EMA context line. Use the generated source as a starting point for stop/risk visualization; no profitability claim.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "ema",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 20
+      }
+    },
+    {
+      "id": "atr",
+      "type": "indicator.atr",
+      "params": {
+        "length": 14
+      }
+    },
+    {
+      "id": "plot_ema",
+      "type": "visual.plot",
+      "params": {
+        "source": "ema",
+        "title": "EMA 20"
+      }
+    }
+  ]
+}
