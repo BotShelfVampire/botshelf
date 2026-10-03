@@ -39,6 +39,10 @@ CSS = """.rq-form{display:grid;gap:14px;max-width:760px}
 .rq-counts div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:150px}
 .rq-counts b{display:block;font-size:1.6rem;color:var(--green)}
 .rq-list{display:grid;gap:12px;padding:0;list-style:none}
+.rq-filter{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.rq-filter .chip{cursor:pointer;font:inherit}
+.rq-filter .chip[aria-pressed=true]{border-color:var(--green);color:var(--green)}
+.rq-target{outline:2px solid var(--green);outline-offset:2px}
 .rq-job{white-space:pre-wrap;margin:0}
 .rp-box{border:1px solid var(--line);border-left:3px solid var(--green);border-radius:8px;padding:10px 14px;background:var(--panel)}
 """
@@ -56,16 +60,25 @@ function render(j){var ul=$('#rq-list');ul.textContent='';var c=j.counts||{};
  if(!rs.length){ul.appendChild(el('li',{'class':'empty'},[bi('No public requests yet. This list only shows real requests after review.','公開中のリクエストはまだありません。確認を通った実際のリクエストだけを表示します。')]));return}
  rs.forEach(function(r){var meta=[(r.domains||[]).map(function(d){return LAB[d]||d}).join(' · ')];
   if(r.platforms&&r.platforms.length)meta.push(r.platforms.join(', '));
-  var li=el('li',{'class':'bb-card','data-request-id':r.requestId},[el('div',{'class':'bb-meta'},[el('span',{text:meta.join(' — ')}),el('span',{'class':'bb-flag',text:r.status})]),el('p',{'class':'rq-job',text:r.job})]);
+  var li=el('li',{'class':'bb-card','id':r.requestId,'data-request-id':r.requestId,'data-areas':' '+(r.domains||[]).join(' ')+' '},[el('div',{'class':'bb-meta'},[el('span',{text:meta.join(' — ')}),el('span',{'class':'bb-flag',text:r.status})]),el('p',{'class':'rq-job',text:r.job})]);
   var d=[];if(r.desiredInputs&&r.desiredInputs.length)d.push('In: '+r.desiredInputs.join(', '));if(r.desiredOutputs&&r.desiredOutputs.length)d.push('Out: '+r.desiredOutputs.join(', '));
   if(r.freeSolutionAcceptable===true)d.push('Free/open solution OK');
   if(r.willingnessToPay){var w=r.willingnessToPay;d.push('Stated budget: '+(w.min!=null?w.min:'?')+'–'+(w.max!=null?w.max:'?')+' USDT (not escrow)')}
   if(r.deadline)d.push('Deadline: '+r.deadline.slice(0,10));d.push('Posted: '+String(r.createdAt).slice(0,10)+' · '+r.requestId);
   li.appendChild(el('p',{'class':'small muted',text:d.join(' · ')}));ul.appendChild(li)})}
+function areaParam(){try{return (new URL(location.href).searchParams.get('area')||'').replace(/[^a-z-]/g,'')}catch(e){return ''}}
+function applyFilter(a){var shown=0;[].forEach.call(document.querySelectorAll('#rq-list li[data-areas]'),function(li){var on=!a||li.getAttribute('data-areas').indexOf(' '+a+' ')!==-1;li.hidden=!on;if(on)shown++});
+ [].forEach.call(document.querySelectorAll('#rq-filter [data-area]'),function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-area')===a))});
+ var n=$('#rq-filter-note');if(n){n.textContent='';if(a&&!shown)n.appendChild(bi('No listed requests in this area yet.','この分野で公開中のリクエストはまだありません。'))}}
+function filters(rs){var box=$('#rq-filter');if(!box)return;box.textContent='';var m={};rs.forEach(function(r){(r.domains||[]).forEach(function(d){m[d]=(m[d]||0)+1})});
+ var mk=function(a,label,n){var b=el('button',{type:'button','class':'chip','data-area':a,'aria-pressed':'false',text:label+' ('+n+')'});b.addEventListener('click',function(){applyFilter(a)});box.appendChild(b)};
+ mk('','All',rs.length);Object.keys(LAB).forEach(function(k){if(m[k])mk(k,LAB[k],m[k])});var a=areaParam();if(a&&!m[a])mk(a,LAB[a]||a,0);applyFilter(a)}
+function target(){var h=decodeURIComponent((location.hash||'').slice(1));if(!/^req_[a-z0-9_-]+$/.test(h))return;var e=document.getElementById(h),n=$('#rq-target-note');
+ if(e){e.hidden=false;e.classList.add('rq-target');e.scrollIntoView({block:'center'})}else if(n){n.textContent='';n.appendChild(bi('This request is not listed. It may be pending review, private or closed.','このリクエストは公開一覧にありません。確認待ち・非公開・終了のいずれかの可能性があります。'))}}
 function areas(rs){var ul=$('#rq-areas');if(!ul)return;ul.textContent='';var m={};rs.filter(function(r){return r.status==='OPEN'}).forEach(function(r){(r.domains||[]).forEach(function(d){m[d]=m[d]||{n:0,b:0};m[d].n++;if(r.willingnessToPay)m[d].b++})});
  var ks=Object.keys(m).sort(function(a,b){return m[b].n-m[a].n});if(!ks.length){ul.appendChild(el('li',{'class':'empty'},[bi('No open public requests yet, so there is no area score yet.','公開中のリクエストがまだないため、分野ごとのスコアはまだありません。')]));return}
  ks.forEach(function(k){ul.appendChild(el('li',{'class':'bb-card'},[el('strong',{text:(LAB[k]||k)+' — score '+m[k].n}),el('span',{'class':'small muted',text:'with a stated budget: '+m[k].b}) ]))})}
-function load(){fetch(API+'?op=public',{credentials:'omit'}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){render(j);areas(j.requests||[])}else throw 0}).catch(function(){var ul=$('#rq-list');ul.textContent='';ul.appendChild(el('li',{'class':'empty'},[bi('Could not load requests right now.','いまはリクエストを読み込めません。')]))})}
+function load(){fetch(API+'?op=public',{credentials:'omit'}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){render(j);filters(j.requests||[]);areas(j.requests||[]);target()}else throw 0}).catch(function(){var ul=$('#rq-list');ul.textContent='';ul.appendChild(el('li',{'class':'empty'},[bi('Could not load requests right now.','いまはリクエストを読み込めません。')]))})}
 function list(v){return String(v||'').split(',').map(function(s){return s.trim()}).filter(Boolean).slice(0,8)}
 function msg(cls,en,ja){var m=$('#rq-msg');m.className='rq-msg '+cls;m.textContent='';m.appendChild(bi(en,ja));if(m.querySelector('a'))return}
 function submit(ev){ev.preventDefault();var f=ev.target;var doms=[].slice.call(f.querySelectorAll('input[name=domain]:checked')).map(function(x){return x.value});
@@ -86,7 +99,7 @@ function submit(ev){ev.preventDefault();var f=ev.target;var doms=[].slice.call(f
   else{msg('err','Not sent: '+(x.j.reason||x.s),'送信できませんでした: '+(x.j.reason||x.s))}}).catch(function(){btn.disabled=false;msg('err','Not sent: network error','送信できませんでした（通信エラー）')})}
 function prefill(){var q;try{q=new URL(location.href).searchParams}catch(e){return}var a=q.get('area');if(a){var c=document.querySelector('input[name=domain][value="'+a.replace(/[^a-z-]/g,'')+'"]');if(c)c.checked=true}
  if(q.get('kind')==='mission'){var j=$('#rq-job');if(j)j.setAttribute('placeholder','Mission: task to demonstrate; robot / embodiment; teleop interface; simulation or real hardware (owner-authorised, safety rules); location or remote; data needed; episode target; quality criteria; privacy / NDA');var h=$('#rq-mission');if(h)h.hidden=false}}
-document.addEventListener('DOMContentLoaded',function(){prefill();load();var f=$('#rq-form');if(f)f.addEventListener('submit',submit)});
+document.addEventListener('DOMContentLoaded',function(){prefill();load();window.addEventListener('hashchange',target);var f=$('#rq-form');if(f)f.addEventListener('submit',submit)});
 })();
 """
 
@@ -157,6 +170,7 @@ def page(site: Path, css_href: str, js_href: str) -> str:
         '<div class="container subnav"><a class="chip" href="#open">' + both("Open requests", "公開中のリクエスト") + '</a><a class="chip" href="#new">' + both("New request", "新しいリクエスト") + '</a>'
         '<a class="chip" href="/trading/build/">' + both("Build your own chart tool", "自分のチャートツールを作る") + '</a><a class="chip" href="/for-sellers.html">' + both("Seller guide", "出品者ガイド") + '</a></div>'
         f'<section class="container bb-section" id="open"><h2>{both("Open requests", "公開中のリクエスト")}</h2>'
+        '<div class="rq-filter" id="rq-filter" role="group" aria-label="Filter by area"></div><p class="small muted" id="rq-filter-note" role="status"></p><p class="small" id="rq-target-note" role="status"></p>'
         '<ul class="rq-list" id="rq-list"><li class="empty">' + both("Loading…", "読み込み中…") + '</li></ul>'
         f'<p class="small muted">{both("A stated budget is what the requester typed. It is not escrow, a payment or a promise to pay.", "予算は依頼者が書いた金額です。エスクロー・支払い・支払いの約束ではありません。")} '
         f'<a href="{API}?op=public">JSON</a> · <a href="{API}?op=feed">{both("Atom feed", "Atomフィード")}</a> · <a href="/schemas/demand-request-v0.1.json">schema v0.1</a></p></section>'

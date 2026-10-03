@@ -68,6 +68,27 @@ ok(/never a licence, a certification or permission to operate real hardware/.tes
 ok(/pilot-record\?op=stats|pilot-record' \+ '\?op=stats|API \+ '\?op=stats'/.test(fs.readFileSync(path.join(site, "robot-pilot", jsf[0]), "utf8")), "record JS reads real counts from stats");
 ok(/BSV has not run this curriculum itself yet/.test(html) && /Not a government licence/.test(html) && /Not permission to operate real hardware/.test(html) && /never upgrades the record/.test(html), "page: boundary statements");
 ok(!/certified pilot|licensed pilot|BSV verified/i.test(html), "page: no licence/certification claims");
+// Check a saved file (#7 tranche 5): in-browser validator agrees with this test's validator; boundary notes; no upload
+{
+  const good = P.build(Object.assign({}, base), cur.modules, {});
+  const cd = P.checkDoc(good.evidence, { evidence: EV });
+  ok(cd.kind === "evidence" && cd.errors.length === 0 && cd.notes.length === 0, "check file: built evidence is valid, no notes (" + cd.errors.join(";") + ")");
+  const cp = P.checkDoc(good.profile, { profile: PR });
+  ok(cp.kind === "profile" && cp.errors.length === 0 && cp.notes.length === 0, "check file: built practice record is valid (" + cp.errors.join(";") + ")");
+  const docs = [{}, { evidenceId: 5 }, Object.assign({}, good.evidence, { extra: 1 }), Object.assign({}, good.evidence, { startedAt: "yesterday" }), Object.assign({}, good.evidence, { episodes: "x" })];
+  ok(docs.every(d => P.validate(EV, d).length === validate(EV, d).length), "check file: browser validator finds the same number of problems as the test validator");
+  const hw = P.checkDoc(Object.assign({}, good.evidence, { environment: "REAL_HARDWARE" }), { evidence: EV });
+  ok(hw.errors.length === 0 && hw.notes.some(n => /no permission to operate real hardware/.test(n)), "check file: REAL_HARDWARE flagged by a boundary note");
+  const rv = P.checkDoc(Object.assign({}, good.evidence, { review: { status: "REVIEWED" } }), { evidence: EV });
+  ok(rv.notes.some(n => /Only a BSV review sets this/.test(n)), "check file: self-raised review status flagged");
+  const pr = JSON.parse(JSON.stringify(good.profile)); pr.practiceRecords[0].status = "REVIEWED";
+  ok(P.checkDoc(pr, { profile: PR }).notes.some(n => /SELF_REPORTED/.test(n)), "check file: self-raised practice status flagged");
+  ok(P.checkDoc({ hello: 1 }, {}).kind === "" && P.checkDoc([], {}).errors.length === 1, "check file: unknown files rejected");
+  const js = fs.readFileSync(path.join(site, "robot-pilot", jsf[0]), "utf8");
+  const blk = js.slice(js.indexOf("var cf = $('#rp-check-file')"), js.indexOf("var ul = $('#rp-missions')"));
+  ok(blk.length > 200 && !/innerHTML/.test(blk) && !/method\s*:/.test(blk) && /credentials: 'omit'/.test(blk), "check file: textContent only, GET of the public schema only, nothing uploaded");
+  ok(/id="rp-check-file"/.test(html) && /nothing is uploaded/.test(html) && /href="#check"/.test(html), "page: check-a-file section, no-upload note, chip");
+}
 // Open missions board (#7 tranche 4): approved PUBLIC robot-pilot requests only, counts not hard-coded, text-only rendering
 {
   const rows = [

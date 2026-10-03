@@ -52,7 +52,50 @@
           budget: w && (w.min != null || w.max != null) ? (w.min != null ? w.min : '?') + '–' + (w.max != null ? w.max : '?') + ' ' + s(w.currency || 'USDT', 8) + ' (stated, not escrow)' : '',
           deadline: r.deadline ? s(r.deadline, 10) : '', createdAt: s(r.createdAt, 10) }; });
   }
-  var api = { build: build, missions: missions };
+  // Check a saved file (Issue #7 tranche 5): validates a downloaded session-evidence or practice-record JSON against
+  // the published schema in this browser (BSV mini JSON-Schema validator, same rules as test_robot_pilot.mjs).
+  // Nothing is uploaded. A file can never raise its own review status; boundary notes say so.
+  function tOf(v) { return v === null ? 'null' : Array.isArray(v) ? 'array' : (typeof v === 'number' && isFinite(v) && Math.floor(v) === v) ? 'integer' : typeof v; }
+  function validate(sc, v, p, errs) {
+    p = p || '$'; errs = errs || [];
+    if (sc.const !== undefined && v !== sc.const) errs.push(p + ' must be ' + JSON.stringify(sc.const));
+    if (sc.enum && sc.enum.indexOf(v) === -1) errs.push(p + ' must be one of ' + sc.enum.join('/'));
+    if (sc.type) { var ts = [].concat(sc.type), t = tOf(v); if (!ts.some(function (x) { return x === t || (x === 'number' && t === 'integer'); })) { errs.push(p + ' has type ' + t + ', expected ' + ts.join('/')); return errs; } }
+    if (typeof v === 'string') {
+      if (sc.pattern && !new RegExp(sc.pattern).test(v)) errs.push(p + ' does not match the pattern');
+      if (sc.minLength && v.length < sc.minLength) errs.push(p + ' is too short');
+      if (sc.maxLength && v.length > sc.maxLength) errs.push(p + ' is too long');
+      if (sc.format === 'date-time' && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(v)) errs.push(p + ' is not a date-time');
+    }
+    if (typeof v === 'number' && sc.minimum !== undefined && v < sc.minimum) errs.push(p + ' is below ' + sc.minimum);
+    if (tOf(v) === 'object') {
+      (sc.required || []).forEach(function (r) { if (!Object.prototype.hasOwnProperty.call(v, r)) errs.push(p + ' is missing ' + r); });
+      Object.keys(v).forEach(function (k) {
+        if (sc.properties && sc.properties[k]) validate(sc.properties[k], v[k], p + '.' + k, errs);
+        else if (sc.additionalProperties === false) errs.push(p + ' has an unknown field ' + k);
+        else if (sc.additionalProperties && typeof sc.additionalProperties === 'object') validate(sc.additionalProperties, v[k], p + '.' + k, errs);
+      });
+    }
+    if (Array.isArray(v) && sc.items) v.forEach(function (x, i) { validate(sc.items, x, p + '[' + i + ']', errs); });
+    return errs;
+  }
+  var SCHEMA_URL = { evidence: '/schemas/teleop-session-evidence-v0.1.json', profile: '/schemas/robot-pilot-profile-v0.1.json' };
+  function kindOf(doc) { return doc && typeof doc === 'object' && !Array.isArray(doc) ? (Object.prototype.hasOwnProperty.call(doc, 'evidenceId') ? 'evidence' : Object.prototype.hasOwnProperty.call(doc, 'practiceRecords') ? 'profile' : '') : ''; }
+  function checkDoc(doc, schemas) {
+    var kind = kindOf(doc);
+    if (!kind) return { kind: '', errors: ['Not a BSV session-evidence or practice-record file (no evidenceId or practiceRecords).'], notes: [] };
+    var errors = validate(schemas[kind], doc).slice(0, 50), notes = [];
+    if (kind === 'evidence') {
+      if (doc.environment !== 'SIMULATION') notes.push('environment is ' + doc.environment + ': the Academy only covers simulation; this record gives no permission to operate real hardware.');
+      if (doc.review && doc.review.status && doc.review.status !== 'UNREVIEWED') notes.push('review.status is ' + doc.review.status + ' in the file. Only a BSV review sets this; editing the file does not change any record.');
+    } else {
+      (Array.isArray(doc.practiceRecords) ? doc.practiceRecords : []).forEach(function (r, i) {
+        if (r && r.status && r.status !== 'SELF_REPORTED') notes.push('practiceRecords[' + i + '].status is ' + r.status + ' in the file. Records you build here are SELF_REPORTED; editing the file does not change any record.');
+      });
+    }
+    return { kind: kind, errors: errors, notes: notes };
+  }
+  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BSVPilot = api;
   if (!root.document) return;
@@ -82,6 +125,22 @@
     $('#rp-save').addEventListener('click', function () { var o = current(); if (!show(o)) return; var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} a.push(o.evidence); try { root.localStorage.setItem(KEY, JSON.stringify(a.slice(-20))); } catch (e) {} $('#rp-saved').textContent = a.length + ' saved in this browser'; });
     try { var a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); if (a.length) $('#rp-saved').textContent = a.length + ' saved in this browser'; } catch (e) {}
     var API = '/.netlify/functions/pilot-record';
+    var cf = $('#rp-check-file');
+    if (cf) cf.addEventListener('change', function () {
+      var out = $('#rp-check-msg'), f = cf.files && cf.files[0]; if (!out || !f) return;
+      out.className = 'rq-msg'; out.textContent = 'Checking ' + f.name + '…';
+      if (f.size > 1000000) { out.className = 'rq-msg err'; out.textContent = 'File is larger than 1 MB; not checked.'; return; }
+      f.text().then(function (txt) {
+        var doc; try { doc = JSON.parse(txt); } catch (e) { out.className = 'rq-msg err'; out.textContent = 'Not valid JSON.'; return; }
+        var kind = kindOf(doc); if (!kind) { var r0 = checkDoc(doc, {}); out.className = 'rq-msg err'; out.textContent = r0.errors[0]; return; }
+        return fetch(SCHEMA_URL[kind], { credentials: 'omit' }).then(function (r) { return r.json(); }).then(function (sc) {
+          var sch = {}; sch[kind] = sc; var r = checkDoc(doc, sch);
+          out.className = 'rq-msg ' + (r.errors.length || r.notes.length ? 'err' : 'ok');
+          out.textContent = (kind === 'evidence' ? 'Session evidence (teleop-session-evidence v0.1): ' : 'Practice record (robot-pilot-profile v0.1): ') +
+            (r.errors.length ? r.errors.length + ' problem(s): ' + r.errors.join('; ') : 'valid against the published schema.') + (r.notes.length ? ' Note: ' + r.notes.join(' ') : '') + ' Checked in this browser only; nothing was uploaded.';
+        });
+      }).catch(function () { out.className = 'rq-msg err'; out.textContent = 'Could not check the file.'; });
+    });
     fetch('/.netlify/functions/demand-request?op=public', { credentials: 'omit' }).then(function (r) { return r.json(); }).then(function (j) {
       var ul = $('#rp-missions'), c = $('#rp-c-missions'); if (!ul || !j || !j.ok) return;
       var ms = missions(j.requests); c.textContent = String(ms.length); ul.textContent = '';
