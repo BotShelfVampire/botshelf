@@ -1,0 +1,7 @@
+// BSV Dual EMA Starter for ProRealTime ProBuilder
+// ORIGINAL BSV STARTER. Paste into a new personal indicator and validate there.
+
+fast = ExponentialAverage[21](Close)
+slow = ExponentialAverage[89](Close)
+
+RETURN fast COLOURED("orange") AS "EMA 21", slow COLOURED("blue") AS "EMA 89"
