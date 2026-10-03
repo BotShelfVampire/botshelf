@@ -1872,7 +1872,7 @@ function renderTradovate(recipe) {
   }
   L.push('}');
   L.push('');
-  const plotDefs = [...plots.map((b, k) => `    P${k + 1}: { title: ${jsText(b.params?.title || b.params?.source || b.id, 60)} }`), ...alerts.map((b, k) => `    A${k + 1}: { title: ${jsText('Alert: ' + (b.params?.message || b.id), 80)} }`)];
+  const plotEntries = [...plots.map((b, k) => `    P${k + 1}: { title: ${jsText(b.params?.title || b.params?.source || b.id, 60)} }`), ...alerts.map((b, k) => `    A${k + 1}: { title: ${jsText('Alert: ' + (b.params?.message || b.id), 80)} }`)];
   const styles = [...plots.map((b, k) => `      P${k + 1}: { color: "${colors[k % colors.length]}" }`), ...alerts.map((b, k) => `      A${k + 1}: { color: "${k % 2 ? 'salmon' : 'lightgreen'}" }`)];
   L.push('module.exports = {');
   L.push(`  name: "${name}",`);
@@ -1882,7 +1882,7 @@ function renderTradovate(recipe) {
   L.push('  inputType: "bars",');
   L.push(`  areaChoice: "${recipe.overlay ? 'overlay' : 'new'}",`);
   L.push('  tags: ["BSV starters"],');
-  L.push(`  plots: {${plotDefs.length ? '\n' + plotDefs.join(',\n') + '\n  ' : ''}},`);
+  L.push(`  plots: {${plotEntries.length ? '\n' + plotEntries.join(',\n') + '\n  ' : ''}},`);
   L.push(`  plotter: [${[...plots.map((b, k) => `predef.plotters.singleline("P${k + 1}")`), ...alerts.map((b, k) => `predef.plotters.dots("A${k + 1}")`)].join(', ')}],`);
   if (alerts.length) L.push(`  shifts: { ${alerts.map((b, k) => `A${k + 1}: -1`).join(', ')} }, // alert dots sit on the bar that just closed`);
   L.push(`  schemeStyles: { dark: {${styles.length ? '\n' + styles.join(',\n') + '\n    ' : ''}} }`);
