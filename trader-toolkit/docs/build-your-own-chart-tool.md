@@ -55,6 +55,8 @@ Other current targets:
 --target jforex          # Dukascopy JForex strategy (Java IStrategy, console output, no orders)
 --target easylanguage    # TradeStation EasyLanguage indicator (plots + closed-bar alerts)
 --target atas            # ATAS C# indicator (lines + closed-bar alerts, no orders)
+--target amibroker       # AmiBroker AFL indicator (Plot + completed-bar AlertIf, no orders)
+--target thinkscript     # thinkorswim thinkScript study (plots + closed-bar Alert, no orders)
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.
