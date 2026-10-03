@@ -4,6 +4,8 @@
 - #8 tranche 1 LIVE `6ac1130a` (23:37 JST, commit c170728): robots OAI-SearchBot/GPTBot groups, sitemap/canonical cleanup, llms.txt block, /.well-known/bsv-trust.json (14 quoted facts). Issue #8 comment 5970283683.
 - #6 tranche 1 LIVE `6ac115c3` (23:48 JST, commit 6286785): /requests/ + demand-request fn (pending → reviewer approve → public), real counts 0/0/0; compile-report accepts amibroker/thinkscript. Issue #6 comment 5970283835. Owner decision pending: who approves public requests.
 - #7 tranche 1 LIVE `6ac118a7` (00:01 JST; LIVE QA green, library gate 879/0; Issue #7 comment 5970403206): /robot-pilot/ Academy + browser practice record (teleop-session-evidence v0.1 + robot-pilot-profile v0.1) + mission request via /requests/?area=robot-pilot&kind=mission. Pipeline: build_robot_pilot.py + test_robot_pilot.mjs in build_stage.sh. Next tranches: #8 Transparency Center (real figures only) + BreadcrumbList gaps; #6 opportunity view from real signals; #7 review intake only if owner wants it.
+- Combined #8/#6/#7 report email sent 00:12 JST (send_report12.py). Do not resend. From now: one email per LIVE tranche batch.
+- Owner decisions 00:09 JST: New Bobby reviews Request Market (reviewer key; approve only real, non-spam, in-policy); hourly digest includes new requests (account ids only); build conservative #7 practice-record intake (verified only, private, owner/New Bobby review, self-reported kept, no auto-promotion).
 - Proposal only: "operator low-profile" positioning text (not in any public file).
 
 ---
