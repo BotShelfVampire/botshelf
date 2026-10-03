@@ -14,8 +14,8 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | GoCharting | Lipi scripting | dual-EMA Lipi source | Source prepared; Lipi-editor validation still required |
 | MT4 | MQL4 | planned renderer | Not implemented |
 | Bookmap | Java add-ons/API | research + planned visual/order-flow blocks | Not implemented |
-| MotiveWave | Java SDK | research + planned study starter | Not implemented |
-| ProRealTime | ProBuilder/ProOrder | research + planned study starter | Not implemented |
+| MotiveWave | Java SDK | EMA custom-study source | Source prepared; SDK/build verification required |
+| ProRealTime | ProBuilder | dual-EMA copy/paste indicator | Source prepared; runtime validation required |
 | ATAS | platform extensibility research | planned | Unverified |
 | JForex | Java strategy/indicator APIs | planned | Unverified |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
