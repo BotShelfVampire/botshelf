@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Tradovate starters now compute pivots, liquidity sweep candidates and regular divergence from closed bars (per-bar state, unchanged by forming-bar updates), checked against BSV's own reference in a stub of the documented API. Not run in Tradovate.", "/trading/build/coverage/"),
     ("2026-10-04", "AI toolkits: the AI Team Handoff Packet (framework-neutral plain-text template for handing a job between AI workers or human reviewers) added; source prepared, not runtime tested; source behind free email verification.", "/library/toolkit/ai-team-handoff/"),
     ("2026-10-04", "This list is also published as JSON (/transparency/changes.json) and as an Atom feed; the request form offers the builder's trading platforms as tap-to-add picks; the practice log can be backed up as one JSON file and re-imported (kept in the browser, nothing uploaded).", "/transparency/changes.json"),
     ("2026-10-04", "Liquidity sweep candidates (signal.liquidity_sweep) and regular divergence (signal.divergence) rendered on backtrader, Backtesting.py and NautilusTrader, checked bar by bar against an independent reference with a no-lookahead prefix test. Candidates only; not run on a broker or live feed.", "/trading/build/coverage/"),

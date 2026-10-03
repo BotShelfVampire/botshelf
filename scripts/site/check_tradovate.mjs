@@ -13,7 +13,7 @@ import vm from 'node:vm';
 import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-let checks = 0, failures = 0, files = 0, alertsSeen = 0;
+let checks = 0, failures = 0, files = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0;
 const fail = (f, m) => { failures++; console.error('FAIL', f, m); };
 const ok = (c, f, m) => { checks++; if (!c) fail(f, m); };
 const fin = Number.isFinite;
@@ -59,6 +59,32 @@ function reference(recipe) {
       case 'signal.threshold': { const L = val(p.left), x = Number(p.value), op = ['>', '>=', '<', '<=', '==', '!='].includes(p.op) ? p.op : '>=';
         S.set(b.id, L.map(v => fin(v) && { '>': v > x, '>=': v >= x, '<': v < x, '<=': v <= x, '==': v === x, '!=': v !== x }[op])); break; }
       case 'signal.combine': { const list = (p.signals || []).map(boolOf); S.set(b.id, new Array(NB).fill(0).map((_, i) => list.length ? (p.mode === 'any' ? list.some(a => a[i]) : list.every(a => a[i])) : false)); break; }
+      case 'structure.pivot': { // written separately from the generator: test every bar j against its whole window, publish on j + right, hold
+        const hv = (p.source || 'close') === 'close' ? pxOf.close : pxOf.high, lv = (p.source || 'close') === 'close' ? pxOf.close : pxOf.low, ph = new Map(), pl = new Map();
+        for (let j = p.left; j < NB - p.right; j++) {
+          let a = true, z = true;
+          for (let n = j - p.left; n < j; n++) { if (!(hv[j] > hv[n])) a = false; if (!(lv[j] < lv[n])) z = false; }
+          for (let n = j + 1; n <= j + p.right; n++) { if (!(hv[j] >= hv[n])) a = false; if (!(lv[j] <= lv[n])) z = false; }
+          if (a) ph.set(j + p.right, j); if (z) pl.set(j + p.right, j);
+        }
+        let ch = NaN, cl = NaN; const H = [], Lw = [];
+        for (let i = 0; i < NB; i++) { if (ph.has(i)) ch = hv[ph.get(i)]; if (pl.has(i)) cl = lv[pl.get(i)]; H.push(ch); Lw.push(cl); }
+        V.set(b.id + '.high', H); V.set(b.id + '.low', Lw); V.set(b.id + '#ph', [...ph.values()]); V.set(b.id + '#pl', [...pl.values()]); V.set(b.id + '#hv', hv); V.set(b.id + '#lv', lv);
+        break;
+      }
+      case 'signal.liquidity_sweep': {
+        compute(byId.get(p.pivot)); const A = val(p.atr), H = V.get(p.pivot + '.high'), Lw = V.get(p.pivot + '.low'), m = Number(p.minAtrFraction || 0);
+        S.set(b.id, bars.map((x, i) => i > 0 && fin(A[i]) && ((fin(H[i - 1]) && x.high > H[i - 1] && x.high - H[i - 1] >= m * A[i] && x.close < H[i - 1]) || (fin(Lw[i - 1]) && x.low < Lw[i - 1] && Lw[i - 1] - x.low >= m * A[i] && x.close > Lw[i - 1]))));
+        break;
+      }
+      case 'signal.divergence': { // pairs of consecutive pivots over the whole series; marked on the confirming bar
+        const pb = byId.get(p.pivot); compute(pb); const O = val(p.oscillator), R_ = pb.params.right, out = new Array(NB).fill(false), d = p.direction || 'both';
+        const hs = V.get(pb.id + '#ph'), ls = V.get(pb.id + '#pl'), hv = V.get(pb.id + '#hv'), lv = V.get(pb.id + '#lv');
+        if (d !== 'bullish') for (let n = 1; n < hs.length; n++) { const a = hs[n - 1], j = hs[n]; if (hv[j] > hv[a] && fin(O[j]) && fin(O[a]) && O[j] < O[a]) out[j + R_] = true; }
+        if (d !== 'bearish') for (let n = 1; n < ls.length; n++) { const a = ls[n - 1], j = ls[n]; if (lv[j] < lv[a] && fin(O[j]) && fin(O[a]) && O[j] > O[a]) out[j + R_] = true; }
+        S.set(b.id, out);
+        break;
+      }
       case 'visual.plot': case 'alert.condition': break;
       default: if (isBool(b.type)) S.set(b.id, new Array(NB).fill(false)); else V.set(b.id, new Array(NB).fill(NaN));
     }
@@ -125,10 +151,16 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
       let worst = 0, warm = 0; for (let i = 0; i < NB; i++) { if (!fin(want[i])) { if (fin(got[i])) warm++; continue; } worst = Math.max(worst, Math.abs(got[i] - want[i]) / Math.max(1, Math.abs(want[i]))); }
       ok(worst < 1e-9 && warm === 0, f, `${b.id} (${b.type}) equals reference on every bar: worst ${worst}, values while warming up ${warm}`);
     }
-    if (/^(signal\.(cross|threshold|combine)|filter\.session)$/.test(b.type)) {
+    if (/^(signal\.(cross|threshold|combine|liquidity_sweep|divergence)|filter\.session)$/.test(b.type)) {
       const want = ref.S.get(b.id), got = A.calc.bars.map(s => !!s['S_' + k]);
       const diff = want.reduce((n, w, i) => n + (!!w !== got[i]), 0);
       ok(diff === 0, f, `${b.id} (${b.type}) equals reference (${diff} bars differ)`);
+      if (/sweep|divergence/.test(b.type)) { ok(want.some(Boolean), f, `${b.id} fires on the synthetic bars (comparison not vacuous)`); pivSeen++; }
+    }
+    if (b.type === 'structure.pivot') for (const e of ['high', 'low']) {
+      const want = ref.V.get(b.id + '.' + e), got = A.calc.bars.map(s => s['V_' + k + '_' + e]);
+      const bad = want.reduce((n, w, i) => n + !((!fin(w) && !fin(got[i])) || Math.abs(w - got[i]) < 1e-12), 0);
+      ok(bad === 0 && want.some(fin), f, `${b.id}.${e} (structure.pivot) equals reference (${bad} bars differ)`);
     }
   }
   plots.forEach((pl, k) => { const want = ref.val(pl.params?.source), got = A.out.map(o => o['P' + (k + 1)]); ok(got.every((g, i) => fin(want[i]) ? Math.abs(g - want[i]) < 1e-9 : g === undefined), f, `P${k + 1} plots ${pl.params?.source}`); });
@@ -144,6 +176,18 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     alertsSeen += fired.length;
     ok(JSON.stringify(fired) === JSON.stringify(expect), f, `${key}: fired ${fired} expected ${expect}`);
   });
+  // mutants of the pivot / sweep / divergence code: each must change the signals (the reference tells them apart)
+  for (const [mn, from, to] of [['sweep without the close back inside', / && s\.c < p\.V_\w+_high\)/, ')'], ['sweep without the ATR distance', / && s\.h - p\.V_\w+_high >= [^&]+&&/, ' &&'],
+    ['divergence oscillator test flipped', /&& x\[1\] < s\.dh_/, '&& x[1] > s.dh_'], ['divergence price test dropped', /x\[0\] < s\.dl_\w+\[0\] &&/, 'true &&']]) {
+    if (!from.test(code)) continue;
+    const sig = recipe.blocks.filter(b => /^signal\.(liquidity_sweep|divergence)$/.test(b.type)), mc = code.replace(from, to);
+    if (!sig.length) continue;
+    let M; try { M = load(mc, f); } catch (e) { ok(false, f, `mutant ${mn} failed to load`); continue; }
+    const c2 = new M.ex.calculator(); c2.props = {}; c2.init();
+    try { for (let i = 0; i < NB; i++) c2.map(entity(bars[i]), i); } catch (e) { ok(false, f, `mutant ${mn} threw ${e.message}`); continue; }
+    const same = sig.every(b => { const k = String(b.id).replace(/[^A-Za-z0-9_]/g, '_'), w = ref.S.get(b.id); return c2.bars.every((s, i) => !!s['S_' + k] === !!w[i]); });
+    ok(!same, f, `mutant caught: ${mn}`); if (!same) mutCaught++;
+  }
 }
-console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
+console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, sweep_divergence_signals: pivSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
 process.exit(failures ? 1 : 0);
