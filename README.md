@@ -25,6 +25,15 @@ Copy a focused AI workflow, add your context, and review the result. This reposi
 
 These are instructions you run with your own AI, account, and tools. A prompt does not itself install an integration or enforce permissions. Role-based prompts do not automatically create independently running agents.
 
+
+## Builder toolkits
+
+Two free source areas go beyond single prompt packs:
+
+- **[Trader Tool Blocks](trader-toolkit/)** — original recipe schema, starter code generator, chart-tool recipes, TradingView/MT5/cTrader starters, a runnable Vela custom-chart starter, and platform compatibility notes. The goal is to make a custom indicator/dashboard/alert/chart app easier to assemble without pretending generated code is already runtime-verified.
+- **[AI Expansion Toolkit](ai-toolkit/)** — practical foundations for newer agent surfaces, starting with OpenAI dots and Hugging Face Agents/MCP. The packs preserve the external product's own permissions and do not claim BSV hosts those services.
+
+
 ## Marketplace and Build Library
 
 | Path | Purpose | Where to start |
