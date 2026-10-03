@@ -22,6 +22,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | AmiBroker | AFL (AmiBroker Formula Language) | generator target (`amibroker`: indicator formula with `MA`/`EMA`/`RSIa`/`ATR`, explicit cross comparisons with `Ref`, `Plot`, completed-bar `AlertIf`; no `Buy`/`Sell`/`Short`/`Cover`) | Checked by a BSV AFL-subset parser/evaluator (`check_amibroker_afl.mjs`); AmiBroker verification still required |
 | thinkorswim | thinkScript | generator target (`thinkscript`: study with `ExpAverage`/`Average`/`WildersAverage`/`TrueRange`, explicit cross comparisons, plots, `Alert(cond[1], …, Alert.BAR)`; no `AddOrder`) | Checked by a BSV thinkScript-subset parser/evaluator (`check_thinkscript.mjs`); thinkorswim verification still required |
 | Tradovate | Custom indicators (JavaScript) | generator target (`tradovate`: `module.exports` indicator, `Calculator.init`/`map(d, index)`, EMA/SMA/RSI/ATR computed in the generated code, `predef.plotters.singleline`/`dots`, closed-bar alert dots via `shifts`; no orders, no network calls) | Checked by running the output in node:vm against a BSV stub of the documented API (`check_tradovate.mjs`); Tradovate verification still required |
+| backtrader | Python library (backtesting / research) | generator target (`backtrader`: `bt.Indicator` with plot and alert lines, `bt.ind.EMA`/`SMA`/`RSI(safediv=True)`/`ATR`, `BsvAlerts` strategy printing ALERT lines on completed bars, `GenericCSVData` loader; no orders, no network calls) | Executed by BSV in the backtrader library (1.9.78.123) on synthetic bars (`check_backtrader.py`); not a broker or live-feed run, runtime verification still required |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
 
 ## Vela
@@ -228,3 +229,16 @@ Sources:
 - https://tradovate.github.io/custom-indicators/ (Indicator, Calculator, BarInputEntity, Plots, ParameterDefinitions interfaces)
 - https://tradovate.github.io/custom-indicators/pages/Tutorial/ExponentialMovingAverage.html, …/DoubleEMA.html, …/SignalingATR.html, …/Alligator.html (shifts)
 - https://community.tradovate.com/t/is-it-possible-creating-own-indicators-like-in-tv/3050 (Code Explorer module)
+
+## backtrader (Python)
+
+Generator target since 2026-10-04 (`backtrader`): builder, CLI and a pre-generated starter on every recipe page. Status: UNTESTED_RUNTIME.
+
+The target writes one Python file for the open-source backtrader library: an indicator class (`bt.Indicator`) with one line per plot (`p1`, `p2`, …) and one line per alert condition (`a1`, `a2`, …; the close when the condition holds, NaN otherwise), built from `bt.ind.EMA`, `bt.ind.SMA`, `bt.ind.RSI` (Wilder smoothing, `safediv=True`) and `bt.ind.ATR`. Signals, crosses and session filters are evaluated in `next()` (also during warm-up via `prenext()`); session filters read the bar time as UTC and convert it with `zoneinfo` to the recipe time zone. A `BsvAlerts` strategy prints `ALERT <bar time> <message>` for each completed bar where an alert condition holds and places no orders. `main()` loads a CSV with a header row (`datetime,open,high,low,close,volume`, time as `YYYY-MM-DD HH:MM:SS` in UTC) through `GenericCSVData` and runs bar by bar (`runonce=False`); `--plot` draws the lines with matplotlib. Only `math`, `sys`, `datetime`, `zoneinfo` and `backtrader` are imported. No orders, no network calls.
+
+Checked by BSV: `scripts/site/check_backtrader.py` imports every recipe's output and runs it inside backtrader 1.9.78.123 on 1200 synthetic 15-minute bars. It checks the imports, that there are no order calls (`buy`, `sell`, `close`, `order_target_*`, brackets) and no eval/exec/file/network calls, one `next()` per bar, that EMA/SMA/RSI/ATR equal an independent reference on every bar (and stay NaN while warming up), that signals and session filters equal an independent reference, that the plot lines carry the referenced values, that the output lines are identical with `runonce=True` and `runonce=False`, and that running the file as a script on a CSV prints exactly one ALERT line per completed bar where the condition holds, with no misses. A deliberately broken output (SMA in place of EMA) fails. This is a library run on made-up data: nothing was run against a broker, a live feed or real market data by BSV.
+
+Sources:
+- https://www.backtrader.com/docu/inddev/ (developing an indicator: lines, `next()`, `prenext()`)
+- https://www.backtrader.com/docu/indautoref/ (ExponentialMovingAverage, SimpleMovingAverage, RSI `safediv`, AverageTrueRange)
+- https://www.backtrader.com/docu/datafeed/ (GenericCSVData parameters)
