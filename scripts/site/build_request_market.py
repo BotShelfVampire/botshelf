@@ -191,11 +191,24 @@ TARGET_CHECKS = {  # which BSV check covers each target (facts from build_stage 
     "easylanguage": ("STRUCTURAL", "scripts/site/check_easylanguage_output.mjs", "Structural check only; not a TradeStation Verify."),
 }
 HTF_REAL = blt.HTF_REAL  # must match htfRealTargets() in render.mjs (checked by check_htf.py)
+HTF_IDIOM = blt.HTF_IDIOM  # must match htfIdiomTargets() in render.mjs (checked by check_htf.py)
 HTF_DISCLOSURE = ("Correction (2026-10-04): before this date every BSV generator target computed indicators marked with a higher "
                   "timeframe (timeframeRef) on the chart timeframe, with no warning. This affected the recipe mtf-confirmation-panel. "
-                  "Now 3 targets compute real higher-timeframe values from closed bars and the other 19 leave those blocks as TODO stubs.")
+                  "Now 3 targets compute real higher-timeframe values from closed bars (checked inside their libraries), 3 more (Pine v6, MQL5, MQL4) "
+                  "read the last closed higher-timeframe bar with the platform's officially documented idiom (pattern checked statically; not run by BSV), "
+                  "and the other 16 leave those blocks as TODO stubs.")
 HTF_DISCLOSURE_JA = ("訂正（2026-10-04）：この日より前は、BSVジェネレーターのすべての出力先で、上位足を指定した指標（timeframeRef）を、注記なしで表示中の足で計算していました。"
-                     "影響したのはレシピ mtf-confirmation-panel です。現在は3つの出力先で確定した上位足から計算し、ほかの19ではそのブロックをTODOのスタブにしています。")
+                     "影響したのはレシピ mtf-confirmation-panel です。現在は3つの出力先で確定した上位足から計算し（ライブラリ内で確認）、Pine v6・MQL5・MQL4の3つでは各プラットフォームの公式ドキュメントにある方法で直前に確定した上位足を読みます（形を静的に確認。BSVは実行していません）。ほかの16ではそのブロックをTODOのスタブにしています。")
+HTF_IDIOM_DOCS = {
+    "pine-v6": ["https://www.tradingview.com/pine-script-docs/concepts/repainting/", "https://www.tradingview.com/pine-script-docs/concepts/other-timeframes-and-data/"],
+    "mql5": ["https://www.mql5.com/en/docs/series/ibarshift", "https://www.mql5.com/en/docs/series/copybuffer", "https://www.mql5.com/en/docs/constants/chartconstants/enum_timeframes"],
+    "mql4": ["https://docs.mql4.com/series/ibarshift", "https://docs.mql4.com/indicators/ima", "https://docs.mql4.com/constants/chartconstants/enum_timeframes"],
+}
+HTF_IDIOM_NOTE = {
+    "pine-v6": "request.security(syminfo.tickerid, tf, expr[1], lookahead = barmerge.lookahead_on) — the non-repainting idiom from the Pine Script v6 manual — plus a runtime.error guard when the chart timeframe is not lower. Pattern checked statically by BSV; not run by BSV (UNTESTED_RUNTIME).",
+    "mql5": "Indicator handle on the higher PERIOD; value read with CopyBuffer at start_pos = iBarShift(chart bar time) + 1 = the last closed higher-timeframe bar. OnInit fails when the chart period is not lower. Pattern checked statically by BSV; not compiled or run by BSV (UNTESTED_RUNTIME). Bars follow broker server time.",
+    "mql4": "iMA/iRSI/iATR on the higher PERIOD at shift = iBarShift(chart bar time) + 1 = the last closed higher-timeframe bar; standard MT4 periods only. OnInit fails when the chart period is not lower. Pattern checked statically by BSV; not compiled or run by BSV (UNTESTED_RUNTIME). Bars follow broker server time.",
+}
 PARITY_ONLY = ("PARITY_ONLY", "scripts/site/test_builder_parity.mjs", "Only checked that the browser builder output equals the CLI generator; no target-specific check.")
 
 
@@ -208,11 +221,12 @@ def generator_coverage() -> dict:
         kind, script, note = TARGET_CHECKS.get(t, PARITY_ONLY)
         if not (REPO / script).exists():
             raise SystemExit(f"coverage: missing check script {script}")
-        real = t in HTF_REAL
+        real, idiom = t in HTF_REAL, t in HTF_IDIOM
         targets.append({"id": t, "label": label, "extension": ext, "check": {"kind": kind, "script": script, "note": note},
-                        "higherTimeframe": {"status": "CLOSED_BARS_CHECKED" if real else "UNSUPPORTED_TODO",
+                        "higherTimeframe": {"status": "CLOSED_BARS_CHECKED" if real else ("CLOSED_BAR_IDIOM_STATIC" if idiom else "UNSUPPORTED_TODO"),
                                             "note": "Computed from closed higher-timeframe bars only (no repaint, no lookahead); checked in the library on synthetic bars, including a cut-off run and a stop on too-coarse bars." if real
-                                            else "Blocks that use a higher timeframe are left as unsupported stubs with a TODO line (empty value / false signal); never computed on the chart timeframe."},
+                                            else (HTF_IDIOM_NOTE[t] if idiom else "Blocks that use a higher timeframe are left as unsupported stubs with a TODO line (empty value / false signal); never computed on the chart timeframe."),
+                                            **({"docs": HTF_IDIOM_DOCS[t], "check": "scripts/site/check_htf.py"} if idiom else {})},
                         "runtimeTestedByBSV": False})
     recipes = []
     for stem in tk["recipes"]:
@@ -226,6 +240,7 @@ def generator_coverage() -> dict:
             "higherTimeframeDisclosure": HTF_DISCLOSURE,
             "counts": {"targets": len(targets), "recipes": len(recipes), "byCheckKind": dict(sorted(kinds.items())), "runtimeTestedByBSV": 0,
                        "higherTimeframeReal": sum(1 for x in targets if x["higherTimeframe"]["status"] == "CLOSED_BARS_CHECKED"),
+                       "higherTimeframeDocumentedIdiom": sum(1 for x in targets if x["higherTimeframe"]["status"] == "CLOSED_BAR_IDIOM_STATIC"),
                        "recipeTargetPairsWithoutTodo": sum(1 for r in recipes for v in r["todoLines"].values() if v == 0)},
             "targets": targets, "recipes": recipes}
 
@@ -242,7 +257,7 @@ def coverage_page(site: Path, cov: dict) -> str:
     c = cov["counts"]; T = cov["targets"]; nT, nP = c["targets"], c["recipeTargetPairsWithoutTodo"]
     trows = "".join(
         f'<tr id="cov-{blt.esc(x["id"])}"><td>{blt.esc(x["label"])}</td><td data-kind="{x["check"]["kind"]}">{both(*KIND_TEXT[x["check"]["kind"]])}</td>'
-        f'<td><code>{blt.esc(x["check"]["script"])}</code></td><td data-htf="{x["higherTimeframe"]["status"]}">{both("Closed bars, checked", "確定足・確認済み") if x["higherTimeframe"]["status"] == "CLOSED_BARS_CHECKED" else both("TODO stub", "TODOのスタブ")}</td>'
+        f'<td><code>{blt.esc(x["check"]["script"])}</code></td><td data-htf="{x["higherTimeframe"]["status"]}">{both("Closed bars, checked", "確定足・確認済み") if x["higherTimeframe"]["status"] == "CLOSED_BARS_CHECKED" else (both("Closed bars, documented idiom (static check)", "確定足・公式の方法（静的確認）") if x["higherTimeframe"]["status"] == "CLOSED_BAR_IDIOM_STATIC" else both("TODO stub", "TODOのスタブ"))}</td>'
         f'<td class="small">{blt.esc(x["check"]["note"])}</td></tr>' for x in T)
     head = "".join(f'<th title="{blt.esc(x["label"])}"><code>{blt.esc(x["id"])}</code></th>' for x in T)
     mrows = "".join(f'<tr id="todo-{blt.esc(r["id"])}"><th><code>{blt.esc(r["id"])}</code></th>' + "".join(f'<td data-n="{r["todoLines"][x["id"]]}">{r["todoLines"][x["id"]]}</td>' for x in T) + "</tr>" for r in cov["recipes"])
