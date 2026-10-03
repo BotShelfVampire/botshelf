@@ -63,8 +63,8 @@ def tooling_section():
          "Not included (same recipe line as above). No BSV retargeting preset exists.",
          "含みません（上と同じ記載）。BSVのリターゲティング用プリセットはありません。"),
         ("dashboards", "Dashboards", "ダッシュボード",
-         "Practice log on this page (#log): totals from evidence files saved in this browser only. No shared or hosted dashboard.",
-         "このページの練習ログ（#log）: このブラウザに保存した証跡ファイルからの合計だけです。共有・ホスト型のダッシュボードはありません。"),
+         "Practice log on this page (#log): totals from evidence files saved in this browser only, downloadable as CSV. No shared or hosted dashboard.",
+         "このページの練習ログ（#log）: このブラウザに保存した証跡ファイルからの合計だけです（CSVで保存できます）。共有・ホスト型のダッシュボードはありません。"),
         ("annotation-qa", "Annotation and QA tooling", "アノテーション・QAのツール",
          f"Written lists only: {n('failureTaxonomy')} failure ids, {n('annotationLabels')} annotation labels, {n('episodeAcceptance')} episode-acceptance criteria; “Check a saved file” (#check) checks a JSON file against the schema. No labelling tool.",
          f"文書のリストだけです: 失敗ID {n('failureTaxonomy')}件、アノテーションラベル {n('annotationLabels')}件、採用条件 {n('episodeAcceptance')}件。「ファイルを確認」（#check）でJSONをスキーマと照合できます。ラベル付けツールはありません。"),
@@ -180,7 +180,8 @@ def page(site, cur, css_hrefs, js_href):
         f'<p class="small">{both("Totals over the sessions you saved with “Save in this browser” (up to 20). Computed here from your own entries; nothing is uploaded, estimated or reviewed. Sessions whose counts do not add up are flagged, not corrected.", "「このブラウザーに保存」で保存したセッション（最大20件）の合計です。入力した値からこの場で計算します。アップロード・推計・確認はしていません。件数が合わないセッションは直さずに表示します。")}</p>'
         f'<div class="bb-table-wrap"><table class="qa-table" id="rp-log"><thead><tr><th>{both("Task", "タスク")}</th><th>{both("Sessions", "セッション")}</th><th>{both("Attempted", "試行")}</th><th>{both("Successful", "成功")}</th><th>{both("Failed", "失敗")}</th><th>{both("Recovery", "リカバリー")}</th><th>{both("Success rate", "成功率")}</th></tr></thead><tbody id="rp-log-rows"></tbody></table></div>'
         '<p class="small" id="rp-log-sum" role="status"></p>'
-        f'<p><button type="button" class="btn" id="rp-log-clear">{both("Clear saved sessions", "保存したセッションを消す")}</button></p></section>'
+        f'<p class="rp-btns"><button type="button" class="btn" id="rp-log-csv">{both("Download the log as CSV", "ログをCSVで保存")}</button> <button type="button" class="btn" id="rp-log-clear">{both("Clear saved sessions", "保存したセッションを消す")}</button></p>'
+        f'<p class="small muted">{both("The CSV is built in this browser from the saved files only: one row per session, values as saved, nothing uploaded.", "CSVは保存したファイルだけから、このブラウザ内で作ります。1行が1セッションで、値は保存したとおりです。何も送信しません。")}</p></section>'
         + recipes_section() + tooling_section() +
         f'<section class="container bb-section" id="missions"><h2>{both("Open robot-pilot missions", "公開中のロボットパイロットのミッション")} <span class="small muted">(<b id="rp-c-missions">–</b>)</span></h2>'
         f'<p class="small">{both("Approved public requests from the Request Market in the robot-pilot area, read live from the request store. Nothing is seeded or estimated. A mission is a request: no escrow, no contract and no permission to operate real hardware.", "Request Marketのロボットパイロット分野で承認・公開されたリクエストを、リクエストの保存先からそのまま読み込みます。見本や推計は入れていません。ミッションはリクエストであり、エスクロー・契約・実機を操作する許可ではありません。")}</p>'

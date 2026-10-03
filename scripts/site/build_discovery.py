@@ -166,6 +166,7 @@ LLMS_LINKS = [
     ("Recipe builder (edit recipe blocks, generate chart-tool starters in the browser)", "trading/build/"),
     ("Traders Library", "trading/"),
     ("Capability manifests (readable list of /capabilities/index.json; verification as labelled)", "capabilities/"),
+    ("Generator coverage (readable view of /trading/build/coverage.json: the BSV check behind each target; none runtime-tested by BSV)", "trading/build/coverage/"),
     ("Request Market (real, reviewed requests only; JSON at /.netlify/functions/demand-request?op=public, Atom feed at /.netlify/functions/demand-request?op=feed)", "requests/"),
     ("Robot Pilot Academy (simulation-first teleoperation practice; self-reported records)", "robot-pilot/"),
     ("Transparency Center (rules quoted from production pages; figures counted from public files)", "transparency/"),

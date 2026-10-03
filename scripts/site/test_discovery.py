@@ -195,6 +195,13 @@ def main():
         ok({k for k, v in hs.items() if v == "CLOSED_BARS_CHECKED"} == {"backtrader", "backtesting-py", "nautilus"} and all(v in ("CLOSED_BARS_CHECKED", "UNSUPPORTED_TODO") for v in hs.values()) and cv["counts"]["higherTimeframeReal"] == 3 and "chart timeframe" in cv["higherTimeframeDisclosure"], "coverage.json: higher-timeframe status per target + correction disclosed")
         mp = s / "trading/tools/bsv-recipe-mtf-confirmation-panel.html"
         ok(mp.exists() and ('id="higher-timeframe"' in mp.read_text() and "Correction (2026-10-04)" in mp.read_text()), "recipe page: higher-timeframe notice on mtf-confirmation-panel")
+        cp = s / "trading/build/coverage/index.html"; ct = cp.read_text() if cp.exists() else ""
+        ok(ORIGIN + "/trading/build/coverage/" in locs and re.findall(r'<tr id="cov-([a-z0-9-]+)"><td>', ct) == [x["id"] for x in cv["targets"]], "coverage page: in sitemap, one row per target in coverage.json order")
+        ok(re.findall(r'data-kind="([A-Z_]+)"', ct) == [x["check"]["kind"] for x in cv["targets"]] and re.findall(r'data-htf="([A-Z_]+)"', ct) == [x["higherTimeframe"]["status"] for x in cv["targets"]], "coverage page: check kind and higher-timeframe status equal coverage.json")
+        ok([int(n) for n in re.findall(r'<td data-n="(\d+)">', ct)] == [r["todoLines"][x["id"]] for r in cv["recipes"] for x in cv["targets"]], "coverage page: TODO matrix equals coverage.json")
+        ok('"@type":"Dataset"' in ct and "/trading/build/coverage.json" in ct and "<script>" not in ct.replace('<script type="application/ld+json">', ""), "coverage page: Dataset JSON-LD for the downloadable file, no inline script")
+        tids = [x["id"] for x in cv["targets"]]
+        ok(all(g["targetsWithIt"] == len(g["targetsRenderingIt"]) and set(g["targetsRenderingIt"]) <= set(tids) for g in gg["gaps"]), "opportunities: targets rendering each gap listed by id, count matches")
         ok(cv["counts"]["recipeTargetPairsWithoutTodo"] == sum(1 for r in cv["recipes"] for v in r["todoLines"].values() if v == 0), "coverage.json: pairs-without-TODO count matches rows")
         ok(f"{ORIGIN}/trading/build/coverage.json" in (s / "llms.txt").read_text() and json.loads((s / ".well-known/bsv-trust.json").read_text())["generatorCoverage"]["url"].endswith("/trading/build/coverage.json"), "coverage.json: linked from llms.txt and trust manifest")
         ok('id="heatmap"' in t and 'id="rq-heat"' in t and not re.search(r'id="rq-heat"[^>]*>[^<]', t), "requests: demand heatmap present, no seeded cells")
