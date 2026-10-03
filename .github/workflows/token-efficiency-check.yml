@@ -1,0 +1,35 @@
+name: Token efficiency structural check
+
+on:
+  push:
+    paths:
+      - 'ops/token-efficiency/**'
+      - 'scripts/build-context-pack.mjs'
+      - 'scripts/lmstudio-compact-context.mjs'
+      - '.github/workflows/token-efficiency-check.yml'
+  pull_request:
+    paths:
+      - 'ops/token-efficiency/**'
+      - 'scripts/build-context-pack.mjs'
+      - 'scripts/lmstudio-compact-context.mjs'
+      - '.github/workflows/token-efficiency-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check script syntax
+        run: |
+          node --check scripts/build-context-pack.mjs
+          node --check scripts/lmstudio-compact-context.mjs
+      - name: Build a compact context pack without any model call
+        run: |
+          node scripts/build-context-pack.mjs             --goal "verify compact context pipeline"             --files ops/token-efficiency/BSV_STATE.md,ops/token-efficiency/DECISIONS.md             --out /tmp/context-pack.json
+          node -e "const x=require('/tmp/context-pack.json'); if(x.schema!=='bsv-context-pack-0.1'||x.files.length!==2) process.exit(1)"
+      - name: Ensure examples contain no obvious real provider keys
+        run: |
+          ! grep -RIE 'sk-[A-Za-z0-9_-]{20,}|xai-[A-Za-z0-9_-]{20,}' ops/token-efficiency
