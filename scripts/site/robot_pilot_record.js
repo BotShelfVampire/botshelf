@@ -95,7 +95,25 @@
     }
     return { kind: kind, errors: errors, notes: notes };
   }
-  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf };
+  // Practice log (Issue #7 tranche 6): totals over evidence records saved in this browser. Self-reported input only;
+  // nothing is estimated, uploaded or upgraded. Records whose counts do not add up are flagged, not corrected.
+  function summarize(list) {
+    var o = { sessions: 0, attempted: 0, successful: 0, failed: 0, recovery: 0, safetyEvents: 0, nonSimulation: 0, inconsistent: [], byTask: {} };
+    (Array.isArray(list) ? list : []).forEach(function (e, i) {
+      if (!e || typeof e !== 'object' || !e.episodes || typeof e.episodes !== 'object') return;
+      var ep = e.episodes, n = function (x) { return typeof x === 'number' && isFinite(x) && x >= 0 ? Math.floor(x) : 0; };
+      var a = n(ep.attempted), s = n(ep.successful), f = n(ep.failed), r = n(ep.recoveryEpisodes);
+      o.sessions++; o.attempted += a; o.successful += s; o.failed += f; o.recovery += r;
+      o.safetyEvents += Array.isArray(e.safetyEvents) ? e.safetyEvents.length : 0;
+      if (e.environment !== 'SIMULATION') o.nonSimulation++;
+      if (s + f > a) o.inconsistent.push(e.evidenceId || ('#' + i));
+      var t = String(e.taskId || '(no task)'), b = o.byTask[t] || (o.byTask[t] = { sessions: 0, attempted: 0, successful: 0, failed: 0, recovery: 0 });
+      b.sessions++; b.attempted += a; b.successful += s; b.failed += f; b.recovery += r;
+    });
+    o.successRate = o.attempted ? o.successful / o.attempted : null;
+    return o;
+  }
+  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf, summarize: summarize };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BSVPilot = api;
   if (!root.document) return;
@@ -124,6 +142,19 @@
     $('#rp-dl-rec').addEventListener('click', function () { var o = current(); if (show(o)) dl(o.profile.practiceRecords[0].recordId + '.practice-record.json', o.profile); });
     $('#rp-save').addEventListener('click', function () { var o = current(); if (!show(o)) return; var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} a.push(o.evidence); try { root.localStorage.setItem(KEY, JSON.stringify(a.slice(-20))); } catch (e) {} $('#rp-saved').textContent = a.length + ' saved in this browser'; });
     try { var a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); if (a.length) $('#rp-saved').textContent = a.length + ' saved in this browser'; } catch (e) {}
+    function pct(x) { return x === null ? '—' : (Math.round(x * 1000) / 10) + '%'; }
+    function td(tr, v) { var c = root.document.createElement('td'); c.textContent = String(v); tr.appendChild(c); }
+    function renderLog() {
+      var tb = $('#rp-log-rows'), sm = $('#rp-log-sum'); if (!tb || !sm) return;
+      var list = []; try { list = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {}
+      var o = summarize(list); tb.textContent = '';
+      Object.keys(o.byTask).sort().forEach(function (t) { var b = o.byTask[t], tr = root.document.createElement('tr'); [t, b.sessions, b.attempted, b.successful, b.failed, b.recovery, pct(b.attempted ? b.successful / b.attempted : null)].forEach(function (v) { td(tr, v); }); tb.appendChild(tr); });
+      sm.textContent = o.sessions ? (o.sessions + ' session(s) saved in this browser: ' + o.attempted + ' attempted, ' + o.successful + ' successful (' + pct(o.successRate) + '), ' + o.failed + ' failed, ' + o.recovery + ' recovery, ' + o.safetyEvents + ' safety event(s).' +
+        (o.nonSimulation ? ' ' + o.nonSimulation + ' not marked SIMULATION.' : '') + (o.inconsistent.length ? ' Counts do not add up in: ' + o.inconsistent.join(', ') + '.' : '') + ' Self-reported; not reviewed.') : 'No sessions saved in this browser yet.';
+    }
+    renderLog();
+    $('#rp-save').addEventListener('click', renderLog);
+    var clr = $('#rp-log-clear'); if (clr) clr.addEventListener('click', function () { try { root.localStorage.removeItem(KEY); } catch (e) {} $('#rp-saved').textContent = ''; renderLog(); });
     var API = '/.netlify/functions/pilot-record';
     var cf = $('#rp-check-file');
     if (cf) cf.addEventListener('change', function () {

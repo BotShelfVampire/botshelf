@@ -133,11 +133,40 @@ def catalogue_gaps(site: Path) -> list:
     return out
 
 
+def generator_gaps() -> dict:
+    """Block types used by the BSV recipes that the BSV generator does not render yet (Issue #6 tranche 6). Counted at
+    build time by rendering every recipe for every target and reading the generator's own 'TODO unsupported block'
+    lines. A fact about the generator, not a measure of demand."""
+    import subprocess
+    from concurrent.futures import ThreadPoolExecutor
+    tk = json.loads((REPO / "trader-toolkit/catalog.json").read_text())
+    targets = [t for t, _, _ in blt.TARGETS]
+    gen = REPO / "trader-toolkit/generator/render.mjs"
+    def run(job):
+        stem, t = job
+        out = subprocess.run(["node", str(gen), str(REPO / f"trader-toolkit/recipes/{stem}.json"), "--target", t], capture_output=True, text=True, check=True).stdout
+        return stem, t, sorted(set(re.findall(r"TODO unsupported block ([a-z_]+\.[a-z_]+)", out)))
+    with ThreadPoolExecutor(8) as ex:
+        res = list(ex.map(run, [(stem, t) for stem in tk["recipes"] for t in targets]))
+    by = {}
+    for stem, t, types in res:
+        for ty in types:
+            g = by.setdefault(ty, {"recipes": set(), "targets": set()})
+            g["recipes"].add(stem); g["targets"].add(t)
+    gaps = [{"blockType": ty, "recipes": sorted(g["recipes"]), "recipeCount": len(g["recipes"]), "targetsWithoutIt": len(g["targets"]), "targetsWithIt": len(targets) - len(g["targets"])}
+            for ty, g in sorted(by.items(), key=lambda kv: (-len(kv[1]["recipes"]), kv[0]))]
+    return {"targets": len(targets), "recipes": len(tk["recipes"]), "recipesWithGaps": len({stem for stem, _, types in res if types}), "gaps": gaps}
+
+
 def builders_section(site: Path) -> str:
     import build_discovery as bd
     gaps = catalogue_gaps(site)
     rows = "".join(f'<tr><td>{both(g["label"], g["label_ja"])}</td><td>{g["count"]}</td><td class="small">{blt.esc(", ".join(f"{k} {v}" for k, v in g["byKind"].items()))}</td></tr>' for g in gaps)
     split = [x for x in bd.FACTS if x[0] == "seller_split_payout"][0]
+    gg = generator_gaps()
+    grows = "".join(f'<tr id="gap-{blt.esc(g["blockType"])}"><td><code>{blt.esc(g["blockType"])}</code></td><td>{g["recipeCount"]} <span class="small muted">({blt.esc(", ".join(g["recipes"]))})</span></td><td>{g["targetsWithIt"]} / {gg["targets"]}</td></tr>' for g in gg["gaps"])
+    gen_en = f"Counted at build time by rendering all {gg['recipes']} BSV recipes for all {gg['targets']} targets and reading the generator's own TODO lines ({gg['recipesWithGaps']} recipes have at least one). A fact about the generator, not a measure of demand."
+    gen_ja = f"BSVレシピ{gg['recipes']}件を{gg['targets']}種類の出力先すべてで生成し、ジェネレーター自身のTODO行から数えた値です（1つ以上あるレシピは{gg['recipesWithGaps']}件）。ジェネレーターについての事実で、需要の量ではありません。"
     return (
         f'<section class="container bb-section" id="builders"><h2>{both("For builders: opportunities from real signals", "作り手の方へ: 実際のデータからわかること")}</h2>'
         f'<p>{both("Do not guess what to build. Everything below comes from real data; there are no revenue projections.", "何を作るか推測しなくて済むように、以下はすべて実際のデータです。売上の見込みは載せていません。")}</p>'
@@ -147,6 +176,9 @@ def builders_section(site: Path) -> str:
         f'<h3>{both("Supply gaps in the Traders Library catalogue", "Traders Library カタログの空き")}</h3>'
         f'<p class="small">{both("Counted from /trading/catalog.json. This is a fact about the catalogue, not a measure of demand. Porting someone else's source must follow that entry's license.", "/trading/catalog.json から数えた値です。カタログの事実であって、需要の大きさではありません。他の人のソースを移植する場合は、その項目のライセンスに従ってください。")}</p>'
         f'<div class="bb-table-wrap"><table class="qa-table"><thead><tr><th>{both("Gap", "空き")}</th><th>{both("Entries", "件数")}</th><th>{both("By type", "種類別")}</th></tr></thead><tbody>{rows}</tbody></table></div>'
+        f'<h3 id="generator-gaps">{both("Blocks the generator cannot render yet", "ジェネレーターがまだ出力できないブロック")}</h3>'
+        f'<p class="small">{both(gen_en, gen_ja)}</p>'
+        f'<div class="bb-table-wrap"><table class="qa-table" id="rq-gen-gaps"><thead><tr><th>{both("Block type", "ブロックの種類")}</th><th>{both("Recipes using it", "使っているレシピ")}</th><th>{both("Targets that render it", "出力できる出力先")}</th></tr></thead><tbody>{grows}</tbody></table></div>'
         f'<h3>{both("Signals not collected yet", "まだ集めていないデータ")}</h3>'
         f'<p class="small">{both("No-result searches and page-view demand are not logged on this site, so they are not shown.", "結果0件の検索やページの閲覧数は記録していないため、表示していません。")}</p>'
         f'<h3>{both("If you build it", "作ったら")}</h3><ul><li><q>{blt.esc(split[2])}</q> <a class="small" href="/{split[1]}">{split[1]}</a></li>'
@@ -227,6 +259,7 @@ def main():
             "opportunitySignals": {"source": ORIGIN + API + "?op=signals", "schema": ORIGIN + "/schemas/opportunity-signal-v0.1.json", "note": "Live: REQUEST / FULFILLED_REQUEST signals aggregated from approved public requests. Other signal types are not produced because they are not collected."},
             "noResultSearches": {"collected": False, "note": "Not logged on this site."},
             "pageViews": {"collected": False, "note": "Not logged on this site."},
+            "generatorGaps": {"source": "trader-toolkit/generator/render.mjs and trader-toolkit/recipes in the BSV repository", "note": "Block types the BSV generator does not render yet, counted from its own TODO lines at build time. Facts about the generator, not demand.", **generator_gaps()},
             "catalogueGaps": {"source": ORIGIN + "/trading/catalog.json", "note": "Facts about the catalogue, not demand. Porting third-party source must follow its license.", "gaps": gaps}},
     }, ensure_ascii=False, indent=1) + "\n")
     sd = site / "schemas"; sd.mkdir(exist_ok=True)

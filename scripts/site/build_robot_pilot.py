@@ -136,7 +136,12 @@ def page(site, cur, css_hrefs, js_href):
         f'<p class="small">{both("Pick a session-evidence or practice-record JSON you downloaded here. It is checked against the published schema in this browser; nothing is uploaded. A file cannot raise its own review status.", "ここでダウンロードした証跡または練習記録のJSONを選んでください。公開しているスキーマに合っているかを、このブラウザの中だけで確認します。アップロードはしません。ファイルを書き換えても確認の状態は上がりません。")}</p>'
         f'<div><label for="rp-check-file">{both("JSON file", "JSONファイル")}</label><input type="file" id="rp-check-file" accept="application/json,.json"></div>'
         '<p class="rq-msg" id="rp-check-msg" role="status"></p>'
-        f'<p class="small"><a href="/schemas/teleop-session-evidence-v0.1.json">teleop-session-evidence v0.1</a> · <a href="/schemas/robot-pilot-profile-v0.1.json">robot-pilot-profile v0.1</a></p></section>'
+        f'<p class="small"><a href="/schemas/teleop-session-evidence-v0.1.json">teleop-session-evidence v0.1</a> · <a href="/schemas/robot-pilot-profile-v0.1.json">robot-pilot-profile v0.1</a></p>'
+        f'<h3 id="log">{both("Practice log (this browser)", "練習ログ（このブラウザ）")}</h3>'
+        f'<p class="small">{both("Totals over the sessions you saved with “Save in this browser” (up to 20). Computed here from your own entries; nothing is uploaded, estimated or reviewed. Sessions whose counts do not add up are flagged, not corrected.", "「このブラウザーに保存」で保存したセッション（最大20件）の合計です。入力した値からこの場で計算します。アップロード・推計・確認はしていません。件数が合わないセッションは直さずに表示します。")}</p>'
+        f'<div class="bb-table-wrap"><table class="qa-table" id="rp-log"><thead><tr><th>{both("Task", "タスク")}</th><th>{both("Sessions", "セッション")}</th><th>{both("Attempted", "試行")}</th><th>{both("Successful", "成功")}</th><th>{both("Failed", "失敗")}</th><th>{both("Recovery", "リカバリー")}</th><th>{both("Success rate", "成功率")}</th></tr></thead><tbody id="rp-log-rows"></tbody></table></div>'
+        '<p class="small" id="rp-log-sum" role="status"></p>'
+        f'<p><button type="button" class="btn" id="rp-log-clear">{both("Clear saved sessions", "保存したセッションを消す")}</button></p></section>'
         + recipes_section() +
         f'<section class="container bb-section" id="missions"><h2>{both("Open robot-pilot missions", "公開中のロボットパイロットのミッション")} <span class="small muted">(<b id="rp-c-missions">–</b>)</span></h2>'
         f'<p class="small">{both("Approved public requests from the Request Market in the robot-pilot area, read live from the request store. Nothing is seeded or estimated. A mission is a request: no escrow, no contract and no permission to operate real hardware.", "Request Marketのロボットパイロット分野で承認・公開されたリクエストを、リクエストの保存先からそのまま読み込みます。見本や推計は入れていません。ミッションはリクエストであり、エスクロー・契約・実機を操作する許可ではありません。")}</p>'

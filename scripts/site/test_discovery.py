@@ -178,6 +178,13 @@ def main():
         ok(all(x["count"] == len(x["entries"]) for x in g.values()), "opportunities: counts equal listed entries")
         osch = json.loads((s / "schemas/opportunity-signal-v0.1.json").read_text())
         ok((s / "schemas/opportunity-signal-v0.1.json").read_text() == (bd.Path(__file__).resolve().parents[2] / "schemas/bsv-opportunity-signal.schema.json").read_text() and op["signals"]["opportunitySignals"]["schema"].endswith("/schemas/opportunity-signal-v0.1.json"), "opportunity-signal schema published byte-identical and linked")
+        # generator gaps (#6 tranche 6): every listed recipe really uses the block type; counts add up; page table = json
+        gg = op["signals"]["generatorGaps"]; rdir = bd.Path(__file__).resolve().parents[2] / "trader-toolkit/recipes"
+        uses = lambda stem, ty: any(b.get("type") == ty for b in json.loads((rdir / f"{stem}.json").read_text())["blocks"])
+        ok(gg["targets"] == 22 and gg["gaps"] and all(g["recipeCount"] == len(g["recipes"]) and g["targetsWithIt"] + g["targetsWithoutIt"] == gg["targets"] and all(uses(r, g["blockType"]) for r in g["recipes"]) for g in gg["gaps"]), "opportunities: generator gaps are real block types in the listed recipes")
+        ok(gg["recipesWithGaps"] == len({r for g in gg["gaps"] for r in g["recipes"]}), "opportunities: recipesWithGaps equals listed recipes")
+        prow = re.findall(r'<tr id="gap-([a-z_.]+)"><td><code>[^<]*</code></td><td>(\d+) ', t)
+        ok(prow == [(g["blockType"], str(g["recipeCount"])) for g in gg["gaps"]], f"requests page: generator-gap table equals opportunities.json ({len(prow)} rows)")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         ok('id="builders"' in t and 'id="rq-areas"' in t and not re.search(r"projected|forecast|potential revenue|\$\d", bd.visible_text(rq), re.I), "opportunities: section present, no revenue projections")
         sc = json.loads((s / "schemas/demand-request-v0.1.json").read_text())
@@ -229,6 +236,13 @@ def main():
     ok(not any(h and bd.is_gated(h) for _, h, _ in rows), "capabilities page: no links to gated pages")
     ok(f"<loc>{ORIGIN}/capabilities/</loc>" in rd("sitemap.xml") and ORIGIN + "/capabilities/" in rd("llms.txt") and '<link rel="canonical" href="' + ORIGIN + '/capabilities/"' in ch, "capabilities page: sitemap, llms, canonical")
     ok("VERIFIED<b>0</b>" in ch.replace("</div>", "") or ">VERIFIED<b>0<" in ch, "capabilities page: VERIFIED count shown as 0")
+    # Dataset JSON-LD only on the genuine dataset page (#8 tranche 6)
+    lds = [json.loads(x) for x in re.findall(r'<script type="application/ld\+json">(.*?)</script>', ch, re.S)]
+    dss = [x for x in lds if x.get("@type") == "Dataset"]
+    ok(len(dss) == 1 and dss[0]["url"] == ORIGIN + "/capabilities/" and [d["contentUrl"] for d in dss[0]["distribution"]] == [ORIGIN + "/capabilities/index.json"]
+       and str(cm["counts"]["total"]) in dss[0]["description"] and "license" not in dss[0] and "VERIFIED" not in dss[0]["description"].replace("Nothing is labelled VERIFIED", "").replace("nothing here is VERIFIED", ""), "capabilities page: one truthful Dataset JSON-LD pointing at index.json")
+    dpages = [str(f.relative_to(s)) for f in s.rglob("*.html") if '"@type":"Dataset"' in f.read_text(errors="ignore")]
+    ok(dpages == ["capabilities/index.html"], f"Dataset JSON-LD only on the dataset page {dpages[:4]}")
     # sitemaps: no gated URLs anywhere, txt == xml, legacy trading sitemap on public pages (#8 tranche 4)
     edge = s.parent / "netlify/edge-functions/free-session-gate.ts"
     if edge.exists():

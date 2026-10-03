@@ -222,9 +222,16 @@ def page(site: Path, out: dict) -> str:
         f'<p class="small muted">{both("Gated source is not included. Links go to public pages only.", "メール確認が必要なソースは含めていません。リンク先は公開ページだけです。")}</p></section>'
         + secs
     )
-    return blt.trader_shell(site, "Capability manifests — what each tool does and what was checked · BotShelf Vampire",
-                            f"{c['total']} capability manifests: job, inputs, runtime, license and verification status for every public catalogue entry and BSV recipe." + (" Nothing is labelled VERIFIED." if not c["byVerificationStatus"].get("VERIFIED") else ""),
-                            "/capabilities/", body)
+    desc = f"{c['total']} capability manifests: job, inputs, runtime, license and verification status for every public catalogue entry and BSV recipe." + (" Nothing is labelled VERIFIED." if not c["byVerificationStatus"].get("VERIFIED") else "")
+    # Dataset JSON-LD (Issue #8 tranche 6): this page is the readable view of a genuine downloadable dataset
+    # (/capabilities/index.json). Only facts read from `out`; no license is claimed for the dataset itself.
+    ld = {"@context": "https://schema.org", "@type": "Dataset", "name": "BSV capability manifests",
+          "description": desc + " " + out["method"], "url": ORIGIN + "/capabilities/", "isAccessibleForFree": True,
+          "creator": {"@type": "Organization", "name": "BotShelf Vampire", "url": ORIGIN + "/"},
+          "variableMeasured": ["job", "inputs", "outputs", "runtime", "permissions", "sideEffects", "verification.status", "license", "monetization"],
+          "distribution": [{"@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": ORIGIN + "/capabilities/index.json"}]}
+    return blt.trader_shell(site, "Capability manifests — what each tool does and what was checked · BotShelf Vampire", desc,
+                            "/capabilities/", body, extra_head='<script type="application/ld+json">' + json.dumps(ld, ensure_ascii=False, separators=(",", ":")) + "</script>")
 
 
 def main():
