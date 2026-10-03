@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Opening Range Dashboard",
+  "description": "Session range, breakout state and dashboard starter.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "session",
+      "type": "filter.session",
+      "params": {
+        "session": "0930-1000",
+        "timezone": "America/New_York"
+      }
+    },
+    {
+      "id": "range",
+      "type": "structure.range",
+      "params": {
+        "during": "session",
+        "track": [
+          "high",
+          "low"
+        ]
+      }
+    },
+    {
+      "id": "breakout",
+      "type": "signal.breakout",
+      "params": {
+        "range": "range",
+        "direction": "either"
+      }
+    },
+    {
+      "id": "range_zone",
+      "type": "visual.zone",
+      "params": {
+        "source": "range",
+        "title": "Opening Range"
+      }
+    },
+    {
+      "id": "status",
+      "type": "visual.table",
+      "params": {
+        "fields": [
+          "breakout"
+        ],
+        "title": "Opening Range Status"
+      }
+    },
+    {
+      "id": "alert_break",
+      "type": "alert.condition",
+      "params": {
+        "when": "breakout",
+        "message": "BSV recipe: opening range breakout"
+      }
+    }
+  ]
+}
