@@ -75,6 +75,50 @@ def check_text(site_files):
     return locs, m
 
 
+def schema_errors(x, sc, path="$"):
+    """Small JSON Schema subset (type, const, enum, required, additionalProperties:false, properties, items,
+    minItems, minLength, maxLength, minimum, pattern) — enough for the BSV v0.1 schemas."""
+    errs = []
+    T = {"object": dict, "array": list, "string": str, "boolean": bool, "null": type(None)}
+    def is_t(v, t):
+        if t == "integer":
+            return isinstance(v, int) and not isinstance(v, bool)
+        if t == "number":
+            return isinstance(v, (int, float)) and not isinstance(v, bool)
+        return isinstance(v, T[t])
+    ts = sc.get("type")
+    if ts and not any(is_t(x, t) for t in ([ts] if isinstance(ts, str) else ts)):
+        return [f"{path}: type {type(x).__name__} not {ts}"]
+    if "const" in sc and x != sc["const"]:
+        errs.append(f"{path}: const")
+    if "enum" in sc and x not in sc["enum"]:
+        errs.append(f"{path}: enum {x!r}")
+    if isinstance(x, str):
+        if len(x) < sc.get("minLength", 0) or len(x) > sc.get("maxLength", 10**9):
+            errs.append(f"{path}: length")
+        if "pattern" in sc and not re.search(sc["pattern"], x):
+            errs.append(f"{path}: pattern")
+    if isinstance(x, (int, float)) and not isinstance(x, bool) and "minimum" in sc and x < sc["minimum"]:
+        errs.append(f"{path}: minimum")
+    if isinstance(x, dict):
+        for k in sc.get("required", []):
+            if k not in x:
+                errs.append(f"{path}: missing {k}")
+        props = sc.get("properties", {})
+        if sc.get("additionalProperties") is False:
+            errs += [f"{path}: extra {k}" for k in x if k not in props]
+        for k, v in x.items():
+            if k in props:
+                errs += schema_errors(v, props[k], f"{path}.{k}")
+    if isinstance(x, list):
+        if len(x) < sc.get("minItems", 0):
+            errs.append(f"{path}: minItems")
+        if isinstance(sc.get("items"), dict):
+            for n, v in enumerate(x):
+                errs += schema_errors(v, sc["items"], f"{path}[{n}]")
+    return errs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--site", required=True)
@@ -137,6 +181,25 @@ def main():
         ok(m.get("transparencyCenter") == ORIGIN + "/transparency/", "trust manifest links the Transparency Center")
     nob = [u for u in locs if u != ORIGIN + "/" and bd.url_to_file(s, u).suffix == ".html" and bd.url_to_file(s, u).exists() and "BreadcrumbList" not in bd.url_to_file(s, u).read_text(errors="ignore")]
     ok(not nob, f"breadcrumbs: sitemap pages without BreadcrumbList {nob[:5]}")
+    # capability manifests (#8 tranche 3)
+    cm = json.loads(rd("capabilities/index.json"))
+    csch = json.loads(rd("schemas/capability-manifest-v0.1.json"))
+    ok(rd("schemas/capability-manifest-v0.1.json") == (bd.Path(__file__).resolve().parents[2] / "schemas/bsv-capability-manifest.schema.json").read_text(), "capability schema published byte-identical")
+    errs = [e for c in cm["capabilities"] for e in schema_errors(c, csch, c.get("capabilityId", "?"))]
+    ok(not errs, f"capability manifests validate: {errs[:5]}")
+    ok(schema_errors({"schemaVersion": "0.1"}, csch) != [] and schema_errors({**cm["capabilities"][0], "x": 1}, csch) != [], "capability validator rejects bad manifests")
+    catj = json.loads(rd("trading/catalog.json"))
+    ok(cm["counts"]["catalogue"] == len(catj) == sum(1 for c in cm["capabilities"] if c["capabilityId"].startswith("trading.")), "capabilities: one per catalogue entry")
+    ok(cm["counts"]["total"] == len(cm["capabilities"]) and len({c["capabilityId"] for c in cm["capabilities"]}) == len(cm["capabilities"]), "capabilities: counts and unique ids")
+    ok(not any(c["verification"]["status"] == "VERIFIED" for c in cm["capabilities"]), "capabilities: nothing VERIFIED")
+    ok(sum(1 for c in cm["capabilities"] if c["verification"]["status"] == "PARTIAL") == sum(1 for i in catj if i.get("runtime_tested") is True), "capabilities: PARTIAL only where the catalogue says runtime-tested")
+    byid = {c["capabilityId"]: c for c in cm["capabilities"]}
+    ok(all(bool(byid["trading." + i["id"]]["sideEffects"]) == (i["kind"] in ("Expert Advisor", "Trade manager", "Strategy")) for i in catj), "capabilities: order side effects declared for EAs, trade managers and strategies")
+    cbad = [c["canonicalUrl"] for c in cm["capabilities"] if not (bd.url_to_file(s, c["canonicalUrl"]).exists() and "noindex" not in bd.head_meta(bd.url_to_file(s, c["canonicalUrl"]).read_text(errors="ignore"))[0])]
+    ok(not cbad, f"capabilities: canonical URLs are existing indexable pages {cbad[:3]}")
+    ok(not re.search(r"local_source|sources/|@[a-z0-9-]+\.[a-z]", json.dumps(cm)) , "capabilities: no gated paths or emails")
+    ok(m.get("capabilityManifests", {}).get("url") == ORIGIN + "/capabilities/index.json", "trust manifest links capability manifests")
+    ok(ORIGIN + "/capabilities/index.json" in rd("llms.txt"), "llms links capability manifests")
     # trust facts re-read from the built pages
     for key, page, sent in bd.FACTS:
         ok(sent in bd.visible_text(s / page), f"trust fact {key} not on {page}")
@@ -167,6 +230,8 @@ def main():
             j = json.loads(body)
             ok(j.get("ok") is True and isinstance(j.get("requests"), list) and j["counts"]["published"] == len(j["requests"]), "live requests API: counts match listed rows")
             ok(all("user_id" not in r and "@" not in json.dumps(r) for r in j["requests"]), "live requests API: no user ids or emails")
+            st3, cb, _ = get(f"{L}/capabilities/index.json")
+            ok(st3 == 200 and json.loads(cb)["counts"] == cm["counts"], f"live capabilities/index.json {st3}")
             st2, ob, _ = get(f"{L}/requests/opportunities.json")
             ok(st2 == 200 and json.loads(ob)["signals"]["noResultSearches"]["collected"] is False, f"live opportunities.json {st2}")
         else:
