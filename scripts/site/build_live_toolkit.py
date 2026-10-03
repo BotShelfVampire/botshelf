@@ -441,6 +441,17 @@ def ai_records(repo: Path, copy: dict) -> list[dict]:
 
 def build_ai(site: Path, repo: Path, copy: dict) -> dict:
     recs = ai_records(repo, copy)
+    # handoff-packet checker: served from /library/source/ (behind the free email gate), used only on that packet's source page
+    for old in (site / "library/source").glob("handoff-check.*.js"):
+        old.unlink()
+    hjs = (repo / "scripts/site/handoff_check.js").read_text()
+    hname = f"library/source/handoff-check.{hashlib.sha256(hjs.encode()).hexdigest()[:8]}.js"
+    write(site / hname, hjs)
+    checker = ('<section class="section" id="ho-checker"><p class="section-label">Check a filled packet</p>'
+               + lib_both(T("Paste a filled packet and press Check. It applies the packet's own rules (every section present, one status, DONE only with evidence, owner approval YES or NO, one next action, no guessed results). It runs in this browser only: nothing is uploaded or stored. It checks structure and wording, not whether the facts are true.",
+                            "記入した packet を貼り付けて「Check」を押します。packet 自身のルール（すべての項目があること、status は1つ、DONE は根拠があるときだけ、owner approval は YES か NO、次の一手は1つ、推測で結果を書かない）で確かめます。このブラウザの中だけで動き、何もアップロード・保存しません。確かめるのは形と書き方で、内容が正しいかどうかではありません。"), "p", "muted")
+               + '<p><label for="ho-text">Filled packet</label></p><p><textarea id="ho-text" rows="14" cols="80" spellcheck="false"></textarea></p>'
+               '<p><button type="button" class="btn" id="ho-check">Check</button></p><div id="ho-out" aria-live="polite"></div></section>')
     lic = (repo / "LICENSE").read_bytes()
     st = copy["status"]
     for r in recs:
@@ -463,8 +474,12 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
         body = (f'<p class="kicker"><a href="/library/">Library</a> · <a href="/library/toolkit/">AI toolkits</a> · {esc(r["framework"])}</p><h1>{esc(r["title"])}</h1>'
                 f'{lib_both(r["summary"], "p", "catch")}<p class="lib-meta"><span class="tk-badge">{esc(r["framework"])}</span><span class="tk-badge tk-warn">{esc(st[r["status"]]["en"])}</span><span class="tk-badge">ORIGINAL · MIT</span></p>'
                 f'<p><a class="btn-fat btn-solid" href="/library/source/{r["id"]}.zip">Download ZIP (source + LICENSE)</a></p>' + "".join(blocks)
+                + (checker if r["id"] == "ai-team-handoff" else "")
                 + f'<details class="lib-src"><summary>License (MIT)</summary><pre>{esc(lic.decode())}</pre></details><p><a href="/library/toolkit/{r["id"]}/">← Summary page</a></p>')
-        write(site / f"library/source/{r['id']}.html", lib_shell(site, f"{r['title']} — source | BotShelf Vampire", r["summary"]["en"], f"/library/toolkit/{r['id']}/", body, robots="noindex,nofollow"))
+        sh = lib_shell(site, f"{r['title']} — source | BotShelf Vampire", r["summary"]["en"], f"/library/toolkit/{r['id']}/", body, robots="noindex,nofollow")
+        if r["id"] == "ai-team-handoff":
+            sh = sh.replace("</body>", f'<script src="/{hname}" defer></script>\n</body>', 1)
+        write(site / f"library/source/{r['id']}.html", sh)
         # public detail
         fw = copy["ai_frameworks"].setdefault(r["framework"], {"slug": re.sub(r"[^a-z0-9]+", "-", r["framework"].lower()).strip("-"), "en": r["framework"], "ja": r["framework"], "refs": []})
         names = "".join(f'<li><code>{esc(f.relative_to(r["base"]))}</code> · {f.stat().st_size} bytes</li>' for f in r["files"])
