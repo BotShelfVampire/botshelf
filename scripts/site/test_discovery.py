@@ -124,16 +124,18 @@ class _NoRedirect(__import__("urllib.request").request.HTTPRedirectHandler):
         return None
 
 
-def status_no_redirect(u):
-    import urllib.request, urllib.error
+def status_no_redirect(u, tries=3):
+    import time, urllib.request, urllib.error
     op = urllib.request.build_opener(_NoRedirect)
-    try:
-        r = op.open(urllib.request.Request(u, method="HEAD", headers={"User-Agent": "Mozilla/5.0 BSV-discovery-check"}), timeout=30)
-        return r.status
-    except urllib.error.HTTPError as e:
-        return e.code
-    except Exception:
-        return -1
+    for k in range(tries):  # -1 = network error (no HTTP status); retried, an HTTP status is never retried
+        try:
+            r = op.open(urllib.request.Request(u, method="HEAD", headers={"User-Agent": "Mozilla/5.0 BSV-discovery-check"}), timeout=30)
+            return r.status
+        except urllib.error.HTTPError as e:
+            return e.code
+        except Exception:
+            time.sleep(1 + k)
+    return -1
 
 
 def main():
