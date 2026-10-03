@@ -5,6 +5,7 @@
 # The workflow only runs when you click "Test workflow". It saves nothing, sends nothing and calls no paid API:
 # you read the result in the execution view and copy it yourself (that is the approval step).
 import argparse
+import hashlib
 import json
 import pathlib
 import re
@@ -77,7 +78,8 @@ def build(task: str, system: str, base_url: str, model: str) -> dict:
     ]
     names = [n["name"] for n in nodes]
     conns = {names[k]: {"main": [[{"node": names[k + 1], "type": "main", "index": 0}]]} for k in range(len(names) - 1)}
-    return {"name": "BSV team runner \u2014 " + t["title"], "nodes": nodes, "connections": conns, "settings": {},
+    wid = "bsv" + hashlib.sha256(task.encode()).hexdigest()[:13]  # 16 chars; the n8n CLI import needs an id
+    return {"id": wid, "name": "BSV team runner \u2014 " + t["title"], "nodes": nodes, "connections": conns, "settings": {},
             "pinData": {}, "active": False,
             "meta": {"botshelf_job": task, "safety": "manual-trigger-only; no write, send or paid nodes",
                      "status": "UNTESTED_RUNTIME", "source": TASKS["origin"] + t["full_text_page"]}}

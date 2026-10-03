@@ -1,6 +1,6 @@
 # n8n team runner
 
-Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). BSV has not executed these workflows against a real model; `--self-test` only checks the generated structure.
+Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). `--self-test` checks the generated structure. BSV imported the 10 generated workflows into n8n 2.41.6 with the CLI and executed one against a local stub OpenAI-compatible server (success, section check ran). It has not been run against a real model, so it is not runtime verified.
 
 `make_workflow.py` builds one importable n8n workflow per BSV Library AI Team task:
 
@@ -22,7 +22,8 @@ Manual Trigger -> Task input -> Local model (HTTP, OpenAI-compatible) -> Section
 ```bash
 python make_workflow.py --self-test
 python make_workflow.py --task doc-review --model <model id shown by your server>
-# n8n: Workflows > Import from file > out/doc-review.workflow.json
+# n8n UI: Workflows > Import from file > out/doc-review.workflow.json
+# n8n CLI: n8n import:workflow --input=out/doc-review.workflow.json
 ```
 
 4. In n8n, edit **Task input → user_input**, then click **Test workflow**. If n8n runs in Docker, use `http://host.docker.internal:1234/v1` as `--base-url`.
