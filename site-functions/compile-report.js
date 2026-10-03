@@ -4,7 +4,9 @@
  * - email-verified session only (same server-side session as gated sources);
  * - stored server-side in Netlify Blobs (store "compile_reports"), keyed by account id — no PII beyond the
  *   existing account email, which is NOT copied into the report (the owner queue looks it up);
- * - owner-only review queue (x-admin-secret, same check as the operator queue);
+ * - review queue for the owner (x-admin-secret) and authorized reviewers with header
+ *   x-bsv-reviewer-key = env COMPILE_REVIEWER_KEY.
+ *   Reviewers see account ids only, never the submitter email; only the owner view looks up the email;
  * - states: pending / approved-user-reported / rejected / needs-info. There is NO verified state and nothing
  *   here changes any catalog, compatibility or "Runtime-tested by BSV" status;
  * - no public display: no public route reads this store.
@@ -14,10 +16,11 @@ var blobs = require("./_lib/blobs");
 var http = require("./_lib/http");
 var session = require("./_lib/session");
 var identity = require("./_lib/identity");
+var crypto = require("crypto");
 
 var STORE = "compile_reports";
 var TARGETS = ["pine-v6", "mql5", "ctrader", "mql4", "ctrader-python", "bookmap-python", "ninjatrader", "quantower",
-  "sierra-acsil", "prorealtime", "gocharting-lipi", "motivewave", "vela", "jforex", "easylanguage"];
+  "sierra-acsil", "prorealtime", "gocharting-lipi", "motivewave", "vela", "jforex", "easylanguage", "atas"];
 var STATUSES = ["not-tried", "compiled", "compiled-warnings", "compile-failed", "ran-replay"];
 var DECISIONS = ["approved-user-reported", "rejected", "needs-info"];
 var PER_DAY = 10;
@@ -83,8 +86,38 @@ async function submit(event) {
   return http.json(201, { ok: true, id: id, state: "pending", public: false, bsv_verified: false });
 }
 
+function header(event, name) {
+  var h = event.headers || {};
+  for (var k in h) if (k.toLowerCase() === name) return String(h[k] || "");
+  return "";
+}
+function sameSecret(a, b) {
+  var x = crypto.createHash("sha256").update(String(a)).digest(), y = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(x, y);
+}
+// Owner (x-admin-secret) or BSV reviewer (x-bsv-reviewer-key). Anything else: 401.
+async function requireReviewer(event) {
+  var key = header(event, "x-bsv-reviewer-key");
+  if (key) {
+    var want = String(process.env.COMPILE_REVIEWER_KEY || "");
+    if (want.length >= 32 && sameSecret(key, want)) return { role: "reviewer", actor: "reviewer:staff" };
+    throw E("unauthorized", 401);
+  }
+  if (header(event, "x-admin-secret")) {
+    var admin = await session.requireAdmin(event);
+    return { role: "owner", actor: admin.actor || "owner" };
+  }
+  throw E("unauthorized", 401);
+}
+function view(r, who, email) {
+  var o = { id: r.id, user_id: r.user_id, state: r.state, created_at: r.created_at, updated_at: r.updated_at, record: r.record,
+    review: r.review || null, self_reported: true, bsv_verified: false, public: false };
+  if (who.role === "owner") o.account_email = email;
+  return o;
+}
+
 async function queue(event) {
-  await session.requireAdmin(event);
+  var who = await requireReviewer(event);
   var want = String((event.queryStringParameters || {}).state || "pending");
   var store = await blobs.getStore(STORE);
   var keys = (await blobs.listKeys(store)).filter(function (k) { return k.indexOf("rep:") === 0; });
@@ -94,15 +127,27 @@ async function queue(event) {
     if (!r) continue;
     if (r.state === "rejected" && r.review && Date.parse(r.review.at) + REJECTED_TTL_MS < now) { await store.delete(keys[i]); continue; }
     if (want !== "all" && r.state !== want) continue;
-    var u = await session.getUserById(r.user_id);
-    rows.push(Object.assign({}, r, { account_email: u ? u.email : null }));
+    var u = who.role === "owner" ? await session.getUserById(r.user_id) : null;
+    rows.push(view(Object.assign({ id: keys[i].slice(4) }, r), who, u ? u.email : null));
   }
   rows.sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
-  return http.json(200, { ok: true, state: want, count: rows.length, reports: rows, note: "Owner review only. Not public. Approval never means verified by BSV." });
+  return http.json(200, { ok: true, role: who.role, state: want, count: rows.length, reports: rows,
+    note: "Review only (owner / BSV reviewers). Not public. Approval never means verified by BSV." });
+}
+
+async function getOne(event) {
+  var who = await requireReviewer(event);
+  var id = String((event.queryStringParameters || {}).id || "");
+  if (!/^crp_[A-Za-z0-9_-]{4,64}$/.test(id)) throw E("bad_id", 400);
+  var store = await blobs.getStore(STORE);
+  var r = await blobs.getJSON(store, "rep:" + id);
+  if (!r) throw E("not_found", 404);
+  var u = who.role === "owner" ? await session.getUserById(r.user_id) : null;
+  return http.json(200, { ok: true, role: who.role, report: view(Object.assign({ id: id }, r), who, u ? u.email : null) });
 }
 
 async function review(event) {
-  var admin = await session.requireAdmin(event);
+  var who = await requireReviewer(event);
   var b = http.parseBody(event);
   var id = String(b.id || "");
   if (!/^crp_[A-Za-z0-9_-]{4,64}$/.test(id)) throw E("bad_id", 400);
@@ -111,7 +156,7 @@ async function review(event) {
   var r = await blobs.getJSON(store, "rep:" + id);
   if (!r) throw E("not_found", 404);
   r.state = b.decision;
-  r.review = { at: new Date().toISOString(), by: admin.actor, note: clean(b.note, 500) };
+  r.review = { at: new Date().toISOString(), by: who.actor, note: clean(b.note, 500) };
   r.bsv_verified = false; r.public = false;
   await blobs.putJSON(store, "rep:" + id, r);
   return http.json(200, { ok: true, id: id, state: r.state, bsv_verified: false, public: false });
@@ -125,6 +170,7 @@ exports.handler = async function (event) {
     if (method === "OPTIONS") return { statusCode: 204, headers: { "Cache-Control": "no-store" }, body: "" };
     if (method === "POST" && !op) return await submit(event);
     if (method === "GET" && op === "queue") return await queue(event);
+    if (method === "GET" && op === "get") return await getOne(event);
     if (method === "POST" && op === "review") return await review(event);
     return http.json(405, { ok: false, reason: "method_not_allowed" });
   } catch (e) {

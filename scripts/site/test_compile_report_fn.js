@@ -1,6 +1,7 @@
 // Offline test of netlify/functions/compile-report.js with the in-memory store (COMMERCE_TEST=1).
 // Usage: node scripts/site/test_compile_report_fn.js <deploy root>
 process.env.COMMERCE_TEST = "1";
+process.env.COMPILE_REVIEWER_KEY = "test-reviewer-key-0123456789abcdef0123456789";
 const path = require("path");
 const root = path.resolve(process.argv[2]);
 const fn = require(path.join(root, "netlify/functions/compile-report.js"));
@@ -47,6 +48,28 @@ const good = { recipe: "Golden Cross Alert", target: "motivewave", status: "comp
   r = await fn.handler(ev("POST", { q: { op: "review" }, body: { id: b.id, decision: "approved-user-reported", note: "ok" }, h: { "x-admin-secret": "test-admin-secret" } }));
   const rb = JSON.parse(r.body);
   ok(r.statusCode === 200 && rb.state === "approved-user-reported" && rb.bsv_verified === false && rb.public === false, "approval stays not verified, not public");
+  const RK = { "x-bsv-reviewer-key": "test-reviewer-key-0123456789abcdef0123456789" };
+  r = await fn.handler(ev("GET", { q: { op: "queue" }, h: { "x-bsv-reviewer-key": "wrong-key-0123456789abcdef0123456789abcd" } }));
+  ok(r.statusCode === 401, "wrong reviewer key -> 401");
+  r = await fn.handler(ev("GET", { q: { op: "queue" }, h: Object.assign({}, RK, ck) }));
+  const rq = JSON.parse(r.body);
+  ok(r.statusCode === 200 && rq.role === "reviewer" && rq.count === 9, "reviewer key lists pending (" + r.statusCode + ")");
+  ok(rq.reports.every(x => !("account_email" in x) && /^usr_|^[A-Za-z0-9_-]+$/.test(x.user_id)), "reviewer view has account ids, no submitter email");
+  r = await fn.handler(ev("GET", { q: { op: "get", id: b.id }, h: RK }));
+  ok(r.statusCode === 200 && JSON.parse(r.body).report.id === b.id && !("account_email" in JSON.parse(r.body).report), "reviewer can read one report without email");
+  r = await fn.handler(ev("POST", { q: { op: "review" }, body: { id: rq.reports[1].id, decision: "verified" }, h: RK }));
+  ok(r.statusCode === 400, "reviewer cannot set verified either");
+  r = await fn.handler(ev("POST", { q: { op: "review" }, body: { id: rq.reports[1].id, decision: "rejected", note: "test" }, h: RK }));
+  const rr = JSON.parse(r.body);
+  ok(r.statusCode === 200 && rr.state === "rejected" && rr.bsv_verified === false, "reviewer can reject");
+  r = await fn.handler(ev("GET", { q: { op: "get", id: rq.reports[1].id }, h: RK }));
+  ok(JSON.parse(r.body).report.review.by === "reviewer:staff", "review records reviewer actor");
+  delete process.env.COMPILE_REVIEWER_KEY;
+  r = await fn.handler(ev("GET", { q: { op: "queue" }, h: RK }));
+  ok(r.statusCode === 401, "reviewer key without server env -> 401");
+  process.env.COMPILE_REVIEWER_KEY = "short";
+  r = await fn.handler(ev("GET", { q: { op: "queue" }, h: { "x-bsv-reviewer-key": "short" } }));
+  ok(r.statusCode === 401, "too-short server key is never accepted");
   r = await fn.handler(ev("POST", { body: good, h: Object.assign({ origin: "https://evil.example" }, ck) }));
   ok(r.statusCode === 403, "foreign origin -> 403");
   console.log(JSON.stringify({ fn: "compile-report", checks, failures }));
