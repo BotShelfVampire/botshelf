@@ -7,6 +7,7 @@
 - Combined #8/#6/#7 report email sent 00:12 JST (send_report12.py). Do not resend. From now: one email per LIVE tranche batch.
 - Owner decisions 00:09 JST: New Bobby reviews Request Market (reviewer key; approve only real, non-spam, in-policy); hourly digest includes new requests (account ids only); build conservative #7 practice-record intake (verified only, private, owner/New Bobby review, self-reported kept, no auto-promotion).
 - #7 tranche 2 LIVE `6ac11c03` (00:15 JST): pilot-record intake fn (private, reviewer queue), Academy send + live counts. Reviewer tool now `compile_reports_digest.py --kind compile|request|pilot`; hourly `digest --email` covers all three. LIVE QA green; Issue #7 comment 5970498301. Report email for this batch: pending (send after #8 Transparency + #6 feed).
+- #8 tranche 2 DEPLOYED (Transparency Center /transparency/ + BreadcrumbList on 87 pages), commit f23f895. LIVE QA pending.
 - Proposal only: "operator low-profile" positioning text (not in any public file).
 
 ---
