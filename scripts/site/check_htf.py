@@ -13,6 +13,11 @@
            last closed bar of the added series), indicator input from that series, values stored per chart bar in
            BarsInProgress 0; DataLoaded throws when the chart timeframe is not lower
            (https://ninjatrader.com/support/helpGuides/nt8/multi-time_frame__instruments.htm).
+    cTrader: MarketData.GetBars(TimeFrame.X); index = GetIndexByTime(chart bar open), clamped, then stepped back with the
+           OpenTimes indexer while that bar opened after the chart bar's open; value at index - 1. The reference does not
+           state GetIndexByTime's rounding, so the step-back makes index - 1 a closed bar under any rounding (worst case one
+           extra bar of lag). Indicators take the higher-timeframe series; the chart TimeFrame must be in the generated
+           list of strictly lower time frames (https://help.ctrader.com/ctrader-algo/references/Collections/DataSeries/TimeSeries/).
   A timeframe the target cannot name (e.g. 45 minutes on MT4/MT5) stays a TODO stub there.
 - every other target: each block that uses a higher timeframe is an unsupported stub with a TODO line, so nothing is
   computed on the chart timeframe. A timeframe the generator cannot read (e.g. weekly "W") is unsupported everywhere."""
@@ -23,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_live_toolkit as blt  # noqa: E402
 import build_request_market as brm  # noqa: E402
 REAL = {"backtrader", "backtesting-py", "nautilus"}
-IDIOM = {"pine-v6", "mql5", "mql4", "ninjatrader"}
+IDIOM = {"pine-v6", "mql5", "mql4", "ninjatrader", "ctrader"}
 src = (ROOT / "trader-toolkit/generator/render.mjs").read_text()
 checks = failures = 0
 def ok(c, m):
@@ -92,7 +97,35 @@ def nt_problems(out, ids):
         if not re.search(rf"if \(bsvChartMinutes >= \d+\) throw new ArgumentException\(\"BSV: the higher timeframe {kind} {n} must", out): p.append(f"{i}: no guard for {kind} {n}")
     return p
 
-PROBLEMS = {"pine-v6": pine_problems, "mql5": mql5_problems, "mql4": mql4_problems, "ninjatrader": nt_problems}
+CT_HELPER = """        private int BsvHtfClosed(Bars htf, int i)
+        {
+            if (htf.OpenTimes.Count == 0) return -1;
+            DateTime t = Bars.OpenTimes[i];
+            int k = htf.OpenTimes.GetIndexByTime(t);
+            if (k > htf.OpenTimes.Count - 1) k = htf.OpenTimes.Count - 1;
+            while (k >= 0 && htf.OpenTimes[k] > t) k--;
+            return k - 1;
+        }"""
+CT_MIN = {"Minute": 1, **{f"Minute{n}": n for n in (2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 45)}, "Hour": 60, **{f"Hour{n}": 60 * n for n in (2, 3, 4, 6, 8, 12)},
+          "Daily": 1440, "Day2": 2880, "Day3": 4320, "Weekly": 10080}
+def ct_problems(out, ids):
+    """cTrader: closed index = (GetIndexByTime stepped back to a bar opened at/before the chart bar) - 1; HTF input; strict-lower guard."""
+    p = []
+    if CT_HELPER not in out: p.append("BsvHtfClosed is not the stepped-back GetIndexByTime - 1 helper")
+    for i in ids:
+        m = re.search(rf"^        private double V_{re.escape(i)}\(int i\) \{{ int j = BsvHtfClosed\(_htfBars_(\w+), i\); return \(!_htfOk_\1 \|\| j < \d+\) \? double\.NaN : _{re.escape(i)}\.Result\[j\]; \}}", out, re.M)
+        if not m: p.append(f"{i}: not read at the closed higher-timeframe index"); continue
+        n = m[1]
+        if n not in CT_MIN or not re.search(rf"^            _htfBars_{n} = MarketData\.GetBars\(TimeFrame\.{n}\);$", out, re.M): p.append(f"{i}: bars for {n} not from MarketData.GetBars"); continue
+        if not re.search(rf"^            _{re.escape(i)} = Indicators\.(?:(?:ExponentialMovingAverage|SimpleMovingAverage|RelativeStrengthIndex)\(_htfBars_{n}\.\w+Prices, |AverageTrueRange\(_htfBars_{n}, )", out, re.M): p.append(f"{i}: indicator input is not the {n} series")
+        g = re.search(rf"^            _htfOk_{n} = Array\.IndexOf\(new\[\] \{{ ([^}}]*) \}}, TimeFrame\) >= 0;", out, re.M)
+        lower = [x.replace("TimeFrame.", "") for x in g[1].split(", ")] if g else []
+        if not g or not lower or any(CT_MIN.get(x, 10 ** 9) >= CT_MIN[n] for x in lower): p.append(f"{i}: no strict lower-timeframe guard for {n}")
+    for i in ids:
+        if re.search(rf"_{re.escape(i)}\.Result\[(?!j\])", out) or re.search(rf"_{re.escape(i)}\.Result\.Last", out): p.append(f"{i}: higher-timeframe result read at a chart index or the newest bar")
+    return p
+
+PROBLEMS = {"pine-v6": pine_problems, "mql5": mql5_problems, "mql4": mql4_problems, "ninjatrader": nt_problems, "ctrader": ct_problems}
 # Each mutant breaks the closed-bar rule; the static check must catch every one (otherwise it proves nothing).
 MUTANTS = {
     "pine-v6": [("drop [1]", lambda o: o.replace(")[1], lookahead", "), lookahead")), ("lookahead off", lambda o: o.replace("lookahead_on", "lookahead_off")),
@@ -109,6 +142,13 @@ MUTANTS = {
                     ("chart-series input", lambda o: re.sub(r"(_\w+ = (?:EMA|SMA|RSI)\()Closes\[\d+\]", r"\1Close", o)),
                     ("read HTF indicator directly", lambda o: re.sub(r"return _htf_(\w+)\[ago\];", r"return _\1[ago];", o)),
                     ("no guard", lambda o: re.sub(r"                if \(bsvChartMinutes.*\n", "", o))],
+    "ctrader": [("bare GetIndexByTime (no step-back)", lambda o: o.replace("            while (k >= 0 && htf.OpenTimes[k] > t) k--;\n", "")),
+                ("index not minus 1", lambda o: o.replace("            return k - 1;", "            return k;")),
+                ("chart index", lambda o: re.sub(r"\.Result\[j\]; \}", ".Result[i]; }", o)),
+                ("newest bar", lambda o: re.sub(r"\.Result\[j\]; \}", ".Result.LastValue; }", o)),
+                ("chart-series input", lambda o: re.sub(r"(Indicators\.\w+\()_htfBars_\w+\.ClosePrices", r"\1Bars.ClosePrices", o)),
+                ("guard allows the same timeframe", lambda o: o.replace("TimeFrame.Minute45 }", "TimeFrame.Minute45, TimeFrame.Hour }")),
+                ("guard not used", lambda o: re.sub(r"\(!_htfOk_\w+ \|\| ", "(", o))],
 }
 def render(path, t):
     return subprocess.run(["node", str(ROOT / "trader-toolkit/generator/render.mjs"), str(path), "--target", t], capture_output=True, text=True, check=True).stdout
@@ -138,9 +178,9 @@ for p in recipes:
                 mo = mut(out)
                 ok(mo != out and PROBLEMS[t](mo, refs), f"{p.stem} {t}: static check catches mutant '{name}'")
             dout = render(daily, t)
-            ok(not any(re.search(stubre(i), dout) for i in refs) and not PROBLEMS[t](dout, refs) and ({"pine-v6": '"1D"', "ninjatrader": "AddDataSeries(BarsPeriodType.Day, 1)"}.get(t, "PERIOD_D1") in dout), f"{p.stem} {t}: daily timeframe uses the closed-bar idiom")
+            ok(not any(re.search(stubre(i), dout) for i in refs) and not PROBLEMS[t](dout, refs) and ({"pine-v6": '"1D"', "ninjatrader": "AddDataSeries(BarsPeriodType.Day, 1)", "ctrader": "MarketData.GetBars(TimeFrame.Daily)"}.get(t, "PERIOD_D1") in dout), f"{p.stem} {t}: daily timeframe uses the closed-bar idiom")
             m45out = render(m45, t)
-            if t in ("pine-v6", "ninjatrader"): ok(not any(re.search(stubre(i), m45out) for i in refs) and ('"45"' if t == "pine-v6" else "BarsPeriodType.Minute, 45") in m45out and not PROBLEMS[t](m45out, refs), f"{p.stem} {t}: 45 minutes readable on {t}")
+            if t in ("pine-v6", "ninjatrader", "ctrader"): ok(not any(re.search(stubre(i), m45out) for i in refs) and {"pine-v6": '"45"', "ninjatrader": "BarsPeriodType.Minute, 45", "ctrader": "TimeFrame.Minute45)"}[t] in m45out and not PROBLEMS[t](m45out, refs), f"{p.stem} {t}: 45 minutes readable on {t}")
             else: ok(all(re.search(stubre(i), m45out) for i in refs) and "BsvHtf" not in m45out, f"{p.stem} {t}: 45 minutes has no MT period, stays a TODO stub")
         else:
             ok(len(stub) == len(refs), f"{p.stem} {t}: every higher-timeframe block is an unsupported stub with a TODO line ({set(refs) - set(stub)} missing)")

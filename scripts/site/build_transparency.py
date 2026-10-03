@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "cTrader (C#) now reads the last closed higher-timeframe bar (MarketData.GetBars + GetIndexByTime stepped back, minus 1; at most one extra bar of lag, never a forming bar) and the cTrader output compiles against BSV stubs from the API reference. Not run on cTrader.", "/trading/build/coverage/"),
     ("2026-10-04", "Coverage TODO matrix also as CSV (coverage.csv), official higher-timeframe doc links per target; each generator gap on the requests page has an ask-for-it link; Robot Pilot practice log can import saved session-evidence files (checked against the schema, in the browser only).", "/trading/build/coverage/"),
     ("2026-10-04", "Pivots (structure.pivot), zones (visual.zone) and webhook payloads (alert.webhook, printed and never sent) rendered on backtrader, Backtesting.py and NautilusTrader, checked bar by bar.", "/trading/build/coverage/"),
     ("2026-10-04", "Higher timeframe on Pine v6, MQL5, MQL4 and NinjaTrader 8: the last closed higher-timeframe bar through each platform's officially documented idiom (statically checked by BSV, not run: UNTESTED_RUNTIME) instead of a TODO stub.", "/trading/build/coverage/"),
