@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botshelfvampire.com/schemas/bsv-trader-recipe.schema.json",
+  "title": "BSV Trader Recipe",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "name",
+    "overlay",
+    "blocks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "overlay": {
+      "type": "boolean"
+    },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "params"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "type": {
+            "enum": [
+              "indicator.ema",
+              "indicator.sma",
+              "indicator.rsi",
+              "indicator.atr",
+              "filter.session",
+              "signal.cross",
+              "signal.threshold",
+              "signal.combine",
+              "visual.plot",
+              "alert.condition"
+            ]
+          },
+          "params": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}
