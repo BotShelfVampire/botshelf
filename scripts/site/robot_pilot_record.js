@@ -127,7 +127,27 @@
     });
     return rows.join('\r\n') + '\r\n';
   }
-  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf, summarize: summarize, toCsv: toCsv };
+  // Practice-log import (#7 tranche 9): add session-evidence files back into the browser log. Only documents that are
+  // session evidence AND valid against the published schema are added; an evidenceId already in the log is skipped;
+  // the log keeps its last 20 sessions, as the Save button does. Pure function: nothing is uploaded.
+  var LOG_MAX = 20;
+  function mergeLog(list, docs, evSchema) {
+    var out = (Array.isArray(list) ? list : []).filter(function (e) { return e && typeof e === 'object' && !Array.isArray(e); }).slice();
+    var seen = {}, added = 0, skipped = 0, rejected = [];
+    out.forEach(function (e) { if (typeof e.evidenceId === 'string') seen[e.evidenceId] = true; });
+    [].concat(docs || []).forEach(function (d, i) {
+      if (kindOf(d) !== 'evidence') { rejected.push({ index: i, reason: 'not a session-evidence file' }); return; }
+      if (!evSchema) { rejected.push({ index: i, reason: 'schema not loaded' }); return; }
+      var r = checkDoc(d, { evidence: evSchema });
+      if (r.errors.length) { rejected.push({ index: i, reason: r.errors.length + ' schema problem(s): ' + r.errors.slice(0, 3).join('; ') }); return; }
+      if (seen[d.evidenceId]) { skipped++; return; }
+      seen[d.evidenceId] = true; out.push(d); added++;
+    });
+    var dropped = Math.max(0, out.length - LOG_MAX);
+    return { list: out.slice(-LOG_MAX), added: added, skipped: skipped, rejected: rejected, dropped: dropped };
+  }
+
+  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf, summarize: summarize, toCsv: toCsv, mergeLog: mergeLog };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BSVPilot = api;
   if (!root.document) return;
@@ -169,6 +189,21 @@
     renderLog();
     $('#rp-save').addEventListener('click', renderLog);
     var csvb = $('#rp-log-csv'); if (csvb) csvb.addEventListener('click', function () { var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} var b = new Blob([toCsv(a)], { type: 'text/csv' }), l = root.document.createElement('a'); l.href = URL.createObjectURL(b); l.download = 'bsv-practice-log.csv'; root.document.body.appendChild(l); l.click(); setTimeout(function () { URL.revokeObjectURL(l.href); l.remove(); }, 500); });
+    var imp = $('#rp-log-import'); if (imp) imp.addEventListener('change', function () {
+      var m = $('#rp-log-import-msg'), fs0 = [].slice.call(imp.files || []); if (!m || !fs0.length) return;
+      m.className = 'rq-msg'; m.textContent = 'Checking ' + fs0.length + ' file(s)…';
+      Promise.all(fs0.map(function (f) { return f.size > 1000000 ? Promise.resolve(null) : f.text().then(function (t) { try { return JSON.parse(t); } catch (e) { return null; } }); }))
+        .then(function (parsed) { var docs = []; parsed.forEach(function (p) { [].concat(p).forEach(function (d) { docs.push(d); }); });
+          return fetch(SCHEMA_URL.evidence, { credentials: 'omit' }).then(function (r) { return r.json(); }).then(function (sc) {
+            var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {}
+            var r = mergeLog(a, docs, sc); try { root.localStorage.setItem(KEY, JSON.stringify(r.list)); } catch (e) {}
+            $('#rp-saved').textContent = r.list.length ? r.list.length + ' saved in this browser' : ''; renderLog(); imp.value = '';
+            m.className = 'rq-msg ' + (r.rejected.length ? 'err' : 'ok');
+            m.textContent = 'Added ' + r.added + ', already in the log ' + r.skipped + ', not added ' + r.rejected.length + (r.rejected.length ? ' (' + r.rejected.map(function (x) { return x.reason; }).join(' | ') + ')' : '') +
+              (r.dropped ? '; oldest ' + r.dropped + ' dropped (log keeps 20)' : '') + '. Stored in this browser only; nothing was uploaded.';
+          }); })
+        .catch(function () { m.className = 'rq-msg err'; m.textContent = 'Could not import the file(s).'; });
+    });
     var clr = $('#rp-log-clear'); if (clr) clr.addEventListener('click', function () { try { root.localStorage.removeItem(KEY); } catch (e) {} $('#rp-saved').textContent = ''; renderLog(); });
     var API = '/.netlify/functions/pilot-record';
     var cf = $('#rp-check-file');

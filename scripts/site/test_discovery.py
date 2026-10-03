@@ -185,6 +185,9 @@ def main():
         ok(gg["recipesWithGaps"] == len({r for g in gg["gaps"] for r in g["recipes"]}), "opportunities: recipesWithGaps equals listed recipes")
         prow = re.findall(r'<tr id="gap-([a-z_.]+)"><td><code>[^<]*</code></td><td>(\d+) ', t)
         ok(prow == [(g["blockType"], str(g["recipeCount"])) for g in gg["gaps"]], f"requests page: generator-gap table equals opportunities.json ({len(prow)} rows)")
+        ok(re.findall(r'data-ask="([a-z_.]+)" href="/requests/\?area=trading&amp;block=\1#rq-form"', t) == [g["blockType"] for g in gg["gaps"]], "requests page: one ask-for-it link per generator gap (#6 tranche 9)")
+        rmj = [p for p in (s / "requests").glob("request-market.*.js")]
+        ok(len(rmj) == 1 and "q.get('block')" in rmj[0].read_text() and "!jb.value" in rmj[0].read_text() and 'value="trading"' in t, "requests page: block prefill fills the job box only when empty; trading area exists")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
@@ -200,6 +203,12 @@ def main():
         ok(ORIGIN + "/trading/build/coverage/" in locs and re.findall(r'<tr id="cov-([a-z0-9-]+)"><td>', ct) == [x["id"] for x in cv["targets"]], "coverage page: in sitemap, one row per target in coverage.json order")
         ok(re.findall(r'data-kind="([A-Z_]+)"', ct) == [x["check"]["kind"] for x in cv["targets"]] and re.findall(r'data-htf="([A-Z_]+)"', ct) == [x["higherTimeframe"]["status"] for x in cv["targets"]], "coverage page: check kind and higher-timeframe status equal coverage.json")
         ok([int(n) for n in re.findall(r'<td data-n="(\d+)">', ct)] == [r["todoLines"][x["id"]] for r in cv["recipes"] for x in cv["targets"]], "coverage page: TODO matrix equals coverage.json")
+        import csv as _csv  # coverage.csv (#8 tranche 9): same matrix and statuses as coverage.json
+        cr = list(_csv.reader((s / "trading/build/coverage.csv").read_text().splitlines())) if (s / "trading/build/coverage.csv").exists() else [[]]
+        cut = cr.index([]) if [] in cr else len(cr)
+        ok(cr[0] == ["recipe"] + [x["id"] for x in cv["targets"]] and [[r[0]] + [int(v) for v in r[1:]] for r in cr[1:cut]] == [[r["id"]] + [r["todoLines"][x["id"]] for x in cv["targets"]] for r in cv["recipes"]]
+           and [r[3] for r in cr[cut + 2:]] == [x["higherTimeframe"]["status"] for x in cv["targets"]] and all(r[4] == "false" for r in cr[cut + 2:]) and 'href="/trading/build/coverage.csv"' in ct, "coverage.csv equals coverage.json (matrix + statuses) and is linked")
+        ok(re.findall(r'data-doc href="([^"]+)"', ct) == [u for x in cv["targets"] for u in x["higherTimeframe"].get("docs", [])], "coverage page: official doc links for documented-idiom targets")
         ok('"@type":"Dataset"' in ct and "/trading/build/coverage.json" in ct and "<script>" not in ct.replace('<script type="application/ld+json">', ""), "coverage page: Dataset JSON-LD for the downloadable file, no inline script")
         tids = [x["id"] for x in cv["targets"]]
         ok(all(g["targetsWithIt"] == len(g["targetsRenderingIt"]) and set(g["targetsRenderingIt"]) <= set(tids) for g in gg["gaps"]), "opportunities: targets rendering each gap listed by id, count matches")
@@ -266,7 +275,7 @@ def main():
     cvt = (s / "trading/build/coverage/index.html").read_text()
     cds = [json.loads(x) for x in re.findall(r'<script type="application/ld\+json">(.*?)</script>', cvt, re.S)]
     cds = [d for d in cds if d.get("@type") == "Dataset"]
-    ok(len(cds) == 1 and cds[0]["url"] == ORIGIN + "/trading/build/coverage/" and [d["contentUrl"] for d in cds[0]["distribution"]] == [ORIGIN + "/trading/build/coverage.json"] and "license" not in cds[0], "coverage page: one truthful Dataset JSON-LD pointing at coverage.json")
+    ok(len(cds) == 1 and cds[0]["url"] == ORIGIN + "/trading/build/coverage/" and [d["contentUrl"] for d in cds[0]["distribution"]] == [ORIGIN + "/trading/build/coverage.json", ORIGIN + "/trading/build/coverage.csv"] and "license" not in cds[0], "coverage page: one truthful Dataset JSON-LD pointing at coverage.json")
     # sitemaps: no gated URLs anywhere, txt == xml, legacy trading sitemap on public pages (#8 tranche 4)
     edge = s.parent / "netlify/edge-functions/free-session-gate.ts"
     if edge.exists():

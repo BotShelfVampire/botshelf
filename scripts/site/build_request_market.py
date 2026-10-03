@@ -103,6 +103,7 @@ function submit(ev){ev.preventDefault();var f=ev.target;var doms=[].slice.call(f
   else if(x.s===429){msg('err','Daily limit reached (5 requests per day).','1日の上限（5件）に達しました。')}
   else{msg('err','Not sent: '+(x.j.reason||x.s),'送信できませんでした: '+(x.j.reason||x.s))}}).catch(function(){btn.disabled=false;msg('err','Not sent: network error','送信できませんでした（通信エラー）')})}
 function prefill(){var q;try{q=new URL(location.href).searchParams}catch(e){return}var a=q.get('area');if(a){var c=document.querySelector('input[name=domain][value="'+a.replace(/[^a-z-]/g,'')+'"]');if(c)c.checked=true}
+ var bk=q.get('block');if(bk&&/^[a-z]+\.[a-z_]+$/.test(bk)){var jb=$('#rq-job');if(jb&&!jb.value)jb.value='Generator block '+bk+': please render it for my platform (which: ...). Recipe or use case: ...'}
  if(q.get('kind')==='mission'){var j=$('#rq-job');if(j)j.setAttribute('placeholder','Mission: task to demonstrate; robot / embodiment; teleop interface; simulation or real hardware (owner-authorised, safety rules); location or remote; data needed; episode target; quality criteria; privacy / NDA');var h=$('#rq-mission');if(h)h.hidden=false}}
 document.addEventListener('DOMContentLoaded',function(){prefill();load();window.addEventListener('hashchange',target);var f=$('#rq-form');if(f)f.addEventListener('submit',submit)});
 })();
@@ -253,6 +254,18 @@ KIND_TEXT = {"LIBRARY_RUN": ("Run inside the library", "ライブラリ内で実
              "PARITY_ONLY": ("Browser = CLI output only", "ブラウザとCLIの一致のみ")}
 
 
+def coverage_csv(cov: dict) -> str:
+    """TODO matrix of coverage.json as CSV (Issue #8 tranche 9): one row per recipe, one column per target; then one row
+    per target with its check kind and higher-timeframe status. Every value is copied from `cov`."""
+    import csv, io
+    b = io.StringIO(); w = csv.writer(b, lineterminator="\r\n"); T = [x["id"] for x in cov["targets"]]
+    w.writerow(["recipe"] + T)
+    for r in cov["recipes"]: w.writerow([r["id"]] + [r["todoLines"][t] for t in T])
+    w.writerow([]); w.writerow(["target", "check_kind", "check_script", "higher_timeframe", "runtime_tested_by_bsv"])
+    for x in cov["targets"]: w.writerow([x["id"], x["check"]["kind"], x["check"]["script"], x["higherTimeframe"]["status"], "false"])
+    return b.getvalue()
+
+
 def coverage_page(site: Path, cov: dict) -> str:
     """Readable view of /trading/build/coverage.json (Issue #8 tranche 8). Static HTML, no script; every cell is read
     from `cov`."""
@@ -260,7 +273,7 @@ def coverage_page(site: Path, cov: dict) -> str:
     trows = "".join(
         f'<tr id="cov-{blt.esc(x["id"])}"><td>{blt.esc(x["label"])}</td><td data-kind="{x["check"]["kind"]}">{both(*KIND_TEXT[x["check"]["kind"]])}</td>'
         f'<td><code>{blt.esc(x["check"]["script"])}</code></td><td data-htf="{x["higherTimeframe"]["status"]}">{both("Closed bars, checked", "確定足・確認済み") if x["higherTimeframe"]["status"] == "CLOSED_BARS_CHECKED" else (both("Closed bars, documented idiom (static check)", "確定足・公式の方法（静的確認）") if x["higherTimeframe"]["status"] == "CLOSED_BAR_IDIOM_STATIC" else both("TODO stub", "TODOのスタブ"))}</td>'
-        f'<td class="small">{blt.esc(x["check"]["note"])}</td></tr>' for x in T)
+        f'<td class="small">{blt.esc(x["check"]["note"])}{"".join(f' <a class="small" data-doc href="{blt.esc(u)}" rel="noopener">{blt.esc(u.split("//", 1)[1].split("/", 1)[0])}</a>' for u in x["higherTimeframe"].get("docs", []))}</td></tr>' for x in T)
     head = "".join(f'<th title="{blt.esc(x["label"])}"><code>{blt.esc(x["id"])}</code></th>' for x in T)
     mrows = "".join(f'<tr id="todo-{blt.esc(r["id"])}"><th><code>{blt.esc(r["id"])}</code></th>' + "".join(f'<td data-n="{r["todoLines"][x["id"]]}">{r["todoLines"][x["id"]]}</td>' for x in T) + "</tr>" for r in cov["recipes"])
     kinds = " · ".join(f'{KIND_TEXT[k][0]} {n}' for k, n in c["byCheckKind"].items())
@@ -268,7 +281,7 @@ def coverage_page(site: Path, cov: dict) -> str:
     body = (f'<section class="container bb-section"><p class="small"><a href="/trading/build/">{both("Recipe builder", "レシピビルダー")}</a> › {both("Coverage", "確認状況")}</p>'
             f'<h1>{both("Generator coverage: what BSV checks for each target", "ジェネレーターの確認状況：出力先ごとにBSVが確かめていること")}</h1>'
             f'<p>{both(desc, f"BSVジェネレーターの{nT}種類の出力先それぞれについて、どのBSVチェックで確かめているか、レシピ×出力先ごとのTODO行の数を示します。BSVが実際の環境で動かして確かめた出力先はありません。")}</p>'
-            f'<p class="small">{blt.esc(kinds)} · runtimeTestedByBSV: {c["runtimeTestedByBSV"]} · <a href="/trading/build/coverage.json">coverage.json</a></p>'
+            f'<p class="small">{blt.esc(kinds)} · runtimeTestedByBSV: {c["runtimeTestedByBSV"]} · <a href="/trading/build/coverage.json">coverage.json</a> · <a href="/trading/build/coverage.csv" download>coverage.csv</a></p>'
             f'<div class="rp-box"><p class="small">{both(cov["higherTimeframeDisclosure"], HTF_DISCLOSURE_JA)}</p></div>'
             f'<h2 id="targets">{both("Targets", "出力先")}</h2><div class="bb-table-wrap"><table class="qa-table" id="cov-targets"><thead><tr><th>{both("Target", "出力先")}</th><th>{both("BSV check", "BSVのチェック")}</th><th>{both("Script", "スクリプト")}</th><th>{both("Higher timeframe", "上位足")}</th><th>{both("What it is not", "これは何でないか")}</th></tr></thead><tbody>{trows}</tbody></table></div>'
             f'<h2 id="todo">{both("TODO lines per recipe and target", "レシピ×出力先ごとのTODO行")}</h2>'
@@ -277,7 +290,8 @@ def coverage_page(site: Path, cov: dict) -> str:
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": "BSV generator coverage", "description": desc, "url": ORIGIN + "/trading/build/coverage/",
           "isAccessibleForFree": True, "creator": {"@type": "Organization", "name": "BotShelf Vampire", "url": ORIGIN + "/"},
           "variableMeasured": ["check.kind", "higherTimeframe.status", "todoLines", "runtimeTestedByBSV"],
-          "distribution": [{"@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": ORIGIN + "/trading/build/coverage.json"}]}
+          "distribution": [{"@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": ORIGIN + "/trading/build/coverage.json"},
+                           {"@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": ORIGIN + "/trading/build/coverage.csv"}]}
     return blt.trader_shell(site, "Generator coverage — what BSV checks for each target · BotShelf Vampire", desc, "/trading/build/coverage/", body,
                             extra_head='<script type="application/ld+json">' + json.dumps(ld, ensure_ascii=False, separators=(",", ":")) + "</script>")
 
@@ -289,7 +303,7 @@ def builders_section(site: Path) -> str:
     split = [x for x in bd.FACTS if x[0] == "seller_split_payout"][0]
     gg = generator_gaps()
     LABEL = {t: lab for t, lab, _ in blt.TARGETS}
-    grows = "".join(f'<tr id="gap-{blt.esc(g["blockType"])}"><td><code>{blt.esc(g["blockType"])}</code></td><td>{g["recipeCount"]} <span class="small muted">({blt.esc(", ".join(g["recipes"]))})</span></td><td>{g["targetsWithIt"]} / {gg["targets"]}{(' <span class="small muted">(' + blt.esc(", ".join(LABEL[t] for t in g["targetsRenderingIt"])) + ')</span>') if g["targetsRenderingIt"] else ""}</td></tr>' for g in gg["gaps"])
+    grows = "".join(f'<tr id="gap-{blt.esc(g["blockType"])}"><td><code>{blt.esc(g["blockType"])}</code></td><td>{g["recipeCount"]} <span class="small muted">({blt.esc(", ".join(g["recipes"]))})</span></td><td>{g["targetsWithIt"]} / {gg["targets"]}{(' <span class="small muted">(' + blt.esc(", ".join(LABEL[t] for t in g["targetsRenderingIt"])) + ')</span>') if g["targetsRenderingIt"] else ""}</td><td><a class="small" data-ask="{blt.esc(g["blockType"])}" href="/requests/?area=trading&amp;block={blt.esc(g["blockType"])}#rq-form">{both("Ask for it", "リクエストする")}</a></td></tr>' for g in gg["gaps"])
     gen_en = f"Counted at build time by rendering all {gg['recipes']} BSV recipes for all {gg['targets']} targets and reading the generator's own TODO lines ({gg['recipesWithGaps']} recipes have at least one). A fact about the generator, not a measure of demand."
     gen_ja = f"BSVレシピ{gg['recipes']}件を{gg['targets']}種類の出力先すべてで生成し、ジェネレーター自身のTODO行から数えた値です（1つ以上あるレシピは{gg['recipesWithGaps']}件）。ジェネレーターについての事実で、需要の量ではありません。"
     return (
@@ -306,7 +320,7 @@ def builders_section(site: Path) -> str:
         f'<div class="bb-table-wrap"><table class="qa-table"><thead><tr><th>{both("Gap", "空き")}</th><th>{both("Entries", "件数")}</th><th>{both("By type", "種類別")}</th></tr></thead><tbody>{rows}</tbody></table></div>'
         f'<h3 id="generator-gaps">{both("Blocks the generator cannot render yet", "ジェネレーターがまだ出力できないブロック")}</h3>'
         f'<p class="small">{both(gen_en, gen_ja)} <a href="/trading/build/coverage/">{both("Coverage by target", "出力先ごとの確認状況")}</a> · <a href="/trading/build/coverage.json">coverage.json</a></p>'
-        f'<div class="bb-table-wrap"><table class="qa-table" id="rq-gen-gaps"><thead><tr><th>{both("Block type", "ブロックの種類")}</th><th>{both("Recipes using it", "使っているレシピ")}</th><th>{both("Targets that render it", "出力できる出力先")}</th></tr></thead><tbody>{grows}</tbody></table></div>'
+        f'<div class="bb-table-wrap"><table class="qa-table" id="rq-gen-gaps"><thead><tr><th>{both("Block type", "ブロックの種類")}</th><th>{both("Recipes using it", "使っているレシピ")}</th><th>{both("Targets that render it", "出力できる出力先")}</th><th>{both("Request", "リクエスト")}</th></tr></thead><tbody>{grows}</tbody></table></div>'
         f'<h3>{both("Signals not collected yet", "まだ集めていないデータ")}</h3>'
         f'<p class="small">{both("No-result searches and page-view demand are not logged on this site, so they are not shown.", "結果0件の検索やページの閲覧数は記録していないため、表示していません。")}</p>'
         f'<h3>{both("If you build it", "作ったら")}</h3><ul><li><q>{blt.esc(split[2])}</q> <a class="small" href="/{split[1]}">{split[1]}</a></li>'
@@ -395,6 +409,7 @@ def main():
     (site / "trading/build/coverage.json").write_text(json.dumps(cov, ensure_ascii=False, indent=1) + "\n")
     (site / "trading/build/coverage").mkdir(exist_ok=True)
     (site / "trading/build/coverage/index.html").write_text(coverage_page(site, cov))
+    (site / "trading/build/coverage.csv").write_text(coverage_csv(cov))
     smp = site / "sitemap.xml"; sm = smp.read_text(); u = ORIGIN + "/trading/build/coverage/"
     if f"<loc>{u}</loc>" not in sm:
         smp.write_text(sm.replace("</urlset>", f"  <url><loc>{u}</loc><lastmod>2026-10-04</lastmod></url>\n</urlset>"))
