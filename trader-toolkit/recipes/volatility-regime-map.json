@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Volatility Regime Map",
+  "description": "ATR plus moving-average context for a low/normal/high volatility regime tool.",
+  "overlay": false,
+  "blocks": [
+    {
+      "id": "atr",
+      "type": "indicator.atr",
+      "params": {
+        "length": 14
+      }
+    },
+    {
+      "id": "atr_base",
+      "type": "indicator.sma",
+      "params": {
+        "source": "close",
+        "length": 50
+      }
+    },
+    {
+      "id": "vol_high",
+      "type": "signal.threshold",
+      "params": {
+        "left": "atr",
+        "op": ">",
+        "value": 2
+      }
+    },
+    {
+      "id": "table",
+      "type": "visual.table",
+      "params": {
+        "fields": [
+          "atr",
+          "vol_high"
+        ],
+        "title": "Volatility Regime"
+      }
+    }
+  ]
+}
