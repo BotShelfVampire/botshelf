@@ -50,6 +50,7 @@ Other current targets:
 --target sierra-acsil    # Sierra Chart ACSIL C++ custom study
 --target prorealtime     # ProRealTime ProBuilder indicator
 --target gocharting-lipi # GoCharting Lipi indicator
+--target motivewave      # MotiveWave SDK custom study (Java)
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.
