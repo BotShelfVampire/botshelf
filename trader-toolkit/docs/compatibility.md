@@ -18,7 +18,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | JForex (Dukascopy) | JForex API (Java `IStrategy`) | generator target (`jforex`: `IIndicators.ema/sma/rsi/atr` at bar shifts, closed-bar `onBar`, console values and notifications; no `IEngine`/orders) | Compiles with javac 21 against BSV stubs written from the JForex API javadoc; JForex platform compile and demo run still required |
 | TradeStation | EasyLanguage | generator target (`easylanguage`: indicator with `XAverage`/`Average`/`RSI`/`AvgTrueRange`, explicit cross comparisons, `PlotN`, `Alert` on `BarStatus(1) = 2`; no orders) | Structural check by BSV only (`check_easylanguage_output.mjs`); TradeStation Verify and chart test still required |
 | ProRealTime | ProBuilder | generator target (`prorealtime`: built-in averages/RSI/ATR, `CROSSES OVER/UNDER`, `RETURN` lines, arrow markers on overlays) + dual-EMA copy/paste indicator | Source prepared; runtime validation required |
-| ATAS | platform extensibility research | planned | Unverified |
+| ATAS | C# indicator API (`ATAS.Indicators`) | builder target (`atas`: `Indicator` with `OnCalculate`, `GetCandle`, `ValueDataSeries` lines, closed-bar `AddAlert`; EMA/SMA/RSI/ATR computed in the code; no orders) | Compiles with the .NET 8 C# compiler against BSV stubs written from the ATAS API reference; ATAS build and chart test still required |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
 
 ## Vela
@@ -169,3 +169,17 @@ Checked by BSV: `scripts/site/check_easylanguage_output.mjs` checks all 14 recip
 - https://help.tradestation.com/10_00/eng/tsdevhelp/elword/word/plot_reserved_word_.htm
 - https://help.tradestation.com/10_00/eng/tsdevhelp/elword/word/alert_reserved_word_.htm
 - https://help.tradestation.com/10_00/eng/tsdevhelp/elword/word/barstatus_reserved_word_.htm
+
+## ATAS
+
+ATAS custom indicators are C# classes that derive from `ATAS.Indicators.Indicator` and override `OnCalculate(int bar, decimal value)`, which runs for every history bar and then on every tick of the last bar. `GetCandle(bar)` returns the candle (Open/High/Low/Close, `Time` = candle open time), `CurrentBar` is the bar count, lines are `ValueDataSeries` in `DataSeries`, a separate pane is `Panel = IndicatorDataProvider.NewPanel`, and `AddAlert(soundFile, message)` raises an alert.
+
+The `atas` target (builder and CLI; not yet a pre-generated starter on recipe pages) writes one `Indicator` class. EMA/SMA/RSI/ATR are computed in the generated code (EMA and Wilder RMA seeded with the simple mean, as in Pine), because the reference documents the core API but BSV could not confirm the built-in technical indicator classes there. Plots fill `ValueDataSeries`; alerts fire once per closed bar, only for bars that close after the indicator was loaded. Session filters treat the candle time as UTC and convert it to the recipe time zone (TODO in the code). It never calls order or strategy APIs.
+
+Checked by BSV: all 14 recipe outputs compile with the .NET 8 C# compiler (nullable on, warnings as errors) against stub classes written from the public API reference (`scripts/site/check_atas_stubs.sh`, stubs in `scripts/site/atas_stubs/`). A one-off replay on the box against those stubs with 300 synthetic bars matched a JavaScript reference for EMA/RSI/ATR. Not built against the real ATAS assemblies and not loaded in ATAS.
+
+- https://docs.atas.net/en/md_DataFeedsCore_2Docs_2en_20010__BasicIndicator.html
+- https://docs.atas.net/en/classATAS_1_1Indicators_1_1BaseIndicator.html
+- https://docs.atas.net/en/classATAS_1_1Indicators_1_1ExtendedIndicator.html
+- https://docs.atas.net/en/classATAS_1_1Indicators_1_1IndicatorCandle.html
+- https://docs.atas.net/en/md_DataFeedsCore_2Docs_2en_20050__Dataseries.html

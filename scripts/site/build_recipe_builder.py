@@ -23,7 +23,11 @@ PRICE = ["open", "high", "low", "close", "hl2", "hlc3", "ohlc4"]
 TARGET_FN = {"pine-v6": "renderPine", "mql5": "renderMql5", "ctrader": "renderCTrader", "mql4": "renderMql4", "ctrader-python": "renderCTraderPython",
              "bookmap-python": "renderBookmapPython", "ninjatrader": "renderNinja", "quantower": "renderQuantower",
              "sierra-acsil": "renderSierra", "prorealtime": "renderProRealTime",
-             "gocharting-lipi": "renderLipi", "motivewave": "renderMotiveWave", "vela": "renderVela", "jforex": "renderJForex", "easylanguage": "renderEasyLanguage"}
+             "gocharting-lipi": "renderLipi", "motivewave": "renderMotiveWave", "vela": "renderVela", "jforex": "renderJForex", "easylanguage": "renderEasyLanguage", "atas": "renderAtas"}
+# Builder-only targets (cycle 9): shown as builder tabs, not as pre-generated starters on recipe pages,
+# so recipe-page copy and platform lists stay unchanged until the owner approves new copy.
+BUILDER_EXTRA_TARGETS = [("atas", "ATAS · C#", ".cs")]
+
 
 UI_JS = r"""
 var PRICE=__PRICE__;
@@ -212,6 +216,7 @@ var CHECKLIST={
  'motivewave':[['MotiveWave: in a Java project with the MotiveWave SDK jar on the classpath, save the code as <class name>.java, build the jar and put it in the MotiveWave Extensions folder.','MotiveWave：MotiveWave SDKのjarをクラスパスに入れたJavaプロジェクトで、コードを<クラス名>.javaとして保存し、jarをビルドしてMotiveWaveのExtensionsフォルダに置く。'],['Add the study from the BSV study menu. Signals fire on closed bars; turn on alerts for them in the study settings.','BSVのスタディメニューから追加する。シグナルは確定した足で出ます。スタディの設定でシグナルのアラートを有効にする。']],
  'vela':[['Vela: npm install @luxalgo/vela (Apache-2.0), save the code as a module, and call mountBsvChart("#chart", yourBars) from a page with a chart div (see platforms/vela).','Vela：npm install @luxalgo/vela（Apache-2.0）を実行し、コードをモジュールとして保存して、チャート用のdivがあるページからmountBsvChart("#chart", 自分の足データ)を呼ぶ（platforms/vela参照）。'],['Bars are { time (epoch ms), open, high, low, close, volume }. Signals draw markers; alerts go to handle.on("alert") for bars that close after loading. No Pine runtime is used.','足データは{ time（エポックミリ秒）, open, high, low, close, volume }。シグナルは印を描き、読み込み後に確定した足のアラートはhandle.on("alert")に届きます。Pineのランタイムは使いません。']],
  'jforex':[['JForex: save the code as <class name>.java in the JForex Strategies folder (or open it in the Strategies tab), then Compile; fix the line the compiler reports.','JForex：コードを<クラス名>.javaとしてJForexのStrategiesフォルダに保存し（またはStrategiesタブで開き）、コンパイルする。コンパイラーが示した行を直す。'],['Run it on a demo account with the instrument and period you want (set in the start dialog). Values and alerts are printed to the JForex console for closed bars; the strategy places no orders.','デモ口座で、開始時の画面で銘柄と時間足を選んで実行する。確定した足の値とアラートはJForexのコンソールに出ます。この戦略は発注しません。']],
+ 'atas':[['ATAS: in a C# class library that references the ATAS indicator API (ATAS.Indicators), save the code as <class name>.cs, build it and copy the dll to the ATAS Indicators folder.','ATAS：ATASのインジケーターAPI（ATAS.Indicators）を参照するC#クラスライブラリで、コードを<クラス名>.csとして保存してビルドし、dllをATASのIndicatorsフォルダにコピーする。'],['Add the indicator to a chart. Alerts use AddAlert once per closed bar after loading (set AlertFile to a sound you have). Session filters treat the candle time as UTC — check your data (see the TODO).','チャートにインジケーターを追加する。アラートは読み込み後に確定した足ごとに1回、AddAlertで出ます（AlertFileは手元にある音声ファイル名にする）。時間帯フィルターはローソク足の時刻をUTCとして扱います。データの時刻を確認してください（TODO参照）。']],
  'easylanguage':[['TradeStation: in the TradeStation Development Environment choose File > New > Indicator, give it a name, paste the code and Verify (F3); fix the line the verifier reports.','TradeStation：TradeStation開発環境で「ファイル→新規→インジケーター」を選んで名前を付け、コードを貼り付けて検証（F3）する。検証で示された行を直す。'],['Insert the indicator on a chart. For alerts, enable them in the indicator Properties (Alerts tab); they fire only on the last bar, at its closing tick. Session times use the chart time zone (see the TODO).','チャートにインジケーターを挿入する。アラートはインジケーターのプロパティ（アラートタブ）で有効にする。アラートは最新の足の終了ティックでだけ出ます。時間帯はチャートのタイムゾーンで判定します（TODO参照）。']]};
 function renderLint(){var box=$('#rb-lint'),list=$('#rb-lint-list');if(!box)return;list.textContent='';var issues=lint(state.recipe),hasOrder=false;
  issues.forEach(function(it){var li=el('li',{'class':'rb-lint-'+it.level});li.appendChild(el('strong',{text:it.level.toUpperCase()+' '}));li.appendChild(bi(it.msg));
@@ -254,7 +259,7 @@ function initRecords(){var s=$('#rb-res-status');if(!s)return;RES_STATUS.forEach
  $('#rb-res-dl').addEventListener('click',function(){var out=$('#rb-out').textContent;download(fileBase()+'.'+state.target+'.compile-record.md',recordMarkdown(makeRecord(state.recipe.name||'',state.target,out,formNow())))});
  $('#rb-res-send').addEventListener('click',function(){var out=$('#rb-out').textContent,msg=$('#rb-res-sent');if(!out){toast('Nothing to send');return}var r=makeRecord(state.recipe.name||'',state.target,out,formNow());var sc=document.querySelector('script[src*="bsv-builder."]'),bj=sc?String(sc.getAttribute('src')).split('/').pop():'';var body={recipe:r.recipe||'(unnamed)',target:r.target,status:r.status,platform:r.platform||'',notes:r.notes||'',steps:r.steps||[],fp:r.fp};if(/^bsv-builder\.[0-9a-f]{8}\.js$/.test(bj))body.builder=bj;var btn=this;btn.disabled=true;msg.textContent='Sending… / 送信中…';
   fetch('/.netlify/functions/compile-report',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(res){return res.json().catch(function(){return {}}).then(function(j){return {s:res.status,j:j}})}).then(function(x){
-   if((x.s===201||x.s===200)&&x.j.ok)msg.textContent='Sent for owner review ('+x.j.id+(x.j.duplicate?', already sent':'')+'). Not public; nothing is marked verified. / オーナー確認用に送信しました（'+x.j.id+(x.j.duplicate?'、送信済み':'')+'）。公開されず、検証済みにもなりません。';
+   if((x.s===201||x.s===200)&&x.j.ok)msg.textContent='Sent for BSV review ('+x.j.id+(x.j.duplicate?', already sent':'')+'). Not public; nothing is marked verified. / BSVの確認用に送信しました（'+x.j.id+(x.j.duplicate?'、送信済み':'')+'）。公開されず、検証済みにもなりません。';
    else if(x.s===401)msg.textContent='Please sign in again with the email code, then send. / メールのコードで再ログインしてから送信してください。';
    else if(x.s===429)msg.textContent='Daily limit reached (10 per account). / 1日の上限（10件）に達しました。';
    else msg.textContent='Not sent: '+(x.j.reason||x.s)+' / 送信できませんでした';}).catch(function(){msg.textContent='Not sent (network). / 送信できませんでした（通信）';}).then(function(){btn.disabled=false})});
@@ -354,10 +359,10 @@ def port_js(repo: Path) -> str:
     types = schema["properties"]["blocks"]["items"]["properties"]["type"]["enum"]
     return ("/* BSV recipe builder — gated. Generator functions are copied verbatim from trader-toolkit/generator/render.mjs (MIT). */\n"
             "(function(root){'use strict';\n" + src[i:] +
-            "\nvar RENDER={" + ",".join(f"'{t}':{TARGET_FN[t]}" for t, _, _ in blt.TARGETS) + "};\n"
+            "\nvar RENDER={" + ",".join(f"'{t}':{TARGET_FN[t]}" for t, _, _ in blt.TARGETS + BUILDER_EXTRA_TARGETS) + "};\n"
             f"var RECIPES={json.dumps(recipes, ensure_ascii=False)};\nvar RECIPE_IDS={json.dumps([p.stem for p in rfiles])};\nvar TYPES={json.dumps(types)};\n"
             "root.BSVRender={validate:validateRecipe,render:function(r,t){validateRecipe(r);return RENDER[t](r)},recipes:RECIPES,types:TYPES};\n"
-            + UI_JS.replace("__PRICE__", json.dumps(PRICE)).replace("__EXT__", json.dumps({t: e for t, _, e in blt.TARGETS})) + "\n})(typeof window!=='undefined'?window:globalThis);\n")
+            + UI_JS.replace("__PRICE__", json.dumps(PRICE)).replace("__EXT__", json.dumps({t: e for t, _, e in blt.TARGETS + BUILDER_EXTRA_TARGETS})) + "\n})(typeof window!=='undefined'?window:globalThis);\n")
 
 
 def main():
@@ -395,18 +400,18 @@ def main():
         f'<details class="source-block"><summary>{both(T("Recipe JSON (import / export)", "レシピJSON（読み込み・書き出し）"))}</summary><div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-json-apply">Apply JSON</button><button type="button" class="btn small-btn" id="rb-dl-json">Download recipe JSON</button></div><textarea id="rb-json" spellcheck="false" aria-label="Recipe JSON"></textarea></details>'
         '</section><section class="rb-panel rb-sticky" aria-label="Generated code">'
         f'<h2>{both(T("3. Generated code", "3. 生成されたコード"))}</h2>'
-        '<div class="rb-tabs" role="group" aria-label="Target">' + "".join(f'<button type="button" class="btn small-btn" data-rb-target="{t}" aria-pressed="{"true" if k == 0 else "false"}">{esc(lbl)}</button>' for k, (t, lbl, _) in enumerate(blt.TARGETS)) + '</div>'
+        '<div class="rb-tabs" role="group" aria-label="Target">' + "".join(f'<button type="button" class="btn small-btn" data-rb-target="{t}" aria-pressed="{"true" if k == 0 else "false"}">{esc(lbl)}</button>' for k, (t, lbl, _) in enumerate(blt.TARGETS + BUILDER_EXTRA_TARGETS)) + '</div>'
         '<p id="rb-err" role="alert" hidden></p>'
         f'<details id="rb-lint" open><summary id="rb-lint-sum">Recipe check</summary><ul id="rb-lint-list"></ul><button type="button" class="btn small-btn" id="rb-lint-fix" hidden>{both(T("Fix order", "順序を修正"))}</button></details>'
         '<p class="small" id="rb-todo"></p>'
         f'<details id="rb-hints" open hidden><summary>{both(T("TODO hints for this target (per block)", "この出力先のTODOヒント（ブロック別）"))}</summary><ul id="rb-hint-list"></ul></details>'
         f'<details id="rb-check"><summary>{both(T("Compile checklist", "コンパイル確認リスト"))} — <span id="rb-check-target"></span></summary><ol id="rb-check-list"></ol>'
         f'<div id="rb-res"><p class="rb-res-h"><strong>{both(T("Record your result", "結果を記録"))}</strong></p>'
-        f'<p class="small">{both(T("Your own record, saved in this browser. You may also send it to BSV: it then goes only to the owner's review queue (signed-in account, at most 10 a day). Sent records are never published and never mark anything as verified; the catalog status stays \"Not runtime tested\". The fingerprint ties the record to the exact code shown.", "あなた自身の記録で、このブラウザ内に保存されます。BSVへ送ることもできます。送った記録はオーナーの確認待ちの一覧にだけ入ります（ログイン中のアカウント、1日10件まで）。公開されることはなく、何かが「検証済み」になることもありません。カタログの表示は「実行検証なし」のままです。指紋（fingerprint）で、表示中のコードと記録を対応づけます。"))}</p>'
+        f'<p class="small">{both(T("Your own record, saved in this browser. You may also send it to BSV: it then goes only to BSV's private review queue (signed-in account, at most 10 a day). Reviewers are the owner and BSV's review assistants; the assistants see your account id, not your email. Sent records are never published and never mark anything as verified; the catalog status stays \"Not runtime tested\". The fingerprint ties the record to the exact code shown.", "あなた自身の記録で、このブラウザ内に保存されます。BSVへ送ることもできます。送った記録はBSVの非公開の確認待ち一覧にだけ入ります（ログイン中のアカウント、1日10件まで）。確認するのはオーナーとBSVの確認アシスタントで、アシスタントに見えるのはアカウントIDだけです（メールアドレスは見えません）。公開されることはなく、何かが「検証済み」になることもありません。カタログの表示は「実行検証なし」のままです。指紋（fingerprint）で、表示中のコードと記録を対応づけます。"))}</p>'
         f'<label for="rb-res-status">{both(T("Result", "結果"))}</label><select id="rb-res-status"></select>'
         f'<label for="rb-res-platform">{both(T("Platform, version, build", "プラットフォーム・バージョン・ビルド"))}</label><input id="rb-res-platform" maxlength="120" autocomplete="off" placeholder="e.g. NinjaTrader 8.1.x">'
         f'<label for="rb-res-notes">{both(T("Notes (errors, fixes)", "メモ（エラー・直した点）"))}</label><textarea id="rb-res-notes" maxlength="1000" rows="3"></textarea>'
-        '<div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-res-save">Save record</button><button type="button" class="btn small-btn" id="rb-res-dl">Download .md</button><button type="button" class="btn small-btn" id="rb-res-clear">Clear this recipe</button><button type="button" class="btn small-btn" id="rb-res-send">Send to BSV (owner review)</button></div><p class="small" id="rb-res-sent" role="status" aria-live="polite"></p>'
+        '<div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-res-save">Save record</button><button type="button" class="btn small-btn" id="rb-res-dl">Download .md</button><button type="button" class="btn small-btn" id="rb-res-clear">Clear this recipe</button><button type="button" class="btn small-btn" id="rb-res-send">Send to BSV (review)</button></div><p class="small" id="rb-res-sent" role="status" aria-live="polite"></p>'
         '<ul id="rb-res-list"></ul></div></details>'
         '<div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-copy">Copy code</button><button type="button" class="btn small-btn" id="rb-dl">Download file</button></div>'
         '<pre id="rb-out" tabindex="0" aria-live="polite"></pre></section></div>'
