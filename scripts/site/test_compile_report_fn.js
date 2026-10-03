@@ -24,6 +24,14 @@ const good = { recipe: "Golden Cross Alert", target: "motivewave", status: "comp
   ok(r.statusCode === 415, "non-JSON -> 415");
   r = await fn.handler(ev("POST", { body: Object.assign({}, good, { email: "x@y" }), h: ck }));
   ok(r.statusCode === 400 && /unknown_field/.test(r.body), "extra field (PII) rejected");
+  // every builder tab target must be accepted by the intake (AmiBroker / thinkScript were missing until cycle 12)
+  const fs = require("fs");
+  const bh = path.join(root, "site/trading/items/bsv-builder.html");
+  if (fs.existsSync(bh)) {
+    const tabs = [...fs.readFileSync(bh, "utf8").matchAll(/data-rb-target="([a-z0-9-]+)"/g)].map(m => m[1]);
+    ok(tabs.length >= 18, "builder tabs found (" + tabs.length + ")");
+    for (const t of new Set(tabs)) ok(fn._test.TARGETS.includes(t), "intake accepts builder target " + t);
+  }
   for (const [k, v] of [["target", "nope"], ["status", "verified"], ["fp", "XYZ"], ["builder", "evil.js"], ["recipe", ""]]) {
     r = await fn.handler(ev("POST", { body: Object.assign({}, good, { [k]: v }), h: ck }));
     ok(r.statusCode === 400, "bad " + k + " rejected");
