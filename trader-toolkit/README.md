@@ -46,3 +46,20 @@ Everything in this directory is **ORIGINAL BSV source** unless stated otherwise.
 ## License
 
 This repository is MIT licensed. Platform names belong to their respective owners. This toolkit is independent and is not an official TradingView, MetaQuotes, Spotware, or LuxAlgo product.
+
+## Copy-paste TradingView starters
+
+If you do not want to run the generator yet, open `platforms/tradingview/` and paste one of the original Pine v6 starters directly into Pine Editor:
+
+- session range dashboard
+- liquidity sweep candidate alert
+- volatility regime map
+- ATR risk overlay
+- higher-timeframe trend panel
+- webhook alert router
+
+They are source starters, not profitability claims. Runtime verification is separate from structural/source review.
+
+## Structural CI
+
+The repository workflow `.github/workflows/trader-toolkit-check.yml` checks generator syntax, parses every recipe, exercises the three current generator targets, and verifies that unsupported advanced blocks remain explicit instead of silently disappearing.
