@@ -1,3 +1,17 @@
+# OWNER WAKE DIRECTIVE
+
+Status: ACTIVE P0.
+
+Do not idle or wait for another routine instruction.
+
+If no work is currently running, resume now from the highest-value unfinished LIVE Trader/AI integration item. Continue implementation → test → deploy → live verify → fix → next item.
+
+A local source commit is not completion. A plan is not completion. A test-only result is not completion. The current milestone is live category expansion.
+
+Only stop for a true owner-only approval/access gate.
+
+---
+
 # GrokBot — execute now
 
 Use this as the current BSV execution directive.
