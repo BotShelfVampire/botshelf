@@ -1,0 +1,62 @@
+name: Robot Pilot structural check
+
+on:
+  push:
+    paths:
+      - 'robot-pilot/**'
+      - 'strategy/BSV_ROBOT_PILOT_OS.md'
+      - 'schemas/bsv-robot-pilot-*.json'
+      - 'schemas/bsv-teleop-session-evidence.schema.json'
+      - '.github/workflows/robot-pilot-check.yml'
+  pull_request:
+    paths:
+      - 'robot-pilot/**'
+      - 'strategy/BSV_ROBOT_PILOT_OS.md'
+      - 'schemas/bsv-robot-pilot-*.json'
+      - 'schemas/bsv-teleop-session-evidence.schema.json'
+      - '.github/workflows/robot-pilot-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Parse schemas and curriculum
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const schemas = [
+            'schemas/bsv-robot-pilot-profile.schema.json',
+            'schemas/bsv-teleop-session-evidence.schema.json',
+            'schemas/bsv-robot-pilot-curriculum.schema.json'
+          ];
+
+          for (const p of schemas) {
+            const x = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (x.$schema !== 'https://json-schema.org/draft/2020-12/schema') {
+              throw new Error('bad JSON Schema version: ' + p);
+            }
+            if (!x.$id || !x.title || x.type !== 'object') {
+              throw new Error('missing schema metadata: ' + p);
+            }
+          }
+
+          const curriculum = JSON.parse(fs.readFileSync('robot-pilot/curricula/isaac-teleop-so101-sim-v1.json', 'utf8'));
+          if (curriculum.schemaVersion !== '0.1') throw new Error('bad curriculum version');
+          if (curriculum.environment !== 'SIMULATION') throw new Error('starter must remain simulation-only');
+          if (!Array.isArray(curriculum.modules) || curriculum.modules.length < 5) throw new Error('starter curriculum too small');
+          if (curriculum.completion?.practiceRecordStatus !== 'SELF_REPORTED') throw new Error('starter must not imply reviewed/certified status');
+
+          const catalog = JSON.parse(fs.readFileSync('robot-pilot/catalog.json', 'utf8'));
+          if (catalog.schemaVersion !== '0.1' || !Array.isArray(catalog.assets)) throw new Error('bad robot pilot catalog');
+          const paths = catalog.assets.map(x => x.path);
+          for (const p of paths) if (!fs.existsSync(p)) throw new Error('catalog path missing: ' + p);
+          if (!catalog.assets.some(x => x.status === 'UNTESTED_RUNTIME')) throw new Error('runtime-untested status must remain explicit');
+          NODE
+      - name: Guard against certification overclaim
+        run: |
+          ! grep -RIE 'official certification|licensed robot pilot|certified by NVIDIA|manufacturer-certified' robot-pilot strategy/BSV_ROBOT_PILOT_OS.md
