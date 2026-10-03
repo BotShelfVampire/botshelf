@@ -1,7 +1,7 @@
 """Shared synthetic bars and independent reference for the Python-library target checks (check_backtrader.py,
 check_backtesting_py.py): 1200 synthetic 15-minute bars (January-February 2026, before DST) and a pure-Python reference
 for EMA/SMA/RSI (Wilder)/ATR (Wilder), crosses, thresholds, combines and session filters. Not market data."""
-import csv, math, re
+import csv, json, math, re
 from datetime import datetime, timedelta, timezone
 
 NB, STEP = 1200, timedelta(minutes=15)
@@ -75,6 +75,37 @@ def range_ok(by, b):
     return bool(d) and bool(re.match(r"^(signal|filter|alert)\.", d["type"])) and tr == ["high", "low"]
 
 
+def pivot_ok(b):
+    p = (b or {}).get("params") or {}; n = lambda x: isinstance(x, int) and not isinstance(x, bool) and 1 <= x <= 50
+    return bool(b) and b["type"] == "structure.pivot" and n(p.get("left")) and n(p.get("right")) and p.get("source", "close") in ("close", "high_low")
+
+
+def zone_source(by, b):
+    """The range/pivot id a visual.zone draws, or None when it cannot be drawn."""
+    d = by.get(((b or {}).get("params") or {}).get("source"))
+    return d["id"] if d and (pivot_ok(d) or range_ok(by, d)) else None
+
+
+WEBHOOK_NAMES = ("symbol", "timeframe", "time", "open", "high", "low", "close")
+def webhook_ok(by, b):
+    p = (b or {}).get("params") or {}; w = by.get(p.get("when")); pl = p.get("payload")
+    if not (w and re.match(r"^(signal|filter|alert)\.", w["type"]) and w["type"] != "alert.webhook" and isinstance(pl, dict) and pl): return False
+    return all(isinstance(x, (int, float, bool)) or (isinstance(x, str) and all(m in WEBHOOK_NAMES for m in re.findall(r"\{\{([^}]*)\}\}", x))) for x in pl.values())
+
+
+def webhook_expect(recipe, boo, start=0):
+    """("WEBHOOK", time, json) per completed bar where the condition holds; written separately from the generator."""
+    by = {b["id"]: b for b in recipe["blocks"]}; out = []
+    for i in range(start, NB):
+        t = bars[i]["t"].strftime("%Y-%m-%dT%H:%M:%S")
+        f = {"symbol": "SYMBOL", "timeframe": "TIMEFRAME", "time": t, **{k: "%.10g" % bars[i][k] for k in ("open", "high", "low", "close")}}
+        for b in recipe["blocks"]:
+            if b["type"] == "alert.webhook" and webhook_ok(by, b) and boo(b["params"]["when"])[i]:
+                pl = {k: (re.sub(r"\{\{([a-z]+)\}\}", lambda m: f[m[1]], x) if isinstance(x, str) else x) for k, x in b["params"]["payload"].items()}
+                out.append(("WEBHOOK", t, json.dumps(pl, separators=(",", ":"))))
+    return out
+
+
 def reference(recipe):
     by = {b["id"]: b for b in recipe["blocks"]}; V, S = {}, {}
     isb = lambda t: bool(re.match(r"^(signal|filter|alert)\.", t or ""))
@@ -124,6 +155,19 @@ def reference(recipe):
                     hi[j] = max(x["high"] for x in bars[i:j + 1]); lo[j] = min(x["low"] for x in bars[i:j + 1]); j += 1
                 i = j
             V[b["id"] + ".high"], V[b["id"] + ".low"] = hi, lo
+        elif t == "structure.pivot" and pivot_ok(b):
+            # written separately from the generator: test every bar j against its whole window, then publish the
+            # pivot on bar j + right (the first bar that has seen the right side) and hold it
+            hv = PX["close"] if p.get("source", "close") == "close" else PX["high"]; lv = PX["close"] if p.get("source", "close") == "close" else PX["low"]
+            L_, R_ = p["left"], p["right"]; ph, pl_ = {}, {}
+            for j in range(L_, NB - R_):
+                before, after = range(j - L_, j), range(j + 1, j + R_ + 1)  # strict before, ties allowed after (first bar of a flat top)
+                if all(hv[j] > hv[k] for k in before) and all(hv[j] >= hv[k] for k in after): ph[j + R_] = hv[j]
+                if all(lv[j] < lv[k] for k in before) and all(lv[j] <= lv[k] for k in after): pl_[j + R_] = lv[j]
+            hi, lo, ch, cl = [], [], NAN, NAN
+            for i in range(NB):
+                ch, cl = ph.get(i, ch), pl_.get(i, cl); hi.append(ch); lo.append(cl)
+            V[b["id"] + ".high"], V[b["id"] + ".low"] = hi, lo
         elif t == "signal.breakout" and range_ok(by, by.get(p.get("range"))) and p.get("direction", "either") in ("either", "above", "below"):
             r = by[p["range"]]; comp(r); ins = boo(r["params"]["during"]); hi, lo = V[r["id"] + ".high"], V[r["id"] + ".low"]; c = PX["close"]; out = []
             for i in range(NB):
@@ -132,6 +176,8 @@ def reference(recipe):
                 out.append({"either": up or dn, "above": up, "below": dn}[p.get("direction", "either")])
             S[b["id"]] = out
         elif t in ("visual.plot", "alert.condition"): pass
+        elif t == "visual.zone" and zone_source(by, b): comp(by[zone_source(by, b)])
+        elif t == "alert.webhook" and webhook_ok(by, b): comp(by.get(p["when"]))
         elif isb(t): S[b["id"]] = [False] * NB
         else: V[b["id"]] = [NAN] * NB
     for b in recipe["blocks"]: comp(b)
