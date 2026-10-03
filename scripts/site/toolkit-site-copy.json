@@ -76,19 +76,19 @@
   },
   "trader-generator": {
    "summary": {
-    "en": "Node.js generator that turns one recipe into a Pine Script v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart (ACSIL), ProRealTime, GoCharting (Lipi), MotiveWave (Java), Vela (JavaScript) or JForex (Java) starter. Unsupported blocks stay visible as TODO comments instead of silently disappearing.",
-    "ja": "1つのレシピからPine Script v6・MQL5・MQL4・cTrader（C#）・cTrader（Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTime・GoCharting（Lipi）・MotiveWave（Java）・Vela（JavaScript）・JForex（Java）のひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
+    "en": "Node.js generator that turns one recipe into a Pine Script v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart (ACSIL), ProRealTime, GoCharting (Lipi), MotiveWave (Java), Vela (JavaScript), JForex (Java) or TradeStation (EasyLanguage) starter. Unsupported blocks stay visible as TODO comments instead of silently disappearing.",
+    "ja": "1つのレシピからPine Script v6・MQL5・MQL4・cTrader（C#）・cTrader（Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTime・GoCharting（Lipi）・MotiveWave（Java）・Vela（JavaScript）・JForex（Java）・TradeStation（EasyLanguage）のひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
    },
    "use": {
     "en": [
      "Install Node.js 18 or later.",
-     "Run: node render.mjs <recipe.json> --target pine-v6 (or mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower / sierra-acsil / prorealtime / gocharting-lipi / motivewave / vela / jforex).",
+     "Run: node render.mjs <recipe.json> --target pine-v6 (or mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower / sierra-acsil / prorealtime / gocharting-lipi / motivewave / vela / jforex / easylanguage).",
      "Paste the output into the platform editor, compile there, and resolve every TODO before relying on it.",
-     "No Node.js? Each recipe page offers the fourteen pre-generated starters, and the browser recipe builder renders all thirteen targets."
+     "No Node.js? Each recipe page offers the fifteen pre-generated starters, and the browser recipe builder renders all thirteen targets."
     ],
     "ja": [
      "Node.js 18以上を用意します。",
-     "node render.mjs <recipe.json> --target pine-v6（または mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower / sierra-acsil / prorealtime / gocharting-lipi / motivewave / vela / jforex）を実行します。",
+     "node render.mjs <recipe.json> --target pine-v6（または mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower / sierra-acsil / prorealtime / gocharting-lipi / motivewave / vela / jforex / easylanguage）を実行します。",
      "出力を各プラットフォームのエディターに貼り付けてコンパイルし、TODOをすべて解消してから使います。",
      "Node.jsがなくても、各レシピのページで13種類の生成済みひな形を取得でき、ブラウザのレシピビルダーでも13種類すべてを生成できます。"
     ]
