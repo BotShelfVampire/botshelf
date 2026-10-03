@@ -107,6 +107,19 @@
         "exception handling"
       ],
       "riskGate": "preserve data sensitivity and authorization boundaries"
+    },
+    {
+      "id": "robot-pilot",
+      "label": "Robot Pilot / Teleoperation Workforce",
+      "safeInitialJobs": [
+        "simulation pilot training",
+        "teleoperation practice evidence",
+        "robot demonstration data collection",
+        "episode QA/replay review",
+        "task recipe authoring",
+        "pilot mission matching"
+      ],
+      "riskGate": "real-hardware control requires explicit partner authorization, exact hardware/runtime evidence, and local safety procedures; BSV practice records are not official licenses"
     }
   ]
 }
