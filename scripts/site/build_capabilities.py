@@ -39,6 +39,13 @@ def canonical(site: Path, rel: str) -> str:
     return ORIGIN + "/" + rel
 
 
+def public_page(site: Path, i: dict) -> str:
+    """/trading/items/* is gated by the edge (anonymous visitors are redirected to /trading/tools/<id>.html), so the
+    public description page is the canonical URL for agents."""
+    tool = f"trading/tools/{Path(i['detail_url']).name}"
+    return canonical(site, tool if (site / tool).exists() else "trading/" + i["detail_url"])
+
+
 def license_of(site: Path, item: dict) -> dict:
     lf = item.get("license_file")
     if lf and (site / "trading/licenses" / Path(lf).name.lower()).exists():
@@ -83,7 +90,7 @@ def catalogue_manifest(site: Path, i: dict) -> dict:
         "seller": {"id": "github:" + i["repo"].split("/")[0], "displayName": i["provider"]},
         "dependencies": [],
         "monetization": {"mode": "FREE", "price": None, "currency": None},
-        "canonicalUrl": canonical(site, "trading/" + i["detail_url"]),
+        "canonicalUrl": public_page(site, i),
     }
 
 
