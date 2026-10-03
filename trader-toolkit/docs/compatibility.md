@@ -14,7 +14,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | GoCharting | Lipi scripting | generator target (`gocharting-lipi`: talib indicators, cross/threshold/combine, plots, `alertcondition` + closed-bar `alert()`) + dual-EMA Lipi source | Source prepared; Lipi-editor validation still required |
 | MT4 | MQL4 | generator target (`mql4`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | Bookmap | Python API (open beta) and Java add-ons/API | Python generator target (`bookmap-python`, time bars built from trades) + trade-EMA add-on source; order-flow blocks still planned | Source prepared; runtime test still required |
-| MotiveWave | Java SDK | EMA custom-study source | Source prepared; SDK/build verification required |
+| MotiveWave | Java SDK | generator target (`motivewave`: `Study` with `DataSeries.ema/sma/atr`, Wilder RSI via `smma`, paths, closed-bar `ctx.signal`) + EMA custom-study source | Compiles with javac 21 against BSV stubs written from the SDK javadoc; real SDK build and MotiveWave load still required |
 | ProRealTime | ProBuilder | generator target (`prorealtime`: built-in averages/RSI/ATR, `CROSSES OVER/UNDER`, `RETURN` lines, arrow markers on overlays) + dual-EMA copy/paste indicator | Source prepared; runtime validation required |
 | ATAS | platform extensibility research | planned | Unverified |
 | JForex | Java strategy/indicator APIs | planned | Unverified |
@@ -122,3 +122,15 @@ The `gocharting-lipi` target declares `indicator(title, "BSV", overlay)`, comput
 - https://gocharting.com/docs/scripting
 - https://gocharting.com/docs/scripting/automation/alerts
 - https://gocharting.com/docs/scripting/reference/function-index
+
+## MotiveWave
+
+MotiveWave custom studies are Java classes that extend `Study`, carry a `@StudyHeader`, declare settings and paths in `initialize(Defaults)` and fill values in `calculate(int index, DataContext ctx)`.
+
+The `motivewave` target writes one `Study` class: `DataSeries.ema/sma(index, period, Enums.BarInput.*)` and `atr(index, period)` for indicators (hl2 = `MIDPOINT`, hlc3 = `TP`, ohlc4 = `WP`), a Wilder RSI from per-bar gains/losses smoothed with `smma`, one `PathDescriptor` + `declarePath` per plot, and one `declareSignal` + `ctx.signal(...)` per alert, raised only when `isBarComplete(index)`. Session filters convert the bar start time with `java.time` in the recipe time zone. No orders.
+
+Checked by BSV: all 14 recipes compile with javac 21 against stub classes written from the public javadoc signatures. Not built against the real SDK jar and not loaded in MotiveWave yet.
+
+- https://www.motivewave.com/sdk/javadoc/com/motivewave/platform/sdk/study/Study.html
+- https://www.motivewave.com/sdk/javadoc/com/motivewave/platform/sdk/common/DataSeries.html
+- https://www.motivewave.com/sdk/javadoc/com/motivewave/platform/sdk/common/DataContext.html
