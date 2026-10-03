@@ -89,3 +89,23 @@ Do not create eight empty top-level marketplaces first. Build shared primitives,
 
 Canonical strategy: strategy/BSV_FRONTIER_GROWTH_OS.md
 Growth issue: GitHub Issue #6
+
+
+## Robot Pilot priority
+
+Treat Robot Pilot / teleoperation workforce as a highest-priority frontier business line.
+
+BSV should support:
+- simulation-first pilot training
+- machine-readable pilot practice records
+- teleoperation session evidence
+- robot mission/request matching
+- pilot opportunity feed
+- teleop recipe/tool marketplace
+- later B2B data-factory / enterprise Pilot OS
+
+Start with simulation and evidence. Do not imply that BSV grants an official professional license or real-hardware authority.
+
+Canonical strategy:
+- strategy/BSV_ROBOT_PILOT_OS.md
+- robot-pilot/curricula/isaac-teleop-so101-sim-v1.json
