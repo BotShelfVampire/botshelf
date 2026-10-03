@@ -122,6 +122,22 @@
       "type": "copy-paste-code",
       "status": "UNTESTED_RUNTIME",
       "path": "ai-toolkit/crewai/team-runner/"
+    },
+    {
+      "id": "n8n-team-runner",
+      "title": "n8n Team Runner (per-task workflows, local model)",
+      "platform": "n8n",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "ai-toolkit/n8n/team-runner/"
+    },
+    {
+      "id": "openai-agents-team-runner",
+      "title": "OpenAI Agents SDK Team Runner (per-task, local model)",
+      "platform": "OpenAI Agents SDK",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "ai-toolkit/openai-agents/team-runner/"
     }
   ]
 }

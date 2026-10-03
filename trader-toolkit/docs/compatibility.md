@@ -10,12 +10,12 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | Vela | JavaScript/TypeScript chart library + optional scripting engines | runnable custom web-chart starter | Source prepared; runtime test required |
 | NinjaTrader | NinjaScript/C# | generator target (`ninjatrader`: built-in EMA/SMA/RSI/ATR, cross/threshold/combine, plots, closed-bar `Alert()`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | Quantower | C# Quantower Algo | generator target (`quantower`: built-in indicators, cross/threshold/combine, line series, closed-bar log alerts) + simple SMA source | Source prepared; runtime compile still required |
-| Sierra Chart | ACSIL/C++ | EMA overlay custom-study source | Source prepared; runtime build still required |
+| Sierra Chart | ACSIL/C++ | generator target (`sierra-acsil`: ACSIL moving averages/RSI/ATR, cross/threshold/combine, subgraphs, closed-bar `sc.AddAlertLine`) + EMA overlay custom-study source | Source prepared; runtime build still required |
 | GoCharting | Lipi scripting | dual-EMA Lipi source | Source prepared; Lipi-editor validation still required |
 | MT4 | MQL4 | generator target (`mql4`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | Bookmap | Python API (open beta) and Java add-ons/API | Python generator target (`bookmap-python`, time bars built from trades) + trade-EMA add-on source; order-flow blocks still planned | Source prepared; runtime test still required |
 | MotiveWave | Java SDK | EMA custom-study source | Source prepared; SDK/build verification required |
-| ProRealTime | ProBuilder | dual-EMA copy/paste indicator | Source prepared; runtime validation required |
+| ProRealTime | ProBuilder | generator target (`prorealtime`: built-in averages/RSI/ATR, `CROSSES OVER/UNDER`, `RETURN` lines, arrow markers on overlays) + dual-EMA copy/paste indicator | Source prepared; runtime validation required |
 | ATAS | platform extensibility research | planned | Unverified |
 | JForex | Java strategy/indicator APIs | planned | Unverified |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
@@ -77,6 +77,11 @@ The `quantower` target creates built-in indicators with `Core.Indicators.BuiltIn
 
 ACSIL custom studies expose `sc.Input` settings and `sc.Subgraph` output arrays; BSV's first starter is intentionally read-only/visual.
 
+The `sierra-acsil` target writes one `SCSFExport` study function with `AutoLoop = 1`: visible plot subgraphs first, hidden (`DRAWSTYLE_IGNORE`) indicator subgraphs computed with `sc.ExponentialMovAvg`, `sc.SimpleMovAvg`, `sc.RSI` and `sc.ATR`, and alerts on the last closed bar via `sc.AddAlertLine`, de-duplicated with a persistent int. Session filters use bar time in the chart's time zone and stay marked TODO. Not compiled in Sierra Chart by BSV yet.
+
+- https://www.sierrachart.com/index.php?page=doc/ACSIL_Members_Functions.html
+- https://www.sierrachart.com/index.php?page=doc/ACSILProgrammingConcepts.html
+
 Official reference:
 - https://www.sierrachart.com/index.php?page=doc/AdvancedCustomStudyInterfaceAndLanguage.php
 
@@ -98,3 +103,12 @@ Official developer surface:
 ## Rule
 
 Never mark a platform implementation Verified merely because the source exists or CI parsed it. Runtime/build evidence must identify the exact platform/version and exact source revision.
+
+## ProRealTime
+
+ProBuilder personal indicators are created in ProRealTime (Indicators > New > Creation by programming) and validated in the editor.
+
+The `prorealtime` target writes a ProBuilder personal indicator with underscore-free variable names, built-in `ExponentialAverage`, `Average`, `RSI` and `AverageTrueRange`, `CROSSES OVER/UNDER`, and ends with `RETURN ... COLOURED(r,g,b) AS "..."`. Recipes drawn on the price chart show signals with `DRAWARROWUP`/`DRAWARROWDOWN` markers; ProRealTime alerts are created in the platform on an indicator line, so a second indicator that returns 0/1 is suggested in a TODO. Not validated in ProRealTime by BSV yet.
+
+- https://www.prorealcode.com/documentation/probuilder/
+- https://www.prorealtime.com/en/pdf/probuilder.pdf

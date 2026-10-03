@@ -7,7 +7,7 @@ Edits, idempotently (marker blocks):
 - /library/teams/<team>/        -> "Agent toolkits that pair with this team"
 - /library/teams/               -> "Agent toolkits by job" chips
 - /library/toolkit/<runner>/     -> "Per-task Library Teams" (public page + gated full prompt) for the
-                                   LangGraph / CrewAI team runners (toolkit-site-copy.json -> ai_team_runners)
+                                   LangGraph / CrewAI / n8n / OpenAI Agents SDK team runners (toolkit-site-copy.json -> ai_team_runners)
 - /library/<runtime>/<team>/     -> "Run this task locally" back-link to the matching runner
 Mapping lives in toolkit-site-copy.json -> ai_team_links (job -> team ids).
 Run after build_live_toolkit.py:  python3 scripts/site/build_crosslinks.py --site <tree>
@@ -71,24 +71,29 @@ def main():
         p.write_text(blt.replace_block(h, "toolkit-links", blk, "</main>"), encoding="utf-8"); edits += 1
     # per-task runners (LangGraph / CrewAI) <-> Library Team implementation pages + gated full prompts
     tk_ids = {e["id"] for e in tk}
+    used_impl = {}
     for rt, rn in copy.get("ai_team_runners", {}).items():
+        irt = rn.get("impl_runtime", rt)
+        if irt in used_impl:
+            raise SystemExit(f"two runners share impl runtime {irt}: {used_impl[irt]} / {rt}")
+        used_impl[irt] = rt
         if rn["item"] not in tk_ids:
             raise SystemExit(f"ai_team_runners item missing from toolkit: {rn['item']}")
         rows = []
         for tid, t in teams.items():
-            impl = next((i for i in t["implementations"] if i.get("runtime") == rt), None)
+            impl = next((i for i in t["implementations"] if i.get("runtime") == irt), None)
             if not impl:
                 continue
-            src = f"/library/source/team-{rt}-{tid}.html"
+            src = f"/library/source/team-{irt}-{tid}.html"
             if not (site / src.lstrip("/")).exists():
                 raise SystemExit(f"gated team source missing: {src}")
             cmd = rn["cmd"].format(task=tid)
             rows.append(f'<li><strong>{esc(t["title"])}</strong> <code>--task {esc(tid)}</code><br>'
-                        f'<a href="{esc(impl["url"])}">{esc(rn["platform"])} team page</a> · <a href="{src}" data-tk-gated>Full prompt — free email verification</a> · <a href="/library/teams/{tid}/">Team overview</a></li>')
+                        f'<a href="{esc(impl["url"])}">{esc(rn.get("impl_label", rn["platform"] + " team page"))}</a> · <a href="{src}" data-tk-gated>Full prompt — free email verification</a> · <a href="/library/teams/{tid}/">Team overview</a></li>')
             ip = site / impl["url"].lstrip("/") / "index.html"
             ih = ip.read_text()
             iblk = (f'<section class="how-box"><p class="section-label">Run this task locally · {esc(rn["platform"])} team runner</p>'
-                    f'{lib_both(T("The BSV team runner runs this task on a local model (LM Studio or Ollama), checks the required sections and saves only after your approval. Paste the team prompt from the full-text page into prompts/" + tid + ".txt.", "BSVのチームランナーで、この仕事をローカルモデル（LM StudioまたはOllama）で動かせます。必要な項目を確認し、あなたが承認したときだけ保存します。全文ページのプロンプトを prompts/" + tid + ".txt に貼り付けて使います。"), "p")}'
+                    f'{lib_both(T(rn.get("blurb_en", "The BSV team runner runs this task on a local model (LM Studio or Ollama), checks the required sections and saves only after your approval.") + " Paste the team prompt from the full-text page into prompts/" + tid + ".txt.", rn.get("blurb_ja", "BSVのチームランナーで、この仕事をローカルモデル（LM StudioまたはOllama）で動かせます。必要な項目を確認し、あなたが承認したときだけ保存します。") + "全文ページのプロンプトを prompts/" + tid + ".txt に貼り付けて使います。"), "p")}'
                     f'<p><code>{esc(cmd)}</code></p><p><a href="/library/toolkit/{rn["item"]}/"><strong>{esc(rn["platform"])} team runner →</strong></a></p>'
                     f'{lib_both(T("Not runtime tested by BSV.", "BSVでは実行検証をしていません。"), "p", "muted")}</section>')
             ip.write_text(blt.replace_block(ih, "team-runner", iblk, "</main>"), encoding="utf-8"); edits += 1
@@ -102,7 +107,7 @@ def main():
     p = site / "library/teams/index.html"
     h = p.read_text()
     chips = "".join(f'<li><a href="/library/toolkit/#job-{j}">{esc(jobs[j]["en"])}</a> <span class="muted">({sum(1 for e in tk if e["job"] == j)})</span></li>' for j in jobs if any(e["job"] == j for e in tk))
-    blk = (f'<section class="how-box"><p class="section-label">Agent toolkits by job</p>{lib_both(T("Building the runtime around a team? Original BSV templates for Dots, Hugging Face, Bionic, smolagents, Letta, the OpenAI Agents SDK, and LangGraph/CrewAI runners for each team task.", "Teamの周りの実行環境を作るなら、Dots・Hugging Face・Bionic・smolagents・Letta・OpenAI Agents SDK向けのBSVオリジナルのテンプレートと、Teamの仕事ごとに動かすLangGraph・CrewAIのランナーがあります。"), "p")}'
+    blk = (f'<section class="how-box"><p class="section-label">Agent toolkits by job</p>{lib_both(T("Building the runtime around a team? Original BSV templates for Dots, Hugging Face, Bionic, smolagents, Letta, the OpenAI Agents SDK, and LangGraph, CrewAI, n8n and OpenAI Agents SDK runners for each team task.", "Teamの周りの実行環境を作るなら、Dots・Hugging Face・Bionic・smolagents・Letta・OpenAI Agents SDK向けのBSVオリジナルのテンプレートと、Teamの仕事ごとに動かすLangGraph・CrewAI・n8n・OpenAI Agents SDKのランナーがあります。"), "p")}'
            f'<ul>{chips}</ul><p><a href="/library/toolkit/"><strong>All AI toolkits ({len(tk)}) →</strong></a></p></section>')
     p.write_text(blt.replace_block(h, "toolkit-links", blk, "</main>"), encoding="utf-8"); edits += 1
     print(json.dumps({"pages_edited": edits, "toolkit_items": len(tk), "teams": len(teams)}))
