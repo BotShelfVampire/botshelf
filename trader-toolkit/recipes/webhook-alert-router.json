@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Webhook Alert Router",
+  "description": "Condition plus structured webhook payload starter. Never include secrets in the payload.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "ema_fast",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 9
+      }
+    },
+    {
+      "id": "ema_slow",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 20
+      }
+    },
+    {
+      "id": "cross",
+      "type": "signal.cross",
+      "params": {
+        "left": "ema_fast",
+        "right": "ema_slow",
+        "direction": "above"
+      }
+    },
+    {
+      "id": "webhook",
+      "type": "alert.webhook",
+      "params": {
+        "when": "cross",
+        "payload": {
+          "event": "ema_cross",
+          "symbol": "{{symbol}}",
+          "timeframe": "{{timeframe}}",
+          "price": "{{close}}"
+        }
+      }
+    }
+  ]
+}
