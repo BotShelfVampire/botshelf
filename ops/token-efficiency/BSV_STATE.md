@@ -49,14 +49,14 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
 
-## LIVE integration status (New Bobby, 2026-10-03 17:50 JST)
+## LIVE integration status (New Bobby, 2026-10-03 18:07 JST)
 
-- Production deploy: `6ac0c0f48e544dc4923b42da` (context `production`, email_configured:true before/after). Always `qa/deploy_prod.sh` (`--prod` + health check before/after); never publish CLI drafts via `restoreSiteDeploy`.
-- Trader: https://botshelfvampire.com/trading/build/ — **37** assets (23 catalog + 14 recipes) + recipe builder; 13 platform filters incl. MT4 and Bookmap. Generator/builder targets: Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python (parity 84/84). MQL5 and cTrader C# now compute indicators/signals/plots/alerts. All UNTESTED_RUNTIME / STRUCTURAL — Runtime-tested by BSV = 0.
-- Recipe builder v2: https://botshelfvampire.com/trading/tools/bsv-builder.html (public) → gated `/trading/items/bsv-builder.html`: per-block TODO hints, config-only share link / JSON import-export. CSS external (CSP).
-- AI toolkit: https://botshelfvampire.com/library/toolkit/ (12) cross-linked with Library Teams.
-- Library bodies gated: **879** (70 teams + 809 packs); full text at `/library/source/team-*` / `item-*` behind verified session; free labels kept; items.json / search / sitemap / llms carry no bodies; `*.bak*` pruned.
+- Production deploy: `6ac0c5791377cbb24d114800` (context `production`, email_configured:true before/after). Always `qa/deploy_prod.sh` (`--prod` + health check before/after); never publish CLI drafts via `restoreSiteDeploy`. Commit `ba29ba1` on `new-bobby/live-toolkit-integration`.
+- Trader: https://botshelfvampire.com/trading/build/ — **37** assets (23 catalog + 14 recipes) + recipe builder; platform filters unchanged. Generator/builder targets: Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, **NinjaTrader 8**, **Quantower** (parity 112/112). MQL5/cTrader C#/NT8/Quantower compute indicators/signals/plots/alerts. All UNTESTED_RUNTIME / STRUCTURAL — Runtime-tested by BSV = 0. TODO totals over 14 recipes: MQL5 33, cTrader C# 19, NT8 19, Quantower 19.
+- Recipe builder: https://botshelfvampire.com/trading/tools/bsv-builder.html (public) → gated `/trading/items/bsv-builder.html` (`bsv-builder.19ed3a1d.js`): 8 tabs, per-block TODO hints, config-only share / JSON import-export. CSS external (CSP).
+- AI toolkit: https://botshelfvampire.com/library/toolkit/ (**14**) incl. LangGraph + CrewAI team-runners; cross-linked with Library Teams.
+- Library bodies gated: **879** (70 teams + 809 packs); unchanged this cycle.
 - Gated paths: `/trading/items|sources|downloads/*`, `/library/source/*`, `/registered`, `/switchboard-cos`.
-- LIVE tests (pass): toolkit public=52 gated=73; trader gate 72 files anon 302 / session 200 byte-match; library gate 879/0; builder parity 84; builder share/hints 406 checks; health email_configured:true.
+- LIVE tests (pass): toolkit public=54 gated=77; trader gate 72 files anon 302 / session 200 byte-match; builder parity 112; builder share/hints 541 checks; health email_configured:true.
 - Logged-in QA: `support@botshelfvampire.com` (OTP test). Cookie jar on ops box only.
 - Owner decisions recorded: public GitHub repos stay public (provenance links only); `/cross-ai/kits/research-desk-local/` left public. Workflow file move needs a `workflow`-scope token (owner).

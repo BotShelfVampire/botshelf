@@ -12,23 +12,22 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
-# Status 2026-10-03 17:50 JST (New Bobby) — cycle 4 LIVE
+# Status 2026-10-03 18:07 JST (New Bobby) — cycle 5 LIVE
 
-LIVE deploy: `6ac0c0f48e544dc4923b42da` (production, email_configured:true before/after). Chain: `6ac0b8e6` (cycle 3) → `6ac0bff1` (builder v2) → `6ac0c0f4` (MQL5/cTrader C# upgrade). Do not rebuild from scratch; deploy tree `/workspace/bsv-live/deploy` (ops box).
+LIVE deploy: `6ac0c5791377cbb24d114800` (production, email_configured:true before/after). Chain: `6ac0c0f4` (cycle 4) → `6ac0c579` (NT8 + Quantower + LangGraph/CrewAI). Deploy tree `/workspace/bsv-live/deploy` (ops box). Commit `ba29ba1`.
 
 Shipped this cycle:
-1. Builder v2 (gated `/trading/items/bsv-builder.html`): per-block TODO badges + EN/JA hints for the selected target; share link (`#r=` sanitized config / `#s=<starter>`), JSON file import, sanitized JSON download, "restore previous draft"; share survives email verification via a 24h browser-only stash on the public page. Config only — no generated code or BSV source in links.
-2. Fix: builder CSS was inline `<style>` and blocked by production CSP (`style-src 'self'`) → now `/trading/assets/bsv-builder.<hash>.css`.
-3. Generator: MQL5 and cTrader C# targets now compute indicators/signals/plots/closed-bar alerts (TODO markers MQL5 90→33, cTrader C# 52→19 over 14 recipes). Still UNTESTED_RUNTIME.
-4. Team pages: GitHub registry path shown as neutral provenance (no "link after verification" claim).
+1. Generator: NinjaTrader 8 (NinjaScript C#) and Quantower C# targets compute indicators/signals/plots/closed-bar alerts (TODO over 14 recipes: NT8 19, Quantower 19). Honest UNTESTED_RUNTIME; Runtime-tested by BSV = 0.
+2. Builder: 8 target tabs (Pine/MQL5/MQL4/cTrader C#/Python/Bookmap/NinjaTrader/Quantower) + compile checklists for NT8/Quantower.
+3. AI toolkit: LangGraph team-runner and CrewAI team-runner starters (local model, per-task); catalog 12→14; cross-links updated.
 
-Tests (pass): parity 84/84; share/sanitizer/hints 406 checks; local+LIVE toolkit public=52 gated=73; LIVE trader gate 72/0; LIVE library gate 879/0 (at `6ac0b8e6`; library unchanged since); LIVE builder via CSP-forwarding proxy: grid layout, 6 tabs, hints, share→load, public stash→load, 0 CSP violations.
+Tests (pass): parity 112/112 (14×8); share/sanitizer/hints 541 checks; local+LIVE toolkit public=54 gated=77; LIVE trader gate 72/0; gated builder session confirms 8 tabs + renderNinja/renderQuantower; health email_configured:true.
 
 Next queue (in order):
-1. NinjaTrader 8 (NinjaScript C#) generator target + builder tab (same computing pattern), then Quantower.
-2. Builder: per-target "compile checklist" panel and recipe-level lint (unused blocks, refs to later ids) before render.
-3. AI toolkit: add runnable starters for LangGraph/CrewAI jobs that link to the gated Library Teams (catalog → build_live_toolkit → crosslinks).
-4. Move `scripts/site/site-integration-check.workflow.yml` into `.github/workflows/` and extend trader CI to 6 targets (needs a token with `workflow` scope — owner).
+1. Builder: per-target "compile checklist" panel polish and recipe-level lint UX (unused blocks, refs to later ids) — scaffolding already present; expand coverage.
+2. Remaining platforms after NT8/Quantower: Sierra Chart, GoCharting, ProRealTime, MotiveWave, Vela, OpenMarkets (starters already in platforms/; generator targets as needed).
+3. AI toolkit: more runnable starters / team job wiring as catalog grows.
+4. Move `scripts/site/site-integration-check.workflow.yml` into `.github/workflows/` and extend trader CI to 8 targets (needs a token with `workflow` scope — owner).
 5. Owner decisions already made (do not reopen): public GitHub repos stay public (provenance only); `/cross-ai/kits/research-desk-local/` left as is. No SNS/Discord/external posts.
 
 ---
