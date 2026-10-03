@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Ranges and breakouts (structure.range, signal.breakout) rendered on backtrader, Backtesting.py and NautilusTrader; Opening Range and Session Stats panels complete there.", "/trading/build/"),
     ("2026-10-04", "Correction: higher-timeframe blocks were computed on the chart timeframe on every target. Now real (closed bars only) on backtrader, Backtesting.py and NautilusTrader; TODO stubs on the other 19.", "/trading/build/coverage.json"),
     ("2026-10-04", "Teleop recipe library: an original SO-101 simulation practice-session recipe (not run by BSV).", "/robot-pilot/#recipes"),
     ("2026-10-04", "Builder opportunity signals (opportunity-signal v0.1) counted from approved public requests only.", "/requests/#builders"),

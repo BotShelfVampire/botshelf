@@ -70,11 +70,17 @@ for f in sorted(RECIPES.glob("*.json")):
     ok(len(hist) == R.NB, name, f"on_bar once per bar ({len(hist)})")
     ok(all(same(h[0]["close"], b["close"]) and same(h[0]["high"], b["high"]) for h, b in zip(hist, R.bars)), name, "bar prices arrive unchanged (5 decimals)")
     V, S, val, boo = R.reference(recipe)
+    for b in recipe["blocks"]:  # structure.range: the window's high/low on every bar equal the reference
+        if b["type"] == "structure.range" and b["id"] + ".high" in V:
+            for KEYN in ("high", "low"):
+                KEY = b["id"] + "." + KEYN; got = [h[0].get(KEY, float("nan")) for h in hist]; want = V[KEY]
+                bad = sum(1 for g, w in zip(got, want) if not ((not BSVREF.fin(g) and not BSVREF.fin(w)) or (BSVREF.fin(g) and BSVREF.fin(w) and abs(g - w) < 1e-9)))
+                ok(len(got) == len(want) and bad == 0 and sum(1 for w in want if BSVREF.fin(w)) > 0, name, f"{KEY} (structure.range) equals reference ({bad} bars differ)")
     for b in recipe["blocks"]:
         if b["type"] in ("indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr"):
             got = [h[0].get(b["id"], float("nan")) for h in hist]; bad = sum(1 for g, w in zip(got, V[b["id"]]) if not same(g, w))
             ok(bad == 0, name, f"{b['id']} ({b['type']}) equals reference ({bad} bars differ)")
-        if re.match(r"^(signal\.(cross|threshold|combine)|filter\.session)$", b["type"]):
+        if re.match(r"^(signal\.(cross|threshold|combine|breakout)|filter\.session)$", b["type"]):
             got = [bool(h[1].get(b["id"])) for h in hist]; diff = sum(1 for g, w in zip(got, S[b["id"]]) if g != bool(w))
             ok(diff == 0, name, f"{b['id']} ({b['type']}) equals reference ({diff} bars differ)")
         if b["type"] == "visual.plot":

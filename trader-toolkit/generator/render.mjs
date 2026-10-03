@@ -98,7 +98,41 @@ function htfPrep(recipe, real) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { return fn(htfPrep(recipe, htfRealTargets().includes(t))); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, htfRealTargets().includes(t)); r.bsvRangeReal = rangeRealTargets().includes(t); return fn(r); }
+// structure.range (high/low of each window where a session/signal is true; reset when a new window starts; after the
+// window the last window's values stay) and signal.breakout (first close beyond the finished window's high or low).
+// Rendered only where a BSV check runs them; elsewhere they stay TODO.
+function rangeRealTargets() { return ['backtrader', 'backtesting-py', 'nautilus']; }
+function rangeKeys(b) { const t = Array.isArray(b?.params?.track) ? b.params.track : []; return t.filter((x, i) => (x === 'high' || x === 'low') && t.indexOf(x) === i); }
+function rangeOk(recipe, b) {
+  if (!recipe.bsvRangeReal || !b || b.type !== 'structure.range') return false;
+  const d = blockMap(recipe).get(b.params?.during), t = Array.isArray(b.params?.track) ? b.params.track : [];
+  return !!d && isBoolType(d.type) && t.length > 0 && rangeKeys(b).length === t.length;
+}
+function breakoutOk(recipe, b) {
+  return !!b && b.type === 'signal.breakout' && ['either', 'above', 'below'].includes(b.params?.direction || 'either') && rangeOk(recipe, blockMap(recipe).get(b.params?.range)) && rangeKeys(blockMap(recipe).get(b.params.range)).length === 2;
+}
+function pyRangeLines() {
+  return [
+    'def bsv_range_step(st, inside, h, l):  # st = [inside on the previous bar, high, low]',
+    '    if inside:',
+    '        if not st[0]:',
+    '            st[1], st[2] = h, l  # a new window starts: reset',
+    '        else:',
+    '            st[1], st[2] = max(st[1], h), min(st[2], l)',
+    '    st[0] = inside',
+    '    return st[1], st[2]  # during a window: so far; after it: the finished window; NaN before the first window',
+    '',
+    '',
+    'def bsv_breakout(inside, hi, lo, c, pc, direction):  # first close beyond the finished window, on a closed bar',
+    '    if inside or hi != hi or pc != pc:',
+    '        return False',
+    '    up, dn = c > hi and pc <= hi, c < lo and pc >= lo',
+    '    return (up or dn) if direction == "either" else (up if direction == "above" else dn)',
+    '',
+    '',
+  ];
+}
 function htfNotes(recipe, prefix) {  // one line per block that uses a higher timeframe, saying how this target treats it
   return recipe.blocks.filter(b => b.params && b.params.timeframeRef).map(b => b.type === 'data.higher_timeframe'
     ? `${prefix} TODO ${b.id}: ${b.params.bsvHtfOf || 'block'} on higher timeframe ${b.params.timeframeRef} is not computed for this target (left empty), never on the chart timeframe.`
@@ -114,6 +148,8 @@ function referencesFor(block) {
     case 'visual.plot': return [p.source].filter(Boolean);
     case 'alert.condition': return [p.when].filter(Boolean);
     case 'visual.table': return Array.isArray(p.fields) ? p.fields.filter(Boolean) : [];
+    case 'structure.range': return [p.during].filter(Boolean);
+    case 'signal.breakout': return [p.range].filter(Boolean);
     default: return [];
   }
 }
@@ -130,14 +166,16 @@ function tableSpec(recipe, b) {
     seen.add(ref);
     const d = map.get(ref), q = d.params || {};
     if (q.timeframeRef && !(recipe.bsvHtfReal && htfSource(recipe, d))) return `${ref} uses higher timeframe ${q.timeframeRef}, which this target does not compute (not shown rather than computed on the chart timeframe)`;
-    if (!tableValueType(d.type)) return `${ref} (${d.type}) is not rendered yet`;
+    if (!tableValueType(d.type) && !rangeOk(recipe, d) && !breakoutOk(recipe, d)) return `${ref} (${d.type}) is not rendered yet`;
     for (const r of referencesFor(d)) { const w = why(r, seen); if (w) return w; }
     return '';
   };
   const fields = [], skipped = [];
   for (const f of (Array.isArray(p.fields) ? p.fields : [])) {
     const w = why(String(f), new Set());
-    if (w) skipped.push({ id: String(f), reason: w }); else fields.push({ id: String(f), bool: map.has(f) && isBoolType(map.get(f).type) });
+    if (w) skipped.push({ id: String(f), reason: w });
+    else if (map.get(f)?.type === 'structure.range') rangeKeys(map.get(f)).forEach(k => fields.push({ id: `${f}.${k}`, bool: false }));
+    else fields.push({ id: String(f), bool: map.has(f) && isBoolType(map.get(f).type) });
   }
   return { id: b.id, title: String(p.title || b.id).replace(/[\r\n]/g, ' ').trim().slice(0, 80), fields, skipped };
 }
@@ -2112,6 +2150,8 @@ function renderBacktrader(recipe) {
     L.push('');
   }
   if (htf.length) pyHtfLines().forEach(x => L.push(x));
+  const ranges = recipe.blocks.filter(b => rangeOk(recipe, b));
+  if (ranges.length) pyRangeLines().forEach(x => L.push(x));
   const noLines = !lines.length;
   if (noLines) lines.push('idle');  // backtrader needs at least one line; this one stays NaN and is not plotted
   L.push(`class ${cls}(bt.Indicator):`);
@@ -2134,6 +2174,7 @@ function renderBacktrader(recipe) {
     if (b.type === 'filter.session') { const tz = String(q.timezone || 'Etc/UTC'); if (!/^[A-Za-z_]+(\/[A-Za-z0-9_+\-]+)*$/.test(tz)) throw new Error(`Invalid timezone in ${b.id}`); if (!tzs.includes(tz)) tzs.push(tz); }
   }
   tzs.forEach((tz, n) => L.push(`        self.tz${n} = ZoneInfo(${pyText(tz)})`));
+  ranges.forEach(b => L.push(`        self.rg_${id(b.id)} = [False, NAN, NAN]  # ${tsNote(b.id)}: window state`));
   htfSrc.forEach(h => L.push(`        self.htf_${id(h)} = BsvHtf(${htfMinutes(map.get(h))})  # ${tsNote(h)}: closed higher-timeframe bars only`));
   L.push('');
   L.push('    def prenext(self):');
@@ -2154,6 +2195,16 @@ function renderBacktrader(recipe) {
       }
       case 'visual.plot': case 'alert.condition': case 'visual.table':
         break;
+      case 'structure.range':
+        if (!rangeOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = NAN`); break; }
+        L.push(`        s[${pyText(b.id + '.high')}], s[${pyText(b.id + '.low')}] = bsv_range_step(self.rg_${id(b.id)}, ${bool(q.during)}, d.high[0], d.low[0])`);
+        break;
+      case 'signal.breakout': {
+        if (!breakoutOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = False`); break; }
+        const r = map.get(q.range);
+        L.push(`        s[${k}] = bsv_breakout(${bool(r.params.during)}, s[${pyText(r.id + '.high')}], s[${pyText(r.id + '.low')}], d.close[0], NAN if first else d.close[-1], ${pyText(q.direction || 'either')})`);
+        break;
+      }
       case 'data.higher_timeframe':
         if (htfSrc.includes(b.id)) break;
         L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`);
@@ -2246,7 +2297,7 @@ function renderBacktestingPy(recipe) {
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const PX = { open: 'o', high: 'h', low: 'l', close: 'c', hl2: 'hl2', hlc3: 'hlc3', ohlc4: 'ohlc4' };
   const isPx = (ref) => Object.prototype.hasOwnProperty.call(PX, ref) && !map.has(ref);
-  const val = (ref) => isPx(ref) ? PX[ref] : !map.has(ref) ? 'NANS' : isBoolType(map.get(ref).type) ? `s[${pyText(ref)}].astype(float)` : `v[${pyText(ref)}]`;
+  const val = (ref) => isPx(ref) ? PX[ref] : /\./.test(ref) && map.has(ref.split('.')[0]) ? `v[${pyText(ref)}]` : !map.has(ref) ? 'NANS' : isBoolType(map.get(ref).type) ? `s[${pyText(ref)}].astype(float)` : `v[${pyText(ref)}]`;
   const bool = (ref) => map.has(ref) && isBoolType(map.get(ref).type) ? `s[${pyText(ref)}]` : `(np.isfinite(${val(ref)}) & (${val(ref)} != 0))`;
   const htf = pyHtfUses(recipe), htfSrc = [...new Set(htf.map(u => u.src.id))];
   const cls = 'Bsv' + className(recipe);
@@ -2331,6 +2382,11 @@ function renderBacktestingPy(recipe) {
     L.push('        out[i] = x.value(kind, source, n)');
     L.push('    return out');
   }
+  const ranges = recipe.blocks.filter(b => rangeOk(recipe, b));
+  if (ranges.length) {
+    if (!htf.length) L.push('NAN = float("nan")');
+    pyRangeLines().forEach(x => L.push(x));
+  }
   L.push(`class ${cls}(Strategy):`);
   L.push(`    messages = (${alerts.map(b => pyText(b.params?.message || b.id)).join(', ')}${alerts.length === 1 ? ',' : ''})`);
   L.push('');
@@ -2346,6 +2402,19 @@ function renderBacktestingPy(recipe) {
     const u = htf.find(x => x.block.id === b.id);
     if (u) { L.push(`            v[${k}] = bsv_htf_series(d.index, o, h, l, c, ${u.minutes}, ${pyHtfCall(u, 'X').replace(/^X\.value\(/, '').replace(/\)$/, '')})  # timeframe ${tsNote(u.src.params.timeframe)}, closed bars only`); continue; }
     if (b.type === 'data.higher_timeframe' && htfSrc.includes(b.id)) continue;
+    if (rangeOk(recipe, b)) {
+      L.push(`            st, hi_, lo_ = [False, NAN, NAN], np.full(len(c), np.nan), np.full(len(c), np.nan)  # ${tsNote(b.id)}: bar i only uses bars 0..i`);
+      L.push(`            for i, inside in enumerate(${bool(q.during)}):`);
+      L.push(`                hi_[i], lo_[i] = bsv_range_step(st, bool(inside), float(h[i]), float(l[i]))`);
+      L.push(`            v[${pyText(b.id + '.high')}], v[${pyText(b.id + '.low')}] = hi_, lo_`);
+      continue;
+    }
+    if (breakoutOk(recipe, b)) {
+      const r = map.get(q.range);
+      L.push(`            ins, pc = ${bool(r.params.during)}, bsv_prev(c)`);
+      L.push(`            s[${k}] = np.array([bsv_breakout(bool(ins[i]), v[${pyText(r.id + '.high')}][i], v[${pyText(r.id + '.low')}][i], c[i], pc[i], ${pyText(q.direction || 'either')}) for i in range(len(c))], bool)`);
+      continue;
+    }
     switch (b.type) {
       case 'indicator.ema': L.push(`            v[${k}] = bsv_ema(${PX[sourceName(q.source)]}, ${Number(q.length) | 0})`); break;
       case 'indicator.sma': L.push(`            v[${k}] = bsv_sma(${PX[sourceName(q.source)]}, ${Number(q.length) | 0})`); break;
@@ -2544,6 +2613,8 @@ function renderNautilus(recipe) {
   L.push('');
   L.push('');
   if (htf.length) pyHtfLines().forEach(x => L.push(x));
+  const ranges = recipe.blocks.filter(b => rangeOk(recipe, b));
+  if (ranges.length) pyRangeLines().forEach(x => L.push(x));
   L.push(`class ${cls}Config(StrategyConfig, frozen=True):`);
   L.push('    bar_type: str');
   L.push('');
@@ -2563,6 +2634,7 @@ function renderNautilus(recipe) {
     if (b.type === 'indicator.atr') L.push(`        self.i_${k} = BsvAtr(${Number(q.length) | 0})`);
   }
   tzs.forEach((tz, n) => L.push(`        self.tz${n} = ZoneInfo(${pyText(tz)})`));
+  ranges.forEach(b => L.push(`        self.rg_${id(b.id)} = [False, NAN, NAN]  # ${tsNote(b.id)}: window state`));
   htfSrc.forEach(h => L.push(`        self.htf_${id(h)} = BsvHtf(${htfMinutes(map.get(h))})  # ${tsNote(h)}: closed higher-timeframe bars only`));
   L.push('');
   L.push('    def on_start(self):');
@@ -2579,6 +2651,8 @@ function renderNautilus(recipe) {
     const u = htf.find(x => x.block.id === b.id);
     if (u) { L.push(`        v[${k}] = ${pyHtfCall(u, 'self.htf_' + id(u.src.id))}  # timeframe ${tsNote(u.src.params.timeframe)}, closed bars only`); continue; }
     if (b.type === 'data.higher_timeframe' && htfSrc.includes(b.id)) continue;
+    if (rangeOk(recipe, b)) { L.push(`        v[${pyText(b.id + '.high')}], v[${pyText(b.id + '.low')}] = bsv_range_step(self.rg_${ik}, ${bool(q.during)}, h, l)`); continue; }
+    if (breakoutOk(recipe, b)) { const r = map.get(q.range); L.push(`        s[${k}] = bsv_breakout(${bool(r.params.during)}, v[${pyText(r.id + '.high')}], v[${pyText(r.id + '.low')}], c, pv.get("close", NAN), ${pyText(q.direction || 'either')})`); continue; }
     switch (b.type) {
       case 'indicator.ema': case 'indicator.sma': case 'indicator.rsi':
         L.push(`        v[${k}] = self.i_${ik}.update(v[${pyText(sourceName(q.source))}])`); break;

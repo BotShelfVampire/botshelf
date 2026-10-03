@@ -71,12 +71,18 @@ for f in sorted(RECIPES.glob("*.json")):
         ok(False, name, f"Backtest.run: {e!r}"); continue
     ok(st["# Trades"] == 0, name, f"no trades ({st['# Trades']})")
     V, S, val, boo = reference(recipe)
+    for b in recipe["blocks"]:  # structure.range: the window's high/low on every bar equal the reference
+        if b["type"] == "structure.range" and b["id"] + ".high" in V:
+            for KEYN in ("high", "low"):
+                KEY = b["id"] + "." + KEYN; got = list(strat.bsv_values[KEY]); want = V[KEY]
+                bad = sum(1 for g, w in zip(got, want) if not ((not BSVREF.fin(g) and not BSVREF.fin(w)) or (BSVREF.fin(g) and BSVREF.fin(w) and abs(g - w) < 1e-9)))
+                ok(len(got) == len(want) and bad == 0 and sum(1 for w in want if BSVREF.fin(w)) > 0, name, f"{KEY} (structure.range) equals reference ({bad} bars differ)")
     for b in recipe["blocks"]:
         if b["type"] in ("indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr"):
             got = list(strat.bsv_values[b["id"]]); want = V[b["id"]]
             bad = sum(1 for g, w in zip(got, want) if not same(g, w))
             ok(len(got) == NB and bad == 0, name, f"{b['id']} ({b['type']}) equals reference ({bad} bars differ)")
-        if re.match(r"^(signal\.(cross|threshold|combine)|filter\.session)$", b["type"]):
+        if re.match(r"^(signal\.(cross|threshold|combine|breakout)|filter\.session)$", b["type"]):
             got = [bool(x) for x in strat.bsv_signals[b["id"]]]; want = S[b["id"]]
             diff = sum(1 for g, w in zip(got, want) if g != bool(w))
             ok(diff == 0, name, f"{b['id']} ({b['type']}) equals reference ({diff} bars differ)")
