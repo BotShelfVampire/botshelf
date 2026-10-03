@@ -42,6 +42,7 @@ function reference(recipe) {
   function get(ref, m) { compute(byId.get(ref)); return m.get(ref) || new Array(NB).fill(m === S ? false : NaN); }
   function compute(b) {
     if (!b || done.has(b.id)) return; done.add(b.id);
+    if ((b.params || {}).timeframeRef) return;  // higher timeframe: Tradovate output leaves it empty (TODO stub), never chart-timeframe values
     const p = b.params || {};
     switch (b.type) {
       case 'indicator.sma': V.set(b.id, refSma(pxOf[p.source || 'close'], p.length)); break;
@@ -119,8 +120,8 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const ref = reference(recipe);
   for (const b of recipe.blocks) {
     const k = String(b.id).replace(/[^A-Za-z0-9_]/g, '_');
-    if (/^indicator\.(sma|ema|rsi|atr)$/.test(b.type)) {
-      const want = ref.V.get(b.id), got = A.calc.bars.map(s => s['V_' + k]);
+    if (/^indicator\.(sma|ema|rsi|atr)$/.test(b.type) || (b.params || {}).timeframeRef) {
+      const want = ref.V.get(b.id) || new Array(NB).fill(NaN), got = A.calc.bars.map(s => s['V_' + k]);
       let worst = 0, warm = 0; for (let i = 0; i < NB; i++) { if (!fin(want[i])) { if (fin(got[i])) warm++; continue; } worst = Math.max(worst, Math.abs(got[i] - want[i]) / Math.max(1, Math.abs(want[i]))); }
       ok(worst < 1e-9 && warm === 0, f, `${b.id} (${b.type}) equals reference on every bar: worst ${worst}, values while warming up ${warm}`);
     }

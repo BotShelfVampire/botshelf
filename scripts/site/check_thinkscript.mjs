@@ -176,6 +176,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   ok(sink.alerts.length === recipe.blocks.filter(b => b.type === 'alert.condition').length, f, 'one Alert per alert.condition');
   for (const b of recipe.blocks) {
     const v = env.get(('V_' + b.id).toLowerCase()), p = b.params || {}, x = pxOf[p.source || 'close'];
+    if (p.timeframeRef) { const arr = Array.isArray(v) ? v : [v]; ok(v !== undefined && arr.every(x => !Number.isFinite(x)), f, `${b.id}: higher-timeframe block left empty, not computed on the chart timeframe`); continue; }
     let want = null;
     if (b.type === 'indicator.sma') want = refSma(x, p.length);
     if (b.type === 'indicator.ema') want = refEma(x, p.length);
