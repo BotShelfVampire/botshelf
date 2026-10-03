@@ -37,6 +37,14 @@ Correction (2026-10-04): earlier outputs on every target computed indicators mar
 
 Checks: `check_backtrader.py`, `check_backtesting_py.py` and `check_nautilus.py` (every bar equals an independent reference; a run cut in the middle of a period prints the full-data values; coarse bars stop the script; three deliberately broken helpers are caught) and `check_htf.py` (all 22 targets).
 
+## Ranges and breakouts (structure.range, signal.breakout)
+
+Since 2026-10-04 these are rendered on backtrader, Backtesting.py and NautilusTrader only (the targets where a BSV library check runs them); every other target keeps the TODO line.
+
+- `structure.range` (`track: ["high", "low"]`, `during`: a session or signal block): during each window where `during` is true, the high and low of the window's bars so far (including the bar that just closed); when a new window starts the values reset; after a window they keep the finished window's values until the next window starts. NaN before the first window.
+- `signal.breakout` (`direction`: either / above / below): true on a closed bar outside the window whose close is beyond the finished window's high (or low) while the previous close was not. It can fire again if price comes back inside and crosses again; nothing fires during the window.
+- Checks: every bar's range values and breakout signals equal an independent reference, alerts and value panels included.
+
 ## Value panels (visual.table)
 
 Since 2026-10-04 the generator renders `visual.table` (a value panel: the listed fields' values on the latest completed bar) on 6 of the 22 targets. These are the targets where a BSV check covers the output:

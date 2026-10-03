@@ -69,6 +69,12 @@ def htf_series(t, p, minutes):
     return out
 
 
+def range_ok(by, b):
+    if not b or b["type"] != "structure.range": return False
+    p = b.get("params") or {}; d = by.get(p.get("during")); tr = p.get("track") or []
+    return bool(d) and bool(re.match(r"^(signal|filter|alert)\.", d["type"])) and tr == ["high", "low"]
+
+
 def reference(recipe):
     by = {b["id"]: b for b in recipe["blocks"]}; V, S = {}, {}
     isb = lambda t: bool(re.match(r"^(signal|filter|alert)\.", t or ""))
@@ -105,6 +111,26 @@ def reference(recipe):
         elif t == "signal.combine":
             ls = [boo(r) for r in p.get("signals", [])]
             S[b["id"]] = [bool(ls) and (any(a[i] for a in ls) if p.get("mode") == "any" else all(a[i] for a in ls)) for i in range(NB)]
+        elif t == "structure.range" and range_ok(by, b):
+            # written separately from the generator: find each run of bars inside the window, take running
+            # extremes inside the run, then hold the finished run's values until the next run starts
+            ins = boo(p["during"]); hi, lo = [NAN] * NB, [NAN] * NB; i = 0
+            while i < NB:
+                if not ins[i]:
+                    if i: hi[i], lo[i] = hi[i - 1], lo[i - 1]
+                    i += 1; continue
+                j = i
+                while j < NB and ins[j]:
+                    hi[j] = max(x["high"] for x in bars[i:j + 1]); lo[j] = min(x["low"] for x in bars[i:j + 1]); j += 1
+                i = j
+            V[b["id"] + ".high"], V[b["id"] + ".low"] = hi, lo
+        elif t == "signal.breakout" and range_ok(by, by.get(p.get("range"))) and p.get("direction", "either") in ("either", "above", "below"):
+            r = by[p["range"]]; comp(r); ins = boo(r["params"]["during"]); hi, lo = V[r["id"] + ".high"], V[r["id"] + ".low"]; c = PX["close"]; out = []
+            for i in range(NB):
+                if i == 0 or ins[i] or not fin(hi[i]): out.append(False); continue
+                up, dn = c[i] > hi[i] and c[i - 1] <= hi[i], c[i] < lo[i] and c[i - 1] >= lo[i]
+                out.append({"either": up or dn, "above": up, "below": dn}[p.get("direction", "either")])
+            S[b["id"]] = out
         elif t in ("visual.plot", "alert.condition"): pass
         elif isb(t): S[b["id"]] = [False] * NB
         else: V[b["id"]] = [NAN] * NB
@@ -136,7 +162,7 @@ def use_rounded(nd):
 # ---- value panels (visual.table), shared by the Python target checks. Written independently of the generator:
 # a field is expected on the panel only when its whole dependency chain uses block types BSV renders and no
 # higher timeframe; the panel shows the field's value on the last bar.
-PANEL_TYPES = {"indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr", "signal.cross", "signal.threshold", "signal.combine", "filter.session"}
+PANEL_TYPES = {"indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr", "signal.cross", "signal.threshold", "signal.combine", "filter.session", "structure.range", "signal.breakout"}
 PX_NAMES = {"open", "high", "low", "close", "hl2", "hlc3", "ohlc4"}
 
 
@@ -145,6 +171,8 @@ def _deps(b):
     if b["type"] == "signal.cross": return [p.get("left"), p.get("right")]
     if b["type"] == "signal.threshold": return [p.get("left")]
     if b["type"] == "signal.combine": return list(p.get("signals") or [])
+    if b["type"] == "structure.range": return [p.get("during")]
+    if b["type"] == "signal.breakout": return [p.get("range")]
     return []
 
 
@@ -163,7 +191,9 @@ def panel_expect(recipe, V, S, at=-1):
         cells = []
         for f in p.get("fields") or []:
             if not shown(f, set()): skipped += 1; continue
-            if f in S: cells.append((f, "bool", bool(S[f][at])))
+            if by[f]["type"] == "structure.range" if f in by else False:
+                cells += [(f"{f}.{k}", "num", V[f"{f}.{k}"][at]) for k in by[f]["params"]["track"]]
+            elif f in S: cells.append((f, "bool", bool(S[f][at])))
             elif f in V: cells.append((f, "num", V[f][at]))
             else: cells.append((f, "num", PX[f][at] if f in PX else NAN))
         if not cells: skipped += 1

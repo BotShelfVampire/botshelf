@@ -69,13 +69,19 @@ for f in sorted(RECIPES.glob("*.json")):
     ok(len(vec) == len(rec["lines"]) and all(same(x[k], y[k]) for x, y in zip(vec, rec["lines"]) for k in y), name, "output lines identical with runonce=True and runonce=False")
     ok(len(rec["lines"]) == NB, name, f"one next() per bar ({len(rec['lines'])})")
     V, S, val, boo = reference(recipe)
+    for b in recipe["blocks"]:  # structure.range: the window's high/low on every bar equal the reference
+        if b["type"] == "structure.range" and b["id"] + ".high" in V:
+            for KEYN in ("high", "low"):
+                KEY = b["id"] + "." + KEYN; got = [r.get(KEY, NAN) for r in rec["sig"]]; want = V[KEY]
+                bad = sum(1 for g, w in zip(got, want) if not ((not BSVREF.fin(g) and not BSVREF.fin(w)) or (BSVREF.fin(g) and BSVREF.fin(w) and abs(g - w) < 1e-9)))
+                ok(len(got) == len(want) and bad == 0 and sum(1 for w in want if BSVREF.fin(w)) > 0, name, f"{KEY} (structure.range) equals reference ({bad} bars differ)")
     for b in recipe["blocks"]:
         k = re.sub(r"[^A-Za-z0-9_]", "_", b["id"])
         if b["type"] in ("indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr"):
             got = [r.get(b["id"], NAN) for r in rec["sig"]] if (b.get("params") or {}).get("timeframeRef") else [r.get(k, NAN) for r in rec["subs"]]; want = V[b["id"]]
             worst = max((abs(g - w) / max(1, abs(w)) for g, w in zip(got, want) if fin(w)), default=0); warm = sum(1 for g, w in zip(got, want) if not fin(w) and fin(g))
             ok(worst < 1e-9 and warm == 0 and all(fin(g) for g, w in zip(got, want) if fin(w)), name, f"{b['id']} ({b['type']}) equals reference: worst {worst}, early values {warm}")
-        if re.match(r"^(signal\.(cross|threshold|combine)|filter\.session)$", b["type"]):
+        if re.match(r"^(signal\.(cross|threshold|combine|breakout)|filter\.session)$", b["type"]):
             got = [bool(r.get(b["id"])) for r in rec["sig"]]; want = S[b["id"]]
             diff = sum(1 for g, w in zip(got, want) if g != bool(w))
             ok(diff == 0, name, f"{b['id']} ({b['type']}) equals reference ({diff} bars differ)")
