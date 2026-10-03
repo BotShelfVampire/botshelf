@@ -94,7 +94,7 @@ def replace_block(text: str, marker: str, block: str, anchor: str, before: bool 
 # ---------------------------------------------------------------------------
 # Trader
 # ---------------------------------------------------------------------------
-PLATFORM_OF = {"Pine/MQL5/MQL4/cTrader/Bookmap": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap"]}
+PLATFORM_OF = {"Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower"]}
 STEPS = [
     T("Pick one job", "目的を1つ決める"), T("Pick blocks", "ブロックを選ぶ"), T("Generate a starter", "ひな形を生成"),
     T("Paste / import", "貼り付け・取り込み"), T("Verify", "検証する"), T("Customize", "改造する"), T("Publish honestly", "正直に公開"),
@@ -104,8 +104,8 @@ STEP_TXT = [
       "重ね表示・ダッシュボード・スキャナー・アラート・オシレーター・自作Webチャートから1つ。最初から20個のシグナルを入れず、検証できる1つから始めます。"),
     T("A recipe is JSON: each block has an id, a type (for example indicator.ema, signal.cross, visual.table, alert.condition) and params. Later blocks refer to earlier ids.",
       "レシピはJSONです。各ブロックにid・type（indicator.ema、signal.cross、visual.table、alert.conditionなど）・paramsがあり、後のブロックが前のidを参照します。"),
-    T("Run the generator for Pine v6, MQL5, MQL4, cTrader C#, cTrader Python or Bookmap Python — or take the pre-generated starters on each recipe page. Unsupported blocks remain as visible TODO comments.",
-      "ジェネレーターでPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）向けに出力します。各レシピのページにある生成済みのひな形も使えます。未対応のブロックはTODOコメントとして残ります。"),
+    T("Run the generator for Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8 or Quantower — or take the pre-generated starters on each recipe page. Unsupported blocks remain as visible TODO comments.",
+      "ジェネレーターでPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantower向けに出力します。各レシピのページにある生成済みのひな形も使えます。未対応のブロックはTODOコメントとして残ります。"),
     T("TradingView: new Pine indicator → paste → save → add to chart. MT5 / MT4: MetaEditor custom indicator → compile. cTrader: Algo custom indicator (C# or Python) → build. Bookmap: load the Python add-on. Vela: your own browser chart.",
       "TradingView：新規Pineインジケーターに貼り付けて保存しチャートに追加。MT5・MT4：MetaEditorでカスタムインジケーターとしてコンパイル。cTrader：Algoでカスタムインジケーター（C#またはPython）としてビルド。Bookmap：Pythonアドオンとして読み込み。Vela：自分のブラウザーチャート。"),
     T("Check source/version, enough history, symbol and timezone assumptions, repainting/lookahead, session handling, alert frequency and edge-case parameters. A compile pass is not proof of trading value.",
@@ -116,7 +116,8 @@ STEP_TXT = [
       "BSVに出品するなら、オリジナルか改変か、プラットフォームとバージョン、前提条件、検証済みの範囲と未検証の範囲、制約を書きます。根拠のない成績は書きません。"),
 ]
 TARGETS = [("pine-v6", "TradingView · Pine v6", ".pine"), ("mql5", "MT5 · MQL5", ".mq5"), ("ctrader", "cTrader · C#", ".cs"),
-           ("mql4", "MT4 · MQL4", ".mq4"), ("ctrader-python", "cTrader · Python", ".py"), ("bookmap-python", "Bookmap · Python", ".py")]
+           ("mql4", "MT4 · MQL4", ".mq4"), ("ctrader-python", "cTrader · Python", ".py"), ("bookmap-python", "Bookmap · Python", ".py"),
+           ("ninjatrader", "NinjaTrader 8 · NinjaScript", ".cs"), ("quantower", "Quantower · C#", ".cs")]
 
 
 def trader_records(repo: Path, copy: dict) -> list[dict]:
@@ -165,7 +166,7 @@ def recipe_records(repo: Path, copy: dict) -> list[dict]:
         ja = copy["recipes"].get(name, {}).get("ja", r.get("description", ""))
         out.append({
             "id": "recipe-" + name, "slug": "bsv-recipe-" + name, "recipe": name, "title": r["name"],
-            "platforms": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap"], "platform_label": "Recipe → Pine/MQL5/MQL4/cTrader/Bookmap",
+            "platforms": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower"], "platform_label": "Recipe → Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower",
             "type": "recipe", "status": "STRUCTURAL", "featured": False, "repo_path": f"trader-toolkit/recipes/{name}.json",
             "summary": T(r.get("description", r["name"]), ja), "overlay": r.get("overlay"),
             "blocks": [(b["id"], b["type"]) for b in r["blocks"]], "outputs": outputs, "json": p.read_text(),
@@ -276,8 +277,8 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
             use = {"en": ["Create a Vite project and install Vela from its official package (npm install @luxalgo/vela); review its license.", "Copy the BSV starter files (index.html, starter.js, package.json).", "Replace the sample bars with your own OHLCV data: { time (epoch ms), open, high, low, close, volume }.", "Run npm run dev, then add indicators, drawings or a reviewed scripting engine one at a time."],
                    "ja": ["Viteのプロジェクトを作り、Velaを公式パッケージから入れます（npm install @luxalgo/vela）。ライセンスも確認します。", "BSVのスターター（index.html・starter.js・package.json）をコピーします。", "サンプルのローソク足を自分のOHLCVデータ（time〔エポックミリ秒〕・open・high・low・close・volume）に置き換えます。", "npm run devで起動し、指標・描画・確認済みのスクリプトエンジンを1つずつ足します。"]}
         if not use and r["type"] == "recipe":
-            use = {"en": ["Open code (free email verification) to get the recipe JSON and six pre-generated starters (Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python).", "Paste the starter for your platform, compile it there and resolve every TODO marker.", "Or edit the recipe JSON and re-run the generator yourself."],
-                   "ja": ["メール確認（無料）でレシピJSONと生成済みのひな形6種類（Pine v6・MQL5・MQL4・cTrader C#・cTrader Python・Bookmap Python）を開きます。", "使うプラットフォーム用のひな形を貼り付けてコンパイルし、TODOをすべて解消します。", "レシピJSONを編集してジェネレーターを自分で実行し直すこともできます。"]}
+            use = {"en": ["Open code (free email verification) to get the recipe JSON and eight pre-generated starters (Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8, Quantower).", "Paste the starter for your platform, compile it there and resolve every TODO marker.", "Or edit the recipe JSON and re-run the generator yourself."],
+                   "ja": ["メール確認（無料）でレシピJSONと生成済みのひな形8種類（Pine v6・MQL5・MQL4・cTrader C#・cTrader Python・Bookmap Python・NinjaTrader 8・Quantower）を開きます。", "使うプラットフォーム用のひな形を貼り付けてコンパイルし、TODOをすべて解消します。", "レシピJSONを編集してジェネレーターを自分で実行し直すこともできます。"]}
         sections = []
         if r["type"] == "recipe":
             rows = "".join(f'<tr><td><code>{esc(i)}</code></td><td><code>{esc(t)}</code></td></tr>' for i, t in r["blocks"])
@@ -382,7 +383,7 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
     idx = replace_block(idx, "trader-chip", chip, '<a href="guides/choose.html" class="chip" data-guide="choose">')
     strip = (f'<section class="container bb-entry" aria-label="Build your own chart tool"><div><div class="eyebrow">{both(T("NEW · BUILD", "新着・作る"))}</div>'
              f'<h2>{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</h2>'
-             f'{both(T(f"{len(recipes)} recipes, a Pine/MQL5/MQL4/cTrader/Bookmap generator and starters for {len(platforms)} platforms — including Vela for your own web chart and OpenMarkets as a data/agent input. Original BSV source; nothing runtime-tested yet.", f"レシピ{len(recipes)}本、Pine・MQL5・MQL4・cTrader・Bookmap向けのコード生成、{len(platforms)}のプラットフォーム向けスターター。自作Webチャート用のVela、データ・エージェント連携のOpenMarketsも。BSVオリジナルのソースで、実行検証はまだです。"), "p")}</div>'
+             f'{both(T(f"{len(recipes)} recipes, a Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower generator and starters for {len(platforms)} platforms — including Vela for your own web chart and OpenMarkets as a data/agent input. Original BSV source; nothing runtime-tested yet.", f"レシピ{len(recipes)}本、Pine・MQL5・MQL4・cTrader・Bookmap・NinjaTrader・Quantower向けのコード生成、{len(platforms)}のプラットフォーム向けスターター。自作Webチャート用のVela、データ・エージェント連携のOpenMarketsも。BSVオリジナルのソースで、実行検証はまだです。"), "p")}</div>'
              f'<a class="btn primary" href="/trading/build/">{both(T("Start building →", "作り始める →"))}</a></section>')
     idx = replace_block(idx, "trader-strip", strip, '<div class="container main-layout" id="collection">')
     idx = re.sub(r'<link rel="stylesheet" href="/trading/assets/build\.[^"]+\.css">', "", idx)
@@ -487,7 +488,7 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
     jopt = "".join(f'<option value="{esc(j)}">{esc(jobs[j]["en"])}</option>' for j in jobs)
     sopt = "".join(f'<option value="{s}">{esc(st[s]["en"])}</option>' for s in sorted({r["status"] for r in recs}))
     hub = (f'<p class="kicker">BUILD LIBRARY · AI TOOLKITS</p><h1>Agent toolkits — by job, then by framework.</h1>'
-           f'{lib_both(T("Original templates and starters for OpenAI Dots, Hugging Face (MCP, Spaces, Skills, Tiny Agents), LM Studio Bionic, smolagents, Letta and the OpenAI Agents SDK. Part of the existing Build Library — the Ollama, LM Studio, Open WebUI, n8n, CrewAI, LangGraph and MCP recipes stay where they are.", "OpenAI Dots、Hugging Face（MCP・Spaces・Skills・Tiny Agents）、LM Studio Bionic、smolagents、Letta、OpenAI Agents SDK向けのオリジナルのテンプレートとスターター。既存のBuild Libraryの一部で、Ollama・LM Studio・Open WebUI・n8n・CrewAI・LangGraph・MCPのレシピはそのまま使えます。"), "p", "catch")}'
+           f'{lib_both(T("Original templates and starters for OpenAI Dots, Hugging Face (MCP, Spaces, Skills, Tiny Agents), LM Studio Bionic, smolagents, Letta and the OpenAI Agents SDK, plus LangGraph and CrewAI runners for each Library AI Team task. Part of the existing Build Library — the Ollama, LM Studio, Open WebUI, n8n, CrewAI, LangGraph and MCP recipes stay where they are.", "OpenAI Dots、Hugging Face（MCP・Spaces・Skills・Tiny Agents）、LM Studio Bionic、smolagents、Letta、OpenAI Agents SDK向けのオリジナルのテンプレートとスターターに加え、Library AI Teamの仕事ごとに動かすLangGraph・CrewAIのランナーもあります。既存のBuild Libraryの一部で、Ollama・LM Studio・Open WebUI・n8n・CrewAI・LangGraph・MCPのレシピはそのまま使えます。"), "p", "catch")}'
            f'<p class="what"><strong>{len(recs)} toolkit items</strong> · <strong>{len(fw_order)}</strong> frameworks · <strong>Runtime-verified by BSV: 0</strong> (every item shows its real status).</p>'
            f'{lib_both(T("Summaries are public. Opening, copying or downloading the templates requires free email verification. Free stays free.", "解説は登録なしで読めます。テンプレートの閲覧・コピー・ダウンロードには無料のメール確認が必要です。無料のものは無料のままです。"), "p", "muted")}'
            f'<p class="section-label">Browse by job</p><div class="lib-chip-row">{jchips}</div>'
@@ -496,9 +497,9 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
            f'<div class="lib-filters tk-filters" aria-label="Toolkit filters"><div class="row"><label for="tk-q">Search</label><input id="tk-q" type="search" placeholder="Filter: memory, MCP, local, guardrails…" autocomplete="off"><span class="muted" id="tk-count"></span></div>'
            f'<div class="row"><label for="tk-f-framework">Framework</label><select id="tk-f-framework"><option value="">Any</option>{fopt}</select><label for="tk-f-job">Job</label><select id="tk-f-job"><option value="">Any</option>{jopt}</select><label for="tk-f-status">Status</label><select id="tk-f-status"><option value="">Any</option>{sopt}</select></div></div>'
            f'{by_job}<section class="section"><p class="section-label">By framework / runtime</p></section>{by_fw}'
-           f'<section class="section how-box"><p class="section-label">How these differ</p><p>Bionic is an agent app/harness for open models; smolagents is a lightweight Python framework; Letta focuses on persistent state and memory; the OpenAI Agents SDK provides orchestration primitives (tools, handoffs, guardrails, sessions); Dots are always-on responsibilities inside OpenAI\'s product; Hugging Face provides MCP, Spaces, Skills and Tiny Agents. Choose by job — they are not interchangeable.</p></section>')
-    write(site / "library/toolkit/index.html", lib_shell(site, "AI agent toolkits — Dots, Hugging Face, Bionic, smolagents, Letta, OpenAI Agents SDK | Build Library | BotShelf Vampire",
-          "Original BSV templates and starters for OpenAI Dots, Hugging Face MCP/Spaces/Skills/Tiny Agents, LM Studio Bionic, smolagents, Letta and the OpenAI Agents SDK — organised by job and framework, with honest test status.", "/library/toolkit/", hub))
+           f'<section class="section how-box"><p class="section-label">How these differ</p><p>Bionic is an agent app/harness for open models; smolagents is a lightweight Python framework; Letta focuses on persistent state and memory; the OpenAI Agents SDK provides orchestration primitives (tools, handoffs, guardrails, sessions); Dots are always-on responsibilities inside OpenAI\'s product; Hugging Face provides MCP, Spaces, Skills and Tiny Agents; the LangGraph and CrewAI team runners run one Library AI Team task at a time with your approval before saving. Choose by job — they are not interchangeable.</p></section>')
+    write(site / "library/toolkit/index.html", lib_shell(site, "AI agent toolkits — Dots, Hugging Face, Bionic, smolagents, Letta, OpenAI Agents SDK, LangGraph, CrewAI | Build Library | BotShelf Vampire",
+          "Original BSV templates and starters for OpenAI Dots, Hugging Face MCP/Spaces/Skills/Tiny Agents, LM Studio Bionic, smolagents, Letta, the OpenAI Agents SDK, and LangGraph/CrewAI team runners — organised by job and framework, with honest test status.", "/library/toolkit/", hub))
     meta = [{"id": r["id"], "title": r["title"], "framework": r["framework"], "job": r["job"], "type": r["type"], "status": r["status"], "summary": r["summary"], "url": f"/library/toolkit/{r['id']}/", "source_gated": True} for r in recs]
     write(site / "library/toolkit/toolkit.v1.json", json.dumps({"schema": "bsv-ai-toolkit/v1", "source": "BotShelfVampire/botshelf ai-toolkit/catalog.json", "entries": meta}, ensure_ascii=False, indent=1) + "\n")
 
@@ -507,8 +508,8 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
     li = lp.read_text()
     chips = "".join(f'<a class="lib-chip" href="/library/toolkit/#fw-{copy["ai_frameworks"][f]["slug"]}">{esc(f)} ({sum(1 for r in recs if r["framework"] == f)})</a>' for f in fw_order)
     block = (f'<p class="section-label">Agent toolkits (new)</p><div class="lib-chip-row"><a class="lib-chip" href="/library/toolkit/"><strong>All AI toolkits ({len(recs)})</strong></a>{chips}</div>'
-             f'<p class="muted" data-lang-show="en">Dots, Hugging Face, Bionic, smolagents, Letta and OpenAI Agents SDK templates — organised by job. Source opens after free email verification; status shown honestly.</p>'
-             f'<p class="muted" data-lang-show="ja" hidden>Dots・Hugging Face・Bionic・smolagents・Letta・OpenAI Agents SDKのテンプレートを仕事別に整理。コードは無料のメール確認後に開けます。検証状態はそのまま表示しています。</p>')
+             f'<p class="muted" data-lang-show="en">Dots, Hugging Face, Bionic, smolagents, Letta, OpenAI Agents SDK, LangGraph and CrewAI templates — organised by job. Source opens after free email verification; status shown honestly.</p>'
+             f'<p class="muted" data-lang-show="ja" hidden>Dots・Hugging Face・Bionic・smolagents・Letta・OpenAI Agents SDK・LangGraph・CrewAIのテンプレートを仕事別に整理。コードは無料のメール確認後に開けます。検証状態はそのまま表示しています。</p>')
     block = '<section class="tk-entry" aria-label="AI agent toolkits">' + block + '<p><a class="tk-entry-btn" href="/library/toolkit/">Open AI toolkits →</a></p></section>'
     li = replace_block(li, "ai-chips", block, '<div class="lib-filters" aria-label="Library filters">')
     li = re.sub(r'<link rel="stylesheet" href="/library/toolkit/toolkit\.[^"]+\.css">\n?', "", li)
