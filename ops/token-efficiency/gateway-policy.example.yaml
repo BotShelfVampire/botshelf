@@ -1,0 +1,41 @@
+# BSV gateway policy example — no real keys
+
+routes:
+  deterministic:
+    use_llm: false
+
+  local_low_risk:
+    base_url: http://127.0.0.1:1234/v1
+    model: ${LM_STUDIO_MODEL}
+    allowed_tasks:
+      - summarize_logs
+      - classify_files
+      - extract_metadata
+      - dedupe_copy
+      - compact_context
+    forbidden_tasks:
+      - final_security_verdict
+      - payment_auth_design
+      - license_legal_verdict
+      - production_pass_claim
+      - destructive_action
+
+  cloud_worker:
+    gateway: ${BSV_LLM_GATEWAY}
+    model: ${CHEAP_WORKER_MODEL}
+    cache_exact_responses: true
+    semantic_cache: false
+    max_output_tokens: 1600
+
+  frontier_review:
+    gateway: ${BSV_LLM_GATEWAY}
+    model: ${FRONTIER_MODEL}
+    cache_provider_prefix: true
+    max_output_tokens: 4000
+
+policy:
+  prefer_deterministic: true
+  avoid_duplicate_agent_calls: true
+  share_context_pack: true
+  retain_failure_evidence: true
+  semantic_cache_requires_eval: true
