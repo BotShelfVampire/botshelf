@@ -1,0 +1,35 @@
+//@version=6
+indicator("BSV Session Range Dashboard", overlay=true)
+
+sessionInput = input.session("0800-1000", "Session")
+timezoneInput = input.string("Europe/London", "Timezone")
+
+inSession = not na(time(timeframe.period, sessionInput, timezoneInput))
+newSession = inSession and not inSession[1]
+
+var float sessionHigh = na
+var float sessionLow = na
+
+if newSession
+    sessionHigh := high
+    sessionLow := low
+else if inSession
+    sessionHigh := math.max(nz(sessionHigh, high), high)
+    sessionLow := math.min(nz(sessionLow, low), low)
+
+plot(sessionHigh, "Session High", color=color.new(color.green, 0), style=plot.style_linebr)
+plot(sessionLow, "Session Low", color=color.new(color.red, 0), style=plot.style_linebr)
+
+rangeValue = not na(sessionHigh) and not na(sessionLow) ? sessionHigh - sessionLow : na
+
+var table panel = table.new(position.top_right, 2, 3, border_width=1)
+if barstate.islast
+    table.cell(panel, 0, 0, "BSV Session")
+    table.cell(panel, 1, 0, inSession ? "OPEN" : "OUT")
+    table.cell(panel, 0, 1, "High")
+    table.cell(panel, 1, 1, str.tostring(sessionHigh, format.mintick))
+    table.cell(panel, 0, 2, "Range")
+    table.cell(panel, 1, 2, str.tostring(rangeValue, format.mintick))
+
+// ORIGINAL BSV starter. Compile and inspect on your TradingView version.
+// No order placement. Session/timezone assumptions are user-configurable.
