@@ -105,7 +105,9 @@ function submit(ev){ev.preventDefault();var f=ev.target;var doms=[].slice.call(f
 function prefill(){var q;try{q=new URL(location.href).searchParams}catch(e){return}var a=q.get('area');if(a){var c=document.querySelector('input[name=domain][value="'+a.replace(/[^a-z-]/g,'')+'"]');if(c)c.checked=true}
  var bk=q.get('block');if(bk&&/^[a-z]+\.[a-z_]+$/.test(bk)){var jb=$('#rq-job');if(jb&&!jb.value)jb.value='Generator block '+bk+': please render it for my platform (which: ...). Recipe or use case: ...'}
  if(q.get('kind')==='mission'){var j=$('#rq-job');if(j)j.setAttribute('placeholder','Mission: task to demonstrate; robot / embodiment; teleop interface; simulation or real hardware (owner-authorised, safety rules); location or remote; data needed; episode target; quality criteria; privacy / NDA');var h=$('#rq-mission');if(h)h.hidden=false}}
-document.addEventListener('DOMContentLoaded',function(){prefill();load();window.addEventListener('hashchange',target);var f=$('#rq-form');if(f)f.addEventListener('submit',submit)});
+function addPlat(cur,v){var a=list(cur);if(a.map(function(x){return x.toLowerCase()}).indexOf(v.toLowerCase())<0&&a.length<8)a.push(v);return a.join(', ')}
+document.addEventListener('DOMContentLoaded',function(){prefill();load();window.addEventListener('hashchange',target);var f=$('#rq-form');if(f)f.addEventListener('submit',submit);
+ [].forEach.call(document.querySelectorAll('[data-rq-plat]'),function(b){b.addEventListener('click',function(){var i=$('#rq-platforms');if(i){i.value=addPlat(i.value,b.getAttribute('data-rq-plat'));i.focus()}})})});
 })();
 """
 
@@ -362,7 +364,9 @@ def page(site: Path, css_href: str, js_href: str) -> str:
         '<form class="rq-form" id="rq-form" novalidate>'
         f'<div><label for="rq-job">{both("What job should it do? (20–2000 characters)", "何をしてほしいですか（20〜2000文字）")}</label><textarea id="rq-job" maxlength="2000" required></textarea></div>'
         f'<fieldset><legend>{both("Area", "分野")}</legend><div class="rq-checks">{checks}</div></fieldset>'
-        f'<div><label for="rq-platforms">{both("Platform / runtime (comma separated)", "プラットフォーム・実行環境（カンマ区切り）")}</label><input type="text" id="rq-platforms" maxlength="480" placeholder="TradingView, MT5, n8n, ROS 2"></div>'
+        f'<div><label for="rq-platforms">{both("Platform / runtime (comma separated)", "プラットフォーム・実行環境（カンマ区切り）")}</label><input type="text" id="rq-platforms" maxlength="480" placeholder="TradingView, MT5, n8n, ROS 2">'
+        f'<p class="small muted" id="rq-plat-picks">{both("Trading platforms the recipe builder writes starters for (tap to add; any other platform can be typed):", "レシピビルダーが出力するトレード用プラットフォーム（タップで追加。ほかのプラットフォームは入力できます）:")} '
+        + " ".join(f'<button type="button" class="chip" data-rq-plat="{blt.esc(p)}">{blt.esc(p)}</button>' for p in dict.fromkeys(l.split(" · ")[0] for _, l, _ in blt.TARGETS)) + '</p></div>'
         f'<div class="rq-row"><div><label for="rq-in">{both("Inputs", "入力")}</label><input type="text" id="rq-in" maxlength="960"></div><div><label for="rq-out">{both("Outputs", "出力")}</label><input type="text" id="rq-out" maxlength="960"></div></div>'
         f'<div class="rq-row"><div><label for="rq-free">{both("Free / open solution OK?", "無料・オープンな解決でもよいか")}</label><select id="rq-free"><option value="">—</option><option value="yes">Yes / はい</option><option value="no">No / いいえ</option></select></div>'
         f'<div><label for="rq-min">{both("Budget min (USDT, optional)", "予算の下限（USDT・任意）")}</label><input type="number" id="rq-min" min="0" step="1"></div>'
