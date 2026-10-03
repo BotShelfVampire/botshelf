@@ -180,7 +180,14 @@ ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?a
   const many = Array.from({ length: 25 }, (_, i) => mkE("teleop_" + String(i).padStart(16, "0")));
   const r2 = P.mergeLog([a], many, EVS);
   ok(r2.list.length === 20 && r2.dropped === 6 && r2.list[19] === many[24] && !r2.list.includes(a), "import: log keeps the last 20, oldest dropped and counted");
+  // backup (#7 tranche 10): the JSON backup round-trips through the import, unchanged
+  const bk = P.toJson([a, b, null, [1], "x"]), back = JSON.parse(bk);
+  ok(Array.isArray(back) && back.length === 2 && JSON.stringify(back[0]) === JSON.stringify(a) && JSON.stringify(back[1]) === JSON.stringify(b), "backup: JSON array of the evidence documents only, unchanged");
+  const r3 = P.mergeLog([], back, EVS);
+  ok(r3.added === 2 && r3.rejected.length === 0 && JSON.stringify(r3.list) === JSON.stringify([a, b]), "backup: re-import into an empty log restores it");
+  ok(P.mergeLog([a, b], back, EVS).skipped === 2 && JSON.parse(P.toJson([])).length === 0, "backup: re-import into the same log adds nothing; empty log backs up as []");
   const h = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
+  ok(h.includes('id="rp-log-json"') && /re-importable/.test(h), "backup: button on the Academy page");
   ok(/<input type="file" id="rp-log-import" multiple/.test(h) && h.includes('id="rp-log-import-msg"') && /nothing uploaded/.test(h), "import: multi-file input on the Academy page, says nothing is uploaded");
 }
 console.log(JSON.stringify({ test: "robot-pilot", checks, failures }));
