@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "0.1",
+  "name": "RSI Divergence Scanner Starter",
+  "description": "Pivot + RSI divergence concept for scanner implementation; advanced divergence logic remains explicit until target support is added.",
+  "overlay": false,
+  "blocks": [
+    {
+      "id": "rsi",
+      "type": "indicator.rsi",
+      "params": {
+        "source": "close",
+        "length": 14
+      }
+    },
+    {
+      "id": "pivot",
+      "type": "structure.pivot",
+      "params": {
+        "left": 5,
+        "right": 5,
+        "source": "close"
+      }
+    },
+    {
+      "id": "divergence",
+      "type": "signal.divergence",
+      "params": {
+        "price": "close",
+        "oscillator": "rsi",
+        "pivot": "pivot",
+        "direction": "both"
+      }
+    },
+    {
+      "id": "symbols",
+      "type": "scanner.symbol_set",
+      "params": {
+        "source": "watchlist"
+      }
+    },
+    {
+      "id": "alert",
+      "type": "alert.condition",
+      "params": {
+        "when": "divergence",
+        "message": "BSV recipe: RSI divergence candidate"
+      }
+    }
+  ]
+}
