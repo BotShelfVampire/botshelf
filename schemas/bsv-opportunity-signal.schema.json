@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botshelfvampire.com/schemas/opportunity-signal-v0.1.json",
+  "title": "BSV Builder Opportunity Signal",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "signalId",
+    "signalType",
+    "jobKey",
+    "count",
+    "windowStart",
+    "windowEnd",
+    "publicEligible"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1"
+    },
+    "signalId": {
+      "type": "string",
+      "pattern": "^sig_[a-z0-9_-]+$"
+    },
+    "signalType": {
+      "enum": [
+        "REQUEST",
+        "NO_RESULT_SEARCH",
+        "MISSING_PLATFORM_VARIANT",
+        "REMIX",
+        "FULFILLED_REQUEST"
+      ]
+    },
+    "jobKey": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200
+    },
+    "sector": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "platform": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "uniqueActors": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "windowStart": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "windowEnd": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "publicEligible": {
+      "type": "boolean"
+    },
+    "explicitWtp": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string"
+        },
+        "min": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "max": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "sourceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "privacyNotes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
