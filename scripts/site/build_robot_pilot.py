@@ -118,7 +118,8 @@ def page(site, cur, css_hrefs, js_href):
         ev = "".join(f"<li>{esc(e)}</li>" for e in m["evidenceRequired"])
         mods.append(f'<li id="mod-{esc(m["id"])}"><h3>{esc(m["title"])}</h3><p>{esc(m["goal"])}</p>'
                     f'<p class="small"><strong>Evidence</strong></p><ul class="small">{ev}</ul>'
-                    f'<p class="small"><strong>Pass criteria (tick what you met)</strong></p><ul class="small rq-checks">{crit}</ul></li>')
+                    f'<p class="small"><strong>Pass criteria (tick what you met)</strong></p><ul class="small rq-checks">{crit}</ul>'
+                    f'<p class="small"><a data-rp-ask="{esc(m["id"])}" href="/requests/?area=robot-pilot&amp;kind=mission&amp;module={esc(m["id"])}#rq-form">{both("Ask for a paid mission like this", "これに近い有償ミッションをリクエスト")}</a></p></li>')
     pre = "".join(f"<li>{esc(p)}</li>" for p in cur["prerequisites"])
     links = "".join(f'<li><a href="{esc(u)}" rel="noopener" target="_blank">{esc(l)}</a></li>' for l, u in LINKS)
     opts = "".join(f'<option value="{esc(t)}"></option>' for t in TASK_IDS)
