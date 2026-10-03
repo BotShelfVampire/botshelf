@@ -79,3 +79,16 @@ def write_csv(path):
     with open(path, "w", newline="") as fh:
         w = csv.writer(fh); w.writerow(["datetime", "open", "high", "low", "close", "volume"])
         for b in bars: w.writerow([b["t"].strftime("%Y-%m-%d %H:%M:%S"), repr(b["open"]), repr(b["high"]), repr(b["low"]), repr(b["close"]), 0])
+
+
+def use_rounded(nd):
+    """Re-base the module on prices rounded to nd decimals (for runtimes that store prices at a fixed precision, e.g.
+    NautilusTrader's Price). Must be called before reference()/write_csv(); affects this module's globals only."""
+    global PX, TR
+    for b in bars:
+        for k in ("open", "high", "low", "close"):
+            b[k] = round(b[k], nd)
+    PX = {k: [b[k] for b in bars] for k in ("open", "high", "low", "close")}
+    PX["hl2"] = [(b["high"] + b["low"]) / 2 for b in bars]; PX["hlc3"] = [(b["high"] + b["low"] + b["close"]) / 3 for b in bars]
+    PX["ohlc4"] = [(b["open"] + b["high"] + b["low"] + b["close"]) / 4 for b in bars]
+    TR = [NAN] + [max(bars[i]["high"], bars[i - 1]["close"]) - min(bars[i]["low"], bars[i - 1]["close"]) for i in range(1, NB)]
