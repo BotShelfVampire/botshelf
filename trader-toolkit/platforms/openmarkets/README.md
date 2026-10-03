@@ -21,7 +21,7 @@ Keep API keys outside committed source.
 
 ## Agent prompt
 
-See market-monitor-prompt.md.
+Use the read-only research prompt pattern from the BSV AI toolkit (ai-toolkit/hugging-face/hf-mcp-research-desk.md) as a starting point; an OpenMarkets-specific prompt is not published yet.
 
 Official references:
 - https://openmarkets.ai/developers

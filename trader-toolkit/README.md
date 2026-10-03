@@ -8,7 +8,7 @@ The goal is practical: choose a platform, copy a starter, edit one recipe, and t
 
 1. Read [Build your own chart tool](docs/build-your-own-chart-tool.md).
 2. Pick a starter recipe in [recipes](recipes/).
-3. Generate a supported starter with `node generator/render.mjs <recipe.json> --target pine-v6|mql5|ctrader`.
+3. Generate a supported starter with `node generator/render.mjs <recipe.json> --target pine-v6|mql5|ctrader|mql4|ctrader-python|bookmap-python|ninjatrader|quantower|sierra-acsil|prorealtime|gocharting-lipi|motivewave|vela|jforex|easylanguage|atas`.
 4. Paste/import it into the target platform.
 5. Compile and inspect it yourself.
 6. Record the exact platform/version you tested.
@@ -28,10 +28,22 @@ The goal is practical: choose a platform, copy a starter, edit one recipe, and t
 ## Platforms
 
 - TradingView / Pine Script v6 — generator target
-- MT5 / MQL5 — generator starter target
-- cTrader / C# — generator starter target
-- Vela — custom web-chart starter
-- MT4, NinjaTrader, Quantower, Sierra Chart, Bookmap, GoCharting, MotiveWave, ProRealTime and others — compatibility/research queue; only publish platform-specific code after an implementation path is verified
+- MT5 / MQL5 — generator target (indicator handles + CopyBuffer, signals, plots, closed-bar alerts; not runtime tested)
+- cTrader / C# — generator target (built-in indicators, signals, plots, closed-bar alerts; not runtime tested)
+- MT4 / MQL4 — generator target + EMA/ATR starter (not runtime tested)
+- cTrader / Python — generator target + two-file EMA/ATR starter (not runtime tested)
+- Bookmap / Python API (open beta) — generator target (time bars built from trades) + trade-EMA add-on (not runtime tested)
+- Vela — generator target (`vela`: plain-JS recipe engine on Vela's engine port, line series, signal markers, closed-bar alerts; Apache-2.0 Vela only, no Pine runtime) + custom web-chart starter (headless-browser smoke test with synthetic bars only)
+- NinjaTrader 8 / NinjaScript — generator target (`ninjatrader`: built-in EMA/SMA/RSI/ATR, signals, plots, `Alert()` on closed bars) + EMA/ATR starter (not runtime tested)
+- Quantower / C# — generator target (`quantower`: built-in indicators via `Core.Indicators.BuiltIn`, signals, line series, closed-bar log alerts) + SMA starter (not runtime tested)
+- Sierra Chart / ACSIL — generator target (`sierra-acsil`: `sc.ExponentialMovAvg`/`SimpleMovAvg`/`RSI`/`ATR`, subgraph plots, closed-bar `sc.AddAlertLine` alerts) + EMA starter (not compiled by BSV)
+- ProRealTime / ProBuilder — generator target (`prorealtime`: `ExponentialAverage`/`Average`/`RSI`/`AverageTrueRange`, `CROSSES OVER/UNDER`, `RETURN` lines; overlay recipes draw arrow markers) + dual-EMA starter (not validated by BSV)
+- GoCharting / Lipi — generator target (`gocharting-lipi`: `talib.ema/sma/rsi/atr`, `talib.crossover/crossunder`, plots, `alertcondition` + closed-bar `alert()`, markers on overlays) + dual-EMA starter (not checked in the Lipi editor by BSV)
+- MotiveWave / Java SDK — generator target (`motivewave`: `Study` class, `DataSeries.ema/sma/atr`, Wilder RSI via `smma`, paths, closed-bar `ctx.signal`) + EMA starter (compiles against BSV stubs from the SDK javadoc; not built with the real SDK or loaded in MotiveWave by BSV)
+- JForex / Dukascopy (Java `IStrategy`) — generator target (`jforex`: `IIndicators.ema/sma/rsi/atr`, closed-bar `onBar`, console values and notifications, no orders; compiles against BSV stubs from the JForex API javadoc; not compiled in JForex or run by BSV)
+- TradeStation / EasyLanguage — generator target (`easylanguage`: indicator with `XAverage`/`Average`/`RSI`/`AvgTrueRange`, `PlotN`, closed-bar `Alert`; structural check only, not verified in TradeStation by BSV)
+- ATAS / C# — generator target (`atas`: `Indicator` class, EMA/SMA/RSI/ATR computed in the generated code, `ValueDataSeries` lines, closed-bar `AddAlert`, no order APIs; compiles against BSV stubs written from the ATAS docs, not compiled in ATAS by BSV)
+- Others — compatibility/research queue; only publish platform-specific code after an implementation path is verified
 
 See [compatibility](docs/compatibility.md).
 
@@ -45,7 +57,7 @@ Everything in this directory is **ORIGINAL BSV source** unless stated otherwise.
 
 ## License
 
-This repository is MIT licensed. Platform names belong to their respective owners. This toolkit is independent and is not an official TradingView, MetaQuotes, Spotware, or LuxAlgo product.
+This repository is MIT licensed. Platform names belong to their respective owners. This toolkit is independent and is not an official TradingView, MetaQuotes, Spotware, Bookmap, or LuxAlgo product.
 
 ## Copy-paste TradingView starters
 
@@ -62,4 +74,4 @@ They are source starters, not profitability claims. Runtime verification is sepa
 
 ## Structural CI
 
-The repository workflow `.github/workflows/trader-toolkit-check.yml` checks generator syntax, parses every recipe, exercises the three current generator targets, and verifies that unsupported advanced blocks remain explicit instead of silently disappearing.
+The repository workflow `.github/workflows/trader-toolkit-check.yml` checks generator syntax, parses every recipe, exercises the original three generator targets (Pine v6, MQL5, cTrader C#; the MQL4, cTrader Python, Bookmap Python, NinjaTrader, Quantower, Sierra Chart ACSIL, ProRealTime, GoCharting Lipi, MotiveWave Java, Vela JavaScript, JForex Java, TradeStation EasyLanguage and ATAS C# targets are covered by `scripts/site/test_builder_parity.mjs` and a local py_compile check until the workflow is updated), and verifies that unsupported advanced blocks remain explicit instead of silently disappearing.

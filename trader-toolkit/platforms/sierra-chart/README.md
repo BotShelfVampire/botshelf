@@ -17,4 +17,8 @@ ACSIL custom studies expose chart data through `SCStudyInterfaceRef`, draw throu
 Official ACSIL reference:
 https://www.sierrachart.com/index.php?page=doc/AdvancedCustomStudyInterfaceAndLanguage.php
 
+## Generated studies
+
+The BSV generator also renders any recipe as an ACSIL study: `node generator/render.mjs <recipe.json> --target sierra-acsil` (or the browser recipe builder). Build it with Analysis > Build Custom Studies DLL. Not compiled by BSV.
+
 Status: source prepared against documented ACSIL interfaces; exact runtime/build verification required.

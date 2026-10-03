@@ -18,4 +18,8 @@ Current Lipi scope is best treated as indicator/chart scripting. Do not imply or
 Official scripting docs:
 https://gocharting.com/docs/scripting
 
+## Generated indicators
+
+The BSV generator also renders any recipe as a Lipi indicator: `node generator/render.mjs <recipe.json> --target gocharting-lipi` (or the browser recipe builder). Alerts use `alertcondition` plus a closed-bar `alert()`. Not checked in the Lipi editor by BSV.
+
 Status: source prepared against the documented syntax; runtime validation still required.

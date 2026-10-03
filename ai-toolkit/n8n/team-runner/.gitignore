@@ -1,0 +1,3 @@
+out/
+prompts/*.txt
+.venv/

@@ -1,0 +1,3 @@
+# Pin versions yourself after testing. BSV has not runtime tested these.
+langgraph
+openai

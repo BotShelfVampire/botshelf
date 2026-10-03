@@ -40,8 +40,21 @@ node trader-toolkit/generator/render.mjs trader-toolkit/recipes/mtf-trend-panel.
 Other current targets:
 
 ```bash
---target mql5
---target ctrader
+--target mql5            # MT5
+--target ctrader         # cTrader C#
+--target mql4            # MT4
+--target ctrader-python  # cTrader Python (attribute file in the header comments)
+--target bookmap-python  # Bookmap Python API add-on (open beta; time bars built from trades)
+--target ninjatrader     # NinjaTrader 8 NinjaScript indicator
+--target quantower       # Quantower C# indicator
+--target sierra-acsil    # Sierra Chart ACSIL C++ custom study
+--target prorealtime     # ProRealTime ProBuilder indicator
+--target gocharting-lipi # GoCharting Lipi indicator
+--target motivewave      # MotiveWave SDK custom study (Java)
+--target vela            # Vela web chart + small BSV recipe engine (JavaScript)
+--target jforex          # Dukascopy JForex strategy (Java IStrategy, console output, no orders)
+--target easylanguage    # TradeStation EasyLanguage indicator (plots + closed-bar alerts)
+--target atas            # ATAS C# indicator (lines + closed-bar alerts, no orders)
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.
@@ -62,7 +75,7 @@ Create a custom indicator in Automate, paste the generated C# starter, build, th
 
 ### Vela
 
-Use the [Vela custom chart starter](../platforms/vela/). It is for people who want their own browser chart rather than only an indicator inside someone else's charting platform.
+Use the [Vela custom chart starter](../platforms/vela/), or generate a recipe-specific module with `--target vela` (it imports only `@luxalgo/vela` and exports `mountBsvChart(target, bars)`). It is for people who want their own browser chart rather than only an indicator inside someone else's charting platform.
 
 ## 5. Verify
 

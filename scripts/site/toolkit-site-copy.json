@@ -1,0 +1,622 @@
+{
+ "schemaVersion": "0.1",
+ "note": "Public summary copy for the live Trader 'Build your own chart tool' hub and the AI Library toolkit hub. Summaries are public; source bodies are served only behind the email-verified session gate.",
+ "status": {
+  "STRUCTURAL": {
+   "en": "Structure reviewed — not runtime tested",
+   "ja": "構造のみ確認・実行検証なし"
+  },
+  "CI_PASS": {
+   "en": "Repository CI passed (syntax/structure only) — not a trading test",
+   "ja": "リポジトリCIで構文・構造を確認（売買の検証ではありません）"
+  },
+  "UNTESTED_RUNTIME": {
+   "en": "Not runtime tested",
+   "ja": "実行検証なし"
+  },
+  "SOURCE_PREPARED": {
+   "en": "Source prepared — not runtime tested",
+   "ja": "ソース準備済み・実行検証なし"
+  }
+ },
+ "trader_types": {
+  "guide": {
+   "en": "Guide",
+   "ja": "ガイド"
+  },
+  "schema": {
+   "en": "Recipe schema",
+   "ja": "レシピ定義"
+  },
+  "generator": {
+   "en": "Code generator",
+   "ja": "コード生成"
+  },
+  "copy-paste-code": {
+   "en": "Copy/paste code",
+   "ja": "貼り付け用コード"
+  },
+  "starter-app": {
+   "en": "Starter app",
+   "ja": "スターターアプリ"
+  },
+  "integration-guide": {
+   "en": "Data / agent integration",
+   "ja": "データ・エージェント連携"
+  },
+  "recipe": {
+   "en": "Recipe",
+   "ja": "レシピ"
+  }
+ },
+ "trader": {
+  "trader-build-own-chart": {
+   "summary": {
+    "en": "The seven-step path: pick one job, pick blocks, generate a starter, paste/import, verify, customize, publish honestly.",
+    "ja": "目的を1つ決める→ブロックを選ぶ→ひな形を生成→貼り付け→検証→改造→正直に公開、の7ステップ。"
+   }
+  },
+  "trader-recipe-schema": {
+   "summary": {
+    "en": "JSON Schema for BSV Trader Recipes: a name, an overlay flag and an ordered list of blocks (id, type, params). Validate a recipe before generating code.",
+    "ja": "BSV Trader RecipeのJSONスキーマ。名前・チャート重ね表示の指定・ブロック（id・type・params）の並びを定義します。コード生成の前にレシピを検証できます。"
+   },
+   "use": {
+    "en": [
+     "Open the schema in a JSON-Schema-aware editor.",
+     "Validate your recipe with any draft 2020-12 validator.",
+     "Fix every validation error before running the generator."
+    ],
+    "ja": [
+     "JSON Schema対応のエディターでスキーマを開きます。",
+     "draft 2020-12対応のバリデーターでレシピを検証します。",
+     "エラーをすべて直してからジェネレーターを実行します。"
+    ]
+   }
+  },
+  "trader-generator": {
+   "summary": {
+    "en": "Node.js generator that turns one recipe into a Pine Script v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart (ACSIL), ProRealTime, GoCharting (Lipi), MotiveWave (Java), Vela (JavaScript), JForex (Java), TradeStation (EasyLanguage) or ATAS (C#) starter. Unsupported blocks stay visible as TODO comments instead of silently disappearing.",
+    "ja": "1つのレシピからPine Script v6・MQL5・MQL4・cTrader（C#）・cTrader（Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTime・GoCharting（Lipi）・MotiveWave（Java）・Vela（JavaScript）・JForex（Java）・TradeStation（EasyLanguage）・ATAS（C#）のひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
+   },
+   "use": {
+    "en": [
+     "Install Node.js 18 or later.",
+     "Run: node render.mjs <recipe.json> --target pine-v6 (or mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower / sierra-acsil / prorealtime / gocharting-lipi / motivewave / vela / jforex / easylanguage / atas).",
+     "Paste the output into the platform editor, compile there, and resolve every TODO before relying on it.",
+     "No Node.js? Each recipe page offers the sixteen pre-generated starters, and the browser recipe builder renders all seventeen targets."
+    ],
+    "ja": [
+     "Node.js 18以上を用意します。",
+     "node render.mjs <recipe.json> --target pine-v6（または mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower / sierra-acsil / prorealtime / gocharting-lipi / motivewave / vela / jforex / easylanguage / atas）を実行します。",
+     "出力を各プラットフォームのエディターに貼り付けてコンパイルし、TODOをすべて解消してから使います。",
+     "Node.jsがなくても、各レシピのページで16種類の生成済みひな形を取得でき、ブラウザのレシピビルダーでは17種類すべてを生成できます。"
+    ]
+   }
+  },
+  "tv-session-range": {
+   "summary": {
+    "en": "Tracks the high, low and range of a chosen session (default 08:00–10:00 Europe/London) and shows them in a small status table.",
+    "ja": "指定した時間帯（初期値はロンドン時間08:00〜10:00）の高値・安値・値幅を追跡し、小さな表に表示します。"
+   }
+  },
+  "tv-liquidity-sweep": {
+   "summary": {
+    "en": "Marks bars that trade beyond the last confirmed pivot by at least a set ATR fraction and close back inside. A mechanical candidate marker with alert conditions — not an order-flow claim.",
+    "ja": "直近の確定ピボットをATR比で一定以上はみ出し、内側に戻って引けた足に印を付けます。アラート条件付きの機械的な候補表示で、注文フローの主張ではありません。"
+   }
+  },
+  "tv-vol-regime": {
+   "summary": {
+    "en": "Plots ATR divided by its own moving average and colors low / normal / high volatility regimes against adjustable thresholds.",
+    "ja": "ATRをその移動平均で割った比率を表示し、しきい値に応じて低・通常・高ボラティリティを色分けします。"
+   }
+  },
+  "tv-atr-risk": {
+   "summary": {
+    "en": "EMA basis with ATR-multiple bands for planning stop distance visually. It does not size positions or place orders.",
+    "ja": "EMAを基準にATR倍率のバンドを描き、損切り幅を目で検討するための補助です。ロット計算や発注は行いません。"
+   }
+  },
+  "tv-mtf-panel": {
+   "summary": {
+    "en": "Higher-timeframe fast/slow EMA trend and RSI state in a compact panel, using request.security with lookahead off.",
+    "ja": "上位足の短期・長期EMAのトレンドとRSIの状態を小さなパネルに表示します。request.securityはlookahead無効で使います。"
+   }
+  },
+  "tv-webhook-router": {
+   "summary": {
+    "en": "EMA cross alerts that send a structured JSON payload via alert(). Webhook-ready, with no secrets in the script and no order placement.",
+    "ja": "EMAの交差でJSON形式のメッセージをalert()から送ります。Webhookにつなげられますが、スクリプトに秘密情報は入れず、発注もしません。"
+   }
+  },
+  "mt5-ema-atr": {
+   "summary": {
+    "en": "MQL5 custom indicator: EMA with ATR upper/lower bands in the chart window. Compile in MetaEditor before use.",
+    "ja": "MQL5のカスタムインジケーター。チャート上にEMAとATRの上下バンドを表示します。使う前にMetaEditorでコンパイルしてください。"
+   }
+  },
+  "ctrader-ema-atr": {
+   "summary": {
+    "en": "cTrader Automate C# indicator: EMA with ATR bands, AccessRights.None. Build inside cTrader before use.",
+    "ja": "cTrader Automate用のC#インジケーター。EMAとATRバンドを表示します（AccessRights.None）。使う前にcTrader内でビルドしてください。"
+   }
+  },
+  "ctrader-rsi": {
+   "summary": {
+    "en": "cTrader Automate C# RSI study in its own panel — a clean base for regime colouring or thresholds.",
+    "ja": "cTrader Automate用のC# RSIスタディ（別パネル表示）。局面の色分けやしきい値を足すための土台です。"
+   }
+  },
+  "ninjatrader-ema-atr": {
+   "summary": {
+    "en": "NinjaScript indicator with EMA and ATR bands using the standard OnStateChange / OnBarUpdate / AddPlot lifecycle.",
+    "ja": "標準的なOnStateChange・OnBarUpdate・AddPlotの流れで作ったEMA＋ATRバンドのNinjaScriptインジケーター。"
+   }
+  },
+  "quantower-sma": {
+   "summary": {
+    "en": "Deliberately small Quantower Algo indicator (one SMA line series) to alter rather than an opaque clone.",
+    "ja": "あえて小さく作ったQuantower Algoのインジケーター（SMA 1本）。中身の見えない模倣品ではなく、改造の出発点です。"
+   }
+  },
+  "sierra-ema": {
+   "summary": {
+    "en": "Sierra Chart ACSIL custom study: one EMA subgraph with a length input. Read-only and visual.",
+    "ja": "Sierra ChartのACSILカスタムスタディ。期間を入力できるEMAを1本表示します。表示専用です。"
+   }
+  },
+  "gocharting-dual-ema": {
+   "summary": {
+    "en": "Dual EMA (21/89) written in GoCharting's Lipi scripting language. Paste into the Lipi editor and validate there.",
+    "ja": "GoChartingのLipi言語で書いた2本のEMA（21・89）。Lipiエディターに貼り付けて検証してください。"
+   }
+  },
+  "prorealtime-dual-ema": {
+   "summary": {
+    "en": "Five-line ProBuilder personal indicator returning EMA 21 and EMA 89. Separate from ProBackTest / ProOrder.",
+    "ja": "EMA21とEMA89を返す、数行のProBuilder個人用インジケーター。ProBackTest・ProOrderとは別物です。"
+   }
+  },
+  "motivewave-ema": {
+   "summary": {
+    "en": "MotiveWave Java SDK custom study starter (EMA, overlay). Study only — no order submission.",
+    "ja": "MotiveWave Java SDK用のカスタムスタディのひな形（EMA・チャート重ね表示）。スタディのみで発注はしません。"
+   }
+  },
+  "vela-custom-chart": {
+   "summary": {
+    "en": "Your own browser chart: a minimal Vite + Vela starter that renders OHLCV bars you supply. No network request, no order execution. Vela itself is installed from its official package, not redistributed by BSV.",
+    "ja": "自分のブラウザーチャートを作る道。用意したOHLCVデータを表示する最小限のVite＋Velaスターターです。通信も発注もしません。Vela本体はBSVが再配布せず、公式パッケージから入れます。"
+   }
+  },
+  "openmarkets-data": {
+   "summary": {
+    "en": "OpenMarkets as a market-data / agent integration building block (REST, WebSocket, MCP) — not a chart-scripting language. Start read-only and keep keys out of source.",
+    "ja": "OpenMarketsは市場データ・エージェント連携の部品（REST・WebSocket・MCP）として扱います。チャート用のスクリプト言語ではありません。読み取り専用から始め、APIキーをコードに入れないでください。"
+   },
+   "use": {
+    "en": [
+     "Use the official developer docs and your current account scopes.",
+     "Start with read-only market-data permissions.",
+     "Do not enable live execution to test a research or chart workflow.",
+     "Keep API keys outside committed source.",
+     "Good uses: snapshot collector, history research assistant, cross-venue comparison, event monitor, MCP research desk, data feed for your own Vela chart."
+    ],
+    "ja": [
+     "公式の開発者ドキュメントと、ご自身のアカウントの権限範囲を確認します。",
+     "まず読み取り専用の市場データ権限で始めます。",
+     "調査やチャートの確認のために実発注を有効にしないでください。",
+     "APIキーはコミットするコードの外に置きます。",
+     "使い道の例：スナップショット収集、価格履歴の調査補助、取引所間の比較、イベント監視、MCPリサーチ、自作Velaチャートへのデータ供給。"
+    ]
+   }
+  },
+  "mt4-ema-atr": {
+   "summary": {
+    "en": "MQL4 custom indicator for MT4: EMA with ATR upper/lower bands in the chart window. Compile in MetaEditor (MT4) before use.",
+    "ja": "MT4用のMQL4カスタムインジケーター。チャート上にEMAとATRの上下バンドを表示します。使う前にMT4のMetaEditorでコンパイルしてください。"
+   },
+   "use": {
+    "en": [
+     "Open code (free email verification) and copy BSV_EmaAtrOverlay.mq4.",
+     "MT4 → MetaEditor → File → New → Custom Indicator, paste, then Compile (F7).",
+     "Attach it to a chart and adjust the EMA / ATR inputs.",
+     "Check it on history and a demo account before relying on it."
+    ],
+    "ja": [
+     "メール確認（無料）でコードを開き、BSV_EmaAtrOverlay.mq4をコピーします。",
+     "MT4のMetaEditorで「ファイル→新規作成→カスタムインディケータ」を選んで貼り付け、コンパイル（F7）します。",
+     "チャートに適用し、EMAとATRの設定を調整します。",
+     "過去データとデモ口座で確認してから使います。"
+    ]
+   }
+  },
+  "ctrader-python-ema-atr": {
+   "summary": {
+    "en": "cTrader Algo Python indicator: a C# attribute file for parameters/outputs plus a _main.py with the EMA + ATR band logic. Build in cTrader before use.",
+    "ja": "cTrader AlgoのPythonインジケーター。パラメーターと出力を宣言するC#属性ファイルと、EMA＋ATRバンドの処理を書いた_main.pyの2ファイル構成です。使う前にcTraderでビルドしてください。"
+   },
+   "use": {
+    "en": [
+     "Open code (free email verification) to get both files.",
+     "cTrader → Algo → Indicators → New → Python, name it BsvEmaAtrOverlayPy.",
+     "Replace the .cs attribute file and the _main.py file with the BSV versions, then Build (Ctrl+B).",
+     "Add it to a chart and check it on history before customizing."
+    ],
+    "ja": [
+     "メール確認（無料）でコードを開き、2つのファイルを取得します。",
+     "cTraderの「Algo→インジケーター→新規→Python」で、名前をBsvEmaAtrOverlayPyにして作成します。",
+     ".csの属性ファイルと_main.pyをBSV版に置き換え、ビルド（Ctrl+B）します。",
+     "チャートに追加し、過去データで確認してから改造します。"
+    ]
+   }
+  },
+  "bookmap-trade-ema": {
+   "summary": {
+    "en": "Bookmap Python API add-on (open beta API) that draws an EMA of trade prices on the main heatmap. No order placement.",
+    "ja": "Bookmap Python API（オープンベータ）のアドオン。約定価格のEMAをメインのヒートマップ上に描きます。注文は出しません。"
+   },
+   "use": {
+    "en": [
+     "Open code (free email verification) and copy bsv_trade_ema.py.",
+     "Set up the Bookmap Python API add-on as described in the official BookmapAPI/python-api guide (open beta).",
+     "Load bsv_trade_ema.py as a Python add-on and enable it for an instrument.",
+     "Adjust EMA_LENGTH / SAMPLE_SECONDS and check the line against the heatmap before relying on it."
+    ],
+    "ja": [
+     "メール確認（無料）でコードを開き、bsv_trade_ema.pyをコピーします。",
+     "公式のBookmapAPI/python-apiの手順（オープンベータ）に沿ってPython APIアドオンを準備します。",
+     "bsv_trade_ema.pyをPythonアドオンとして読み込み、銘柄に対して有効にします。",
+     "EMA_LENGTHとSAMPLE_SECONDSを調整し、ヒートマップと見比べて確認してから使います。"
+    ]
+   }
+  }
+ },
+ "recipes": {
+  "atr-risk-overlay": {
+   "ja": "ATRとEMAの基準線。損切り・リスクを視覚化するひな形です。収益性の主張はしません。"
+  },
+  "divergence-scanner": {
+   "ja": "ピボットとRSIのダイバージェンスを複数銘柄で探すスキャナーの構想。高度な判定は対応するまでTODOとして明示します。"
+  },
+  "liquidity-sweep-alert": {
+   "ja": "ピボット・スイープの考え方をATRと組み合わせたアラート。高度なブロックは正直に対応できるまでTODOのままです。"
+  },
+  "mtf-confirmation-panel": {
+   "ja": "上位足のEMA・RSIの状態を小さなパネルで確認します。"
+  },
+  "mtf-trend-panel": {
+   "ja": "短期・長期EMAのトレンド状態をRSIで確認し、アラートを出します。"
+  },
+  "opening-range-dashboard": {
+   "ja": "時間帯の値幅・ブレイク状態・ダッシュボードのひな形。"
+  },
+  "rsi-mean-reversion-alert": {
+   "ja": "RSIのしきい値でアラートを出すだけのシンプルなひな形。自動売買はしません。"
+  },
+  "session-breakout-alert": {
+   "ja": "時間帯フィルターとEMA・RSIの組み合わせ。時間帯を安全に表現できない出力先ではTODOを残します。"
+  },
+  "session-statistics-panel": {
+   "ja": "時間帯ごとの値幅・統計パネルのひな形。高度な統計はTODOです。"
+  },
+  "trend-pullback-composite": {
+   "ja": "短期・長期EMAのトレンドとRSIの押し目条件を組み合わせます。"
+  },
+  "volatility-regime-map": {
+   "ja": "ATRと移動平均で低・通常・高ボラティリティを分けるツール。"
+  },
+  "webhook-alert-router": {
+   "ja": "条件と構造化Webhookメッセージのひな形。メッセージに秘密情報を入れないでください。"
+  },
+  "golden-cross-alert": {
+   "ja": "SMA50とSMA200のクロスを、確定足ごとに上下それぞれ1回だけ知らせるひな形。定番の相場環境シグナルで、売買システムではありません。収益性の主張はしません。"
+  },
+  "ema-cross-rsi-filter": {
+   "ja": "EMA9とEMA21のクロスのうち、RSI14が同じ向き（上抜けは50超、下抜けは50未満）のときだけ知らせるひな形。フィルター付きモメンタムアラートの出発点で、収益性の主張はしません。"
+  }
+ },
+ "ai_types": {
+  "copy-paste-template": {
+   "en": "Copy/paste template",
+   "ja": "貼り付け用テンプレート"
+  },
+  "checklist": {
+   "en": "Checklist",
+   "ja": "チェックリスト"
+  },
+  "copy-paste-workflow": {
+   "en": "Workflow",
+   "ja": "ワークフロー"
+  },
+  "starter-config": {
+   "en": "Starter config",
+   "ja": "設定のひな形"
+  },
+  "copy-paste-code": {
+   "en": "Code",
+   "ja": "コード"
+  }
+ },
+ "ai_jobs": {
+  "always-on": {
+   "en": "Always-on responsibility",
+   "ja": "常駐で任せる仕事"
+  },
+  "research": {
+   "en": "Research desk",
+   "ja": "リサーチ"
+  },
+  "tool-safety": {
+   "en": "Tool safety gate",
+   "ja": "ツールの安全確認"
+  },
+  "local-worker": {
+   "en": "Local / open-model worker",
+   "ja": "ローカル・オープンモデルの作業役"
+  },
+  "memory": {
+   "en": "Long-term project memory",
+   "ja": "プロジェクトの長期記憶"
+  },
+  "orchestration": {
+   "en": "Guarded agent orchestration",
+   "ja": "安全柵付きのエージェント構成"
+  },
+  "context": {
+   "en": "Context compression",
+   "ja": "文脈の圧縮"
+  }
+ },
+ "ai_frameworks": {
+  "OpenAI Dots": {
+   "slug": "dots",
+   "en": "Rule, responsibility and review templates for an always-on dot. They do not override OpenAI's built-in safeguards.",
+   "ja": "常駐するdot向けのルール・担当範囲・振り返りのテンプレート。OpenAIの組み込みの安全策を上書きするものではありません。",
+   "refs": []
+  },
+  "Hugging Face": {
+   "slug": "hugging-face",
+   "en": "MCP research desk, community-Space safety gate, Skills workflow and a local Tiny Agent template — using Hugging Face's official setup flows.",
+   "ja": "MCPリサーチ、コミュニティSpaceの安全確認、Skillsの使い方、ローカルTiny Agentのひな形。Hugging Faceの公式の設定手順を使います。",
+   "refs": [
+    "https://huggingface.co/settings/mcp",
+    "https://huggingface.co/docs/hub/agents-libraries"
+   ]
+  },
+  "LM Studio Bionic": {
+   "slug": "bionic",
+   "en": "Project-worker and context-compressor templates for LM Studio's agent for open models. Route cheap, checkable work locally; keep final review elsewhere.",
+   "ja": "LM Studioのオープンモデル向けエージェントで使う作業役・文脈圧縮のテンプレート。安く確認しやすい作業をローカルに回し、最終確認は別で行います。",
+   "refs": [
+    "https://lmstudio.ai/docs/bionic"
+   ]
+  },
+  "Hugging Face smolagents": {
+   "slug": "smolagents",
+   "en": "Python ToolCallingAgent on LM Studio's local OpenAI-compatible endpoint, starting with no tools enabled.",
+   "ja": "LM StudioのローカルOpenAI互換エンドポイントで動かすPythonのToolCallingAgent。最初はツールを1つも有効にしません。",
+   "refs": [
+    "https://huggingface.co/docs/smolagents/"
+   ]
+  },
+  "Letta": {
+   "slug": "letta",
+   "en": "Memory layout for stateful agents: durable project facts, not a dump of every chat message.",
+   "ja": "状態を持つエージェント用の記憶の設計。会話のすべてではなく、長く使うプロジェクトの事実だけを残します。",
+   "refs": [
+    "https://docs.letta.com/"
+   ]
+  },
+  "OpenAI Agents SDK": {
+   "slug": "openai-agents",
+   "en": "A guarded worker with no side-effect tools, ready to grow into agents-as-tools, guardrails, sessions or sandbox agents. The team runner runs each Library AI Team task on a local model with tracing disabled.",
+   "ja": "副作用のあるツールを持たない安全柵付きの作業役。agents-as-tools・ガードレール・セッション・サンドボックスへ広げられます。チームランナーは、Library AI Teamの各仕事をトレース無効のローカルモデルで動かします。",
+   "refs": [
+    "https://openai.github.io/openai-agents-python/",
+    "https://openai.github.io/openai-agents-python/models/"
+   ]
+  },
+  "LangGraph": {
+   "slug": "langgraph",
+   "en": "Graph runtime with checkpoints and human-in-the-loop interrupts. The team runner pauses before saving anything.",
+   "ja": "チェックポイントと人の確認（interrupt）を持つグラフ型の実行環境。チームランナーは保存の前に必ず止まります。",
+   "refs": [
+    "https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/"
+   ]
+  },
+  "CrewAI": {
+   "slug": "crewai",
+   "en": "Role-based multi-agent crews. The team runner uses a lead and a checker on a local model, with your approval before saving.",
+   "ja": "役割ごとのエージェントで組むマルチエージェント。チームランナーはローカルモデル上で担当と確認役を使い、保存の前にあなたの承認を求めます。",
+   "refs": [
+    "https://docs.crewai.com/concepts/llms"
+   ]
+  },
+  "n8n": {
+   "slug": "n8n",
+   "en": "Workflow automation. The team runner builds one importable workflow per Library AI Team task: manual trigger, local model over HTTP and a section check, with no write, send or paid nodes.",
+   "ja": "ワークフロー自動化ツール。チームランナーは、Library AI Teamの仕事ごとに読み込めるワークフローを作ります。手動実行・HTTPでのローカルモデル呼び出し・必要な項目の確認だけで、保存・送信・有料のノードはありません。",
+   "refs": [
+    "https://docs.n8n.io/workflows/export-import/",
+    "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+   ]
+  }
+ },
+ "ai": {
+  "dots-rules": {
+   "job": "always-on",
+   "summary": {
+    "en": "Starter rule set for a dot doing ongoing work: scope, what needs your approval, and when to stop. Not a system prompt that overrides safeguards.",
+    "ja": "継続的な仕事を任せるdotのルールのひな形。担当範囲・承認が必要なこと・止めるタイミングを決めます。安全策を上書きするシステムプロンプトではありません。"
+   }
+  },
+  "dots-responsibility": {
+   "job": "always-on",
+   "summary": {
+    "en": "Fill-in structure for an ongoing responsibility: the outcome, what success means, which connected sources it may use, what it may do without asking, and what still needs your approval.",
+    "ja": "継続的に任せる仕事の記入用の型。成果、成功の基準、使ってよい接続先、確認なしでしてよいこと、承認が必要なことを書き込みます。"
+   }
+  },
+  "dots-review": {
+   "job": "always-on",
+   "summary": {
+    "en": "Checklist for reviewing a dot that has worked in the background: check the result, not the activity.",
+    "ja": "裏で動いていたdotを振り返るチェックリスト。動いた量ではなく、結果を確認します。"
+   }
+  },
+  "hf-mcp-research": {
+   "job": "research",
+   "summary": {
+    "en": "Inspectable Hub research workflow for an MCP-compatible assistant connected through Hugging Face's official MCP settings page.",
+    "ja": "Hugging Face公式のMCP設定ページで接続したアシスタント用の、確認しやすいHubリサーチ手順。"
+   }
+  },
+  "hf-space-gate": {
+   "job": "tool-safety",
+   "summary": {
+    "en": "Trust and data gate to run before enabling a community Space as an MCP tool: owner, inputs, data sent, and a synthetic first run.",
+    "ja": "コミュニティSpaceをMCPツールとして有効にする前の確認手順。作者・入力・送るデータを確かめ、まず架空のデータで試します。"
+   }
+  },
+  "hf-skills": {
+   "job": "research",
+   "summary": {
+    "en": "Scope-and-approval pattern for Hugging Face Skills: install only the Skill a job needs, and keep paid jobs and repo writes behind your approval.",
+    "ja": "Hugging Face Skillsの使い方。仕事に必要なSkillだけを入れ、有料ジョブやリポジトリへの書き込みは承認制にします。"
+   }
+  },
+  "hf-tiny-agent": {
+   "job": "local-worker",
+   "summary": {
+    "en": "Tiny Agent template where a local model stays the reasoning engine and each remote MCP server is an explicit, separate data boundary.",
+    "ja": "推論はローカルモデルのまま、外部のMCPサーバーを1つずつ明示的なデータの境界として扱うTiny Agentのひな形。"
+   }
+  },
+  "bionic-worker": {
+   "job": "local-worker",
+   "summary": {
+    "en": "Session template for one concrete deliverable in a Bionic project: read-first files, do / do-not lists and a fixed RESULT / TESTS / UNVERIFIED return format.",
+    "ja": "Bionicのプロジェクトで成果物を1つ作るためのセッション用テンプレート。最初に読むファイル、やること・やらないこと、RESULT／TESTS／UNVERIFIEDの返し方を固定します。"
+   }
+  },
+  "bionic-compressor": {
+   "job": "context",
+   "summary": {
+    "en": "Local-model prompt that compresses long project material for another agent without making the local model the final reviewer.",
+    "ja": "長いプロジェクト資料をほかのエージェント向けに圧縮するローカルモデル用プロンプト。ローカルモデルを最終確認役にはしません。"
+   }
+  },
+  "smolagents-lmstudio": {
+   "job": "local-worker",
+   "summary": {
+    "en": "Python starter: smolagents ToolCallingAgent pointed at LM Studio's local OpenAI-compatible server, with no tools enabled by default.",
+    "ja": "LM StudioのローカルOpenAI互換サーバーにつなぐsmolagentsのToolCallingAgent（Python）。初期状態ではツールを有効にしません。"
+   }
+  },
+  "letta-memory": {
+   "job": "memory",
+   "summary": {
+    "en": "Memory hierarchy for a Letta stateful agent: identity, stable project truth, binding decisions, short current state and recurring failures.",
+    "ja": "Lettaの状態を持つエージェント用の記憶の階層。役割、変わりにくいプロジェクトの事実、決定事項、現在の状態、繰り返したくない失敗に分けます。"
+   }
+  },
+  "openai-agents-worker": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Python starter for the OpenAI Agents SDK: one worker, no side-effect tools, explicit UNVERIFIED output.",
+    "ja": "OpenAI Agents SDK用のPythonひな形。作業役は1つ、副作用のあるツールはなく、未確認の内容はUNVERIFIEDと明示します。"
+   }
+  },
+  "langgraph-team-runner": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Runs any of the 10 Library AI Team tasks as a LangGraph graph on a local model (LM Studio or Ollama): produce, check the required sections, pause for your approval, then save. You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、ローカルモデル（LM StudioまたはOllama）上のLangGraphのグラフとして動かします。作成→必要な項目の確認→あなたの承認待ち→保存の順です。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
+  },
+  "crewai-team-runner": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Runs any of the 10 Library AI Team tasks as a two-agent CrewAI crew (lead + checker) on a local model, checks the required sections and saves only after your approval. You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、ローカルモデル上のCrewAIの2人構成（担当＋確認役）で動かします。必要な項目を確認し、あなたが承認したときだけ保存します。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
+  },
+  "n8n-team-runner": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Builds one importable n8n workflow per Library AI Team task (10 tasks): manual trigger, local OpenAI-compatible model over HTTP, a section check, then you review the result. No write, send or paid nodes. You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事ごとに、読み込めるn8nワークフローを作ります。手動実行→ローカルのOpenAI互換モデルへHTTPで依頼→必要な項目の確認→あなたが結果を確認、の順です。保存・送信・有料のノードはありません。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
+  },
+  "openai-agents-team-runner": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Runs any of the 10 Library AI Team tasks with the OpenAI Agents SDK on a local model (LM Studio or Ollama), tracing disabled and no tools: produce, check the required sections, then save only after your approval. You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、OpenAI Agents SDKとローカルモデル（LM StudioまたはOllama）で動かします。トレースは無効、ツールはなしです。作成→必要な項目の確認→あなたが承認したときだけ保存、の順です。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
+  }
+ },
+ "ai_team_links": {
+  "always-on": [
+   "monitoring",
+   "personal-assistant",
+   "support-triage"
+  ],
+  "research": [
+   "deep-research",
+   "lead-research",
+   "seo-brief"
+  ],
+  "tool-safety": [
+   "coding-review",
+   "monitoring"
+  ],
+  "local-worker": [
+   "data-analysis",
+   "writing-draft",
+   "doc-review"
+  ],
+  "context": [
+   "doc-review",
+   "writing-draft"
+  ],
+  "memory": [
+   "personal-assistant",
+   "deep-research"
+  ],
+  "orchestration": [
+   "support-triage",
+   "coding-review"
+  ]
+ },
+ "ai_team_runners": {
+  "langgraph": {
+   "item": "langgraph-team-runner",
+   "platform": "LangGraph",
+   "cmd": "python runner.py --task {task} --input notes.md"
+  },
+  "crewai": {
+   "item": "crewai-team-runner",
+   "platform": "CrewAI",
+   "cmd": "python crew_runner.py --task {task} --input notes.md"
+  },
+  "n8n": {
+   "item": "n8n-team-runner",
+   "platform": "n8n",
+   "cmd": "python make_workflow.py --task {task}",
+   "blurb_en": "The BSV n8n team runner builds an importable workflow for this task: manual trigger, local model over HTTP, section check, then you review the result. It saves and sends nothing.",
+   "blurb_ja": "BSVのn8nチームランナーで、この仕事用の読み込めるワークフローを作れます。手動実行→ローカルモデルへHTTPで依頼→必要な項目の確認→あなたが結果を確認、の順で、保存や送信はしません。"
+  },
+  "openai-agents": {
+   "item": "openai-agents-team-runner",
+   "platform": "OpenAI Agents SDK",
+   "impl_runtime": "lm-studio",
+   "impl_label": "LM Studio team page (same prompt)",
+   "cmd": "python agents_runner.py --task {task} --input notes.md",
+   "blurb_en": "The BSV OpenAI Agents SDK team runner runs this task on a local model through LM Studio's OpenAI-compatible server (or Ollama), with tracing disabled, checks the required sections and saves only after your approval.",
+   "blurb_ja": "BSVのOpenAI Agents SDKチームランナーで、この仕事をLM StudioのOpenAI互換サーバー（またはOllama）上のローカルモデルで動かせます。トレースは無効で、必要な項目を確認し、あなたが承認したときだけ保存します。"
+  }
+ }
+}
