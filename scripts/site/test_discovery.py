@@ -99,6 +99,17 @@ def main():
             except Exception:
                 bad += 1
     ok(bad == 0, f"jsonld: {bad} invalid blocks")
+    # Request Market page (Issue #6): no seeded rows/numbers in HTML, no inline JS, schema published
+    rq = s / "requests/index.html"
+    if rq.exists():
+        t = rq.read_text()
+        ok(ORIGIN + "/requests/" in locs, "requests: in sitemap")
+        ok(not re.search(r"<script(?![^>]*\bsrc=)(?![^>]*application/ld\+json)[^>]*>", t), "requests: no inline script")
+        ok("req_" not in t and all(re.search(rf'id="{i}">–<', t) for i in ("rq-c-received", "rq-c-published", "rq-c-budget")), "requests: no seeded requests or counts in HTML")
+        ok('id="rq-form"' in t and "/register.html?next=/requests/" in "".join(p.read_text() for p in (s / "requests").glob("request-market.*.js")), "requests: form + sign-in path")
+        sc = json.loads((s / "schemas/demand-request-v0.1.json").read_text())
+        ok(sc.get("$id") == ORIGIN + "/schemas/demand-request-v0.1.json", "requests: schema published at its $id")
+        ok("data-rq-link" in (s / "trading/build/index.html").read_text(), "requests: link from /trading/build/")
     # trust facts re-read from the built pages
     for key, page, sent in bd.FACTS:
         ok(sent in bd.visible_text(s / page), f"trust fact {key} not on {page}")
@@ -124,6 +135,15 @@ def main():
         for ua in ["OAI-SearchBot/1.0; +https://openai.com/searchbot", "Mozilla/5.0"]:
             st, _, _ = get(f"{L}/trading/build/", ua)
             ok(st == 200, f"live /trading/build/ for {ua} {st}")
+        st, body, _ = get(f"{L}/.netlify/functions/demand-request?op=public")
+        if st == 200:
+            j = json.loads(body)
+            ok(j.get("ok") is True and isinstance(j.get("requests"), list) and j["counts"]["published"] == len(j["requests"]), "live requests API: counts match listed rows")
+            ok(all("user_id" not in r and "@" not in json.dumps(r) for r in j["requests"]), "live requests API: no user ids or emails")
+        else:
+            ok(False, f"live requests API {st}")
+        st, _, _ = get(f"{L}/.netlify/functions/demand-request?op=queue")
+        ok(st == 401, f"live requests queue anonymous -> 401 ({st})")
         st, body, _ = get(f"{L}/library/source/botshelf-deep-research-3b.html")
         ok(st in (301, 302, 303, 401, 403) or "BSV-GATED" in body, f"live gated source still gated ({st})")
     print(json.dumps({"checks": n, "failures": len(fails), "fail": fails[:20]}, ensure_ascii=False))

@@ -20,7 +20,7 @@ var crypto = require("crypto");
 
 var STORE = "compile_reports";
 var TARGETS = ["pine-v6", "mql5", "ctrader", "mql4", "ctrader-python", "bookmap-python", "ninjatrader", "quantower",
-  "sierra-acsil", "prorealtime", "gocharting-lipi", "motivewave", "vela", "jforex", "easylanguage", "atas"];
+  "sierra-acsil", "prorealtime", "gocharting-lipi", "motivewave", "vela", "jforex", "easylanguage", "atas", "amibroker", "thinkscript"];
 var STATUSES = ["not-tried", "compiled", "compiled-warnings", "compile-failed", "ran-replay"];
 var DECISIONS = ["approved-user-reported", "rejected", "needs-info"];
 var PER_DAY = 10;
