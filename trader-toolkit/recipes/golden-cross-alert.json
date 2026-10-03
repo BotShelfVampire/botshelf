@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Golden Cross Alert Starter",
+  "description": "SMA 50 / SMA 200 cross with one alert per closed bar in each direction. A classic context signal, not a trading system; no profitability claim.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "sma_fast",
+      "type": "indicator.sma",
+      "params": {
+        "source": "close",
+        "length": 50
+      }
+    },
+    {
+      "id": "sma_slow",
+      "type": "indicator.sma",
+      "params": {
+        "source": "close",
+        "length": 200
+      }
+    },
+    {
+      "id": "golden",
+      "type": "signal.cross",
+      "params": {
+        "left": "sma_fast",
+        "right": "sma_slow",
+        "direction": "above"
+      }
+    },
+    {
+      "id": "death",
+      "type": "signal.cross",
+      "params": {
+        "left": "sma_fast",
+        "right": "sma_slow",
+        "direction": "below"
+      }
+    },
+    {
+      "id": "plot_fast",
+      "type": "visual.plot",
+      "params": {
+        "source": "sma_fast",
+        "title": "SMA 50"
+      }
+    },
+    {
+      "id": "plot_slow",
+      "type": "visual.plot",
+      "params": {
+        "source": "sma_slow",
+        "title": "SMA 200"
+      }
+    },
+    {
+      "id": "alert_golden",
+      "type": "alert.condition",
+      "params": {
+        "when": "golden",
+        "message": "BSV recipe: SMA 50 crossed above SMA 200"
+      }
+    },
+    {
+      "id": "alert_death",
+      "type": "alert.condition",
+      "params": {
+        "when": "death",
+        "message": "BSV recipe: SMA 50 crossed below SMA 200"
+      }
+    }
+  ]
+}

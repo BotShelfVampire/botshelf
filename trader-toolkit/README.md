@@ -8,7 +8,7 @@ The goal is practical: choose a platform, copy a starter, edit one recipe, and t
 
 1. Read [Build your own chart tool](docs/build-your-own-chart-tool.md).
 2. Pick a starter recipe in [recipes](recipes/).
-3. Generate a supported starter with `node generator/render.mjs <recipe.json> --target pine-v6|mql5|ctrader`.
+3. Generate a supported starter with `node generator/render.mjs <recipe.json> --target pine-v6|mql5|ctrader|mql4|ctrader-python|bookmap-python`.
 4. Paste/import it into the target platform.
 5. Compile and inspect it yourself.
 6. Record the exact platform/version you tested.
@@ -30,8 +30,12 @@ The goal is practical: choose a platform, copy a starter, edit one recipe, and t
 - TradingView / Pine Script v6 — generator target
 - MT5 / MQL5 — generator starter target
 - cTrader / C# — generator starter target
+- MT4 / MQL4 — generator target + EMA/ATR starter (not runtime tested)
+- cTrader / Python — generator target + two-file EMA/ATR starter (not runtime tested)
+- Bookmap / Python API (open beta) — generator target (time bars built from trades) + trade-EMA add-on (not runtime tested)
 - Vela — custom web-chart starter
-- MT4, NinjaTrader, Quantower, Sierra Chart, Bookmap, GoCharting, MotiveWave, ProRealTime and others — compatibility/research queue; only publish platform-specific code after an implementation path is verified
+- NinjaTrader, Quantower, Sierra Chart, GoCharting, MotiveWave, ProRealTime — hand-written starters (not runtime tested)
+- ATAS, JForex and others — compatibility/research queue; only publish platform-specific code after an implementation path is verified
 
 See [compatibility](docs/compatibility.md).
 
@@ -45,7 +49,7 @@ Everything in this directory is **ORIGINAL BSV source** unless stated otherwise.
 
 ## License
 
-This repository is MIT licensed. Platform names belong to their respective owners. This toolkit is independent and is not an official TradingView, MetaQuotes, Spotware, or LuxAlgo product.
+This repository is MIT licensed. Platform names belong to their respective owners. This toolkit is independent and is not an official TradingView, MetaQuotes, Spotware, Bookmap, or LuxAlgo product.
 
 ## Copy-paste TradingView starters
 
@@ -62,4 +66,4 @@ They are source starters, not profitability claims. Runtime verification is sepa
 
 ## Structural CI
 
-The repository workflow `.github/workflows/trader-toolkit-check.yml` checks generator syntax, parses every recipe, exercises the three current generator targets, and verifies that unsupported advanced blocks remain explicit instead of silently disappearing.
+The repository workflow `.github/workflows/trader-toolkit-check.yml` checks generator syntax, parses every recipe, exercises the original three generator targets (Pine v6, MQL5, cTrader C#; the MQL4, cTrader Python and Bookmap Python targets are covered by `scripts/site/test_builder_parity.mjs` and a local py_compile check until the workflow is updated), and verifies that unsupported advanced blocks remain explicit instead of silently disappearing.

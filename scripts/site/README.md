@@ -16,8 +16,8 @@ Netlify production deploy of site `7e5c8515-c9a8-48cd-892f-1b9bcbfd5b13`.
 | AI: `/library/source/<id>.html` / `.zip` | — | yes (`/library/source/*` added to `free-session-gate.ts`) |
 | Entry blocks in `/trading/index.html` and `/library/index.html` (between `BSV-TOOLKIT` markers) | yes | — |
 | `/search/` index rows, `sitemap.xml`, register return link for `/library/source/*` | yes | — |
-| Library: 70 team implementations `/library/<runtime>/<team>/` keep explanation, files, examples (`gate_library_bodies.py`) | yes | — |
-| Library: full prompt / config / code `/library/source/team-<runtime>-<team>.html`; `body` removed from `/library/catalog/items.json` | — | yes |
+| Library: 70 team + 809 pack implementations keep title/summary/explanation (`gate_library_bodies.py --packs all`) | yes | — |
+| Library: full body `/library/source/team-*.html` and `/library/source/item-*.html`; `body` removed from items.json | — | yes |
 | Trader: recipe builder summary `/trading/tools/bsv-builder.html` + entry in `/trading/build/` | yes | — |
 | Trader: recipe builder `/trading/items/bsv-builder.html` + generator port `/trading/sources/bsv-builder.<hash>.js` (`build_recipe_builder.py`) | — | yes |
 | AI toolkit ↔ Library Teams cross-links (`build_crosslinks.py`, mapping `ai_team_links` in the copy file) | yes | — |

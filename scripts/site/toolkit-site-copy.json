@@ -76,21 +76,21 @@
   },
   "trader-generator": {
    "summary": {
-    "en": "Node.js generator that turns one recipe into a Pine Script v6, MQL5 or cTrader C# starter. Unsupported blocks stay visible as TODO comments instead of silently disappearing.",
-    "ja": "1つのレシピからPine Script v6・MQL5・cTrader（C#）のひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
+    "en": "Node.js generator that turns one recipe into a Pine Script v6, MQL5, MQL4, cTrader C#, cTrader Python or Bookmap Python starter. Unsupported blocks stay visible as TODO comments instead of silently disappearing.",
+    "ja": "1つのレシピからPine Script v6・MQL5・MQL4・cTrader（C#）・cTrader（Python）・Bookmap（Python）のひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
    },
    "use": {
     "en": [
      "Install Node.js 18 or later.",
-     "Run: node render.mjs <recipe.json> --target pine-v6 (or mql5 / ctrader).",
+     "Run: node render.mjs <recipe.json> --target pine-v6 (or mql5 / mql4 / ctrader / ctrader-python / bookmap-python).",
      "Paste the output into the platform editor, compile there, and resolve every TODO before relying on it.",
-     "No Node.js? Each recipe page offers the three pre-generated starters."
+     "No Node.js? Each recipe page offers the six pre-generated starters, and the browser recipe builder renders all six targets."
     ],
     "ja": [
      "Node.js 18以上を用意します。",
-     "node render.mjs <recipe.json> --target pine-v6（または mql5 / ctrader）を実行します。",
+     "node render.mjs <recipe.json> --target pine-v6（または mql5 / mql4 / ctrader / ctrader-python / bookmap-python）を実行します。",
      "出力を各プラットフォームのエディターに貼り付けてコンパイルし、TODOをすべて解消してから使います。",
-     "Node.jsがなくても、各レシピのページで3種類の生成済みひな形を取得できます。"
+     "Node.jsがなくても、各レシピのページで6種類の生成済みひな形を取得でき、ブラウザのレシピビルダーでも6種類すべてを生成できます。"
     ]
    }
   },
@@ -211,6 +211,66 @@
      "使い道の例：スナップショット収集、価格履歴の調査補助、取引所間の比較、イベント監視、MCPリサーチ、自作Velaチャートへのデータ供給。"
     ]
    }
+  },
+  "mt4-ema-atr": {
+   "summary": {
+    "en": "MQL4 custom indicator for MT4: EMA with ATR upper/lower bands in the chart window. Compile in MetaEditor (MT4) before use.",
+    "ja": "MT4用のMQL4カスタムインジケーター。チャート上にEMAとATRの上下バンドを表示します。使う前にMT4のMetaEditorでコンパイルしてください。"
+   },
+   "use": {
+    "en": [
+     "Open code (free email verification) and copy BSV_EmaAtrOverlay.mq4.",
+     "MT4 → MetaEditor → File → New → Custom Indicator, paste, then Compile (F7).",
+     "Attach it to a chart and adjust the EMA / ATR inputs.",
+     "Check it on history and a demo account before relying on it."
+    ],
+    "ja": [
+     "メール確認（無料）でコードを開き、BSV_EmaAtrOverlay.mq4をコピーします。",
+     "MT4のMetaEditorで「ファイル→新規作成→カスタムインディケータ」を選んで貼り付け、コンパイル（F7）します。",
+     "チャートに適用し、EMAとATRの設定を調整します。",
+     "過去データとデモ口座で確認してから使います。"
+    ]
+   }
+  },
+  "ctrader-python-ema-atr": {
+   "summary": {
+    "en": "cTrader Algo Python indicator: a C# attribute file for parameters/outputs plus a _main.py with the EMA + ATR band logic. Build in cTrader before use.",
+    "ja": "cTrader AlgoのPythonインジケーター。パラメーターと出力を宣言するC#属性ファイルと、EMA＋ATRバンドの処理を書いた_main.pyの2ファイル構成です。使う前にcTraderでビルドしてください。"
+   },
+   "use": {
+    "en": [
+     "Open code (free email verification) to get both files.",
+     "cTrader → Algo → Indicators → New → Python, name it BsvEmaAtrOverlayPy.",
+     "Replace the .cs attribute file and the _main.py file with the BSV versions, then Build (Ctrl+B).",
+     "Add it to a chart and check it on history before customizing."
+    ],
+    "ja": [
+     "メール確認（無料）でコードを開き、2つのファイルを取得します。",
+     "cTraderの「Algo→インジケーター→新規→Python」で、名前をBsvEmaAtrOverlayPyにして作成します。",
+     ".csの属性ファイルと_main.pyをBSV版に置き換え、ビルド（Ctrl+B）します。",
+     "チャートに追加し、過去データで確認してから改造します。"
+    ]
+   }
+  },
+  "bookmap-trade-ema": {
+   "summary": {
+    "en": "Bookmap Python API add-on (open beta API) that draws an EMA of trade prices on the main heatmap. No order placement.",
+    "ja": "Bookmap Python API（オープンベータ）のアドオン。約定価格のEMAをメインのヒートマップ上に描きます。注文は出しません。"
+   },
+   "use": {
+    "en": [
+     "Open code (free email verification) and copy bsv_trade_ema.py.",
+     "Set up the Bookmap Python API add-on as described in the official BookmapAPI/python-api guide (open beta).",
+     "Load bsv_trade_ema.py as a Python add-on and enable it for an instrument.",
+     "Adjust EMA_LENGTH / SAMPLE_SECONDS and check the line against the heatmap before relying on it."
+    ],
+    "ja": [
+     "メール確認（無料）でコードを開き、bsv_trade_ema.pyをコピーします。",
+     "公式のBookmapAPI/python-apiの手順（オープンベータ）に沿ってPython APIアドオンを準備します。",
+     "bsv_trade_ema.pyをPythonアドオンとして読み込み、銘柄に対して有効にします。",
+     "EMA_LENGTHとSAMPLE_SECONDSを調整し、ヒートマップと見比べて確認してから使います。"
+    ]
+   }
   }
  },
  "recipes": {
@@ -249,6 +309,12 @@
   },
   "webhook-alert-router": {
    "ja": "条件と構造化Webhookメッセージのひな形。メッセージに秘密情報を入れないでください。"
+  },
+  "golden-cross-alert": {
+   "ja": "SMA50とSMA200のクロスを、確定足ごとに上下それぞれ1回だけ知らせるひな形。定番の相場環境シグナルで、売買システムではありません。収益性の主張はしません。"
+  },
+  "ema-cross-rsi-filter": {
+   "ja": "EMA9とEMA21のクロスのうち、RSI14が同じ向き（上抜けは50超、下抜けは50未満）のときだけ知らせるひな形。フィルター付きモメンタムアラートの出発点で、収益性の主張はしません。"
   }
  },
  "ai_types": {

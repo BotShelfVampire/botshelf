@@ -40,8 +40,11 @@ node trader-toolkit/generator/render.mjs trader-toolkit/recipes/mtf-trend-panel.
 Other current targets:
 
 ```bash
---target mql5
---target ctrader
+--target mql5            # MT5
+--target ctrader         # cTrader C#
+--target mql4            # MT4
+--target ctrader-python  # cTrader Python (attribute file in the header comments)
+--target bookmap-python  # Bookmap Python API add-on (open beta; time bars built from trades)
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.

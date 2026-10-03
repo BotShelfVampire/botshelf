@@ -34,7 +34,7 @@ var FIELDS={
 var DEFAULTS={'indicator.ema':{source:'close',length:20},'indicator.sma':{source:'close',length:50},'indicator.rsi':{source:'close',length:14},'indicator.atr':{length:14},
  'filter.session':{session:'0800-1200',timezone:'Europe/London'},'signal.cross':{left:'',right:'',direction:'above'},'signal.threshold':{left:'',op:'>=',value:50},
  'signal.combine':{mode:'all',signals:[]},'visual.plot':{source:'',title:''},'alert.condition':{when:'',message:'BSV recipe alert'}};
-var EXT={'pine-v6':'.pine','mql5':'.mq5','ctrader':'.cs'};
+var EXT={'pine-v6':'.pine','mql5':'.mq5','ctrader':'.cs','mql4':'.mq4','ctrader-python':'.py','bookmap-python':'.py'};
 var KEY='bsv-rb-draft-v1';
 function $(s){return document.querySelector(s)}
 function el(tag,attrs,kids){var e=document.createElement(tag);if(attrs)Object.keys(attrs).forEach(function(k){if(k==='text')e.textContent=attrs[k];else e.setAttribute(k,attrs[k])});(kids||[]).forEach(function(c){e.appendChild(c)});return e}
@@ -127,7 +127,7 @@ def port_js(repo: Path) -> str:
     types = schema["properties"]["blocks"]["items"]["properties"]["type"]["enum"]
     return ("/* BSV recipe builder — gated. Generator functions are copied verbatim from trader-toolkit/generator/render.mjs (MIT). */\n"
             "(function(root){'use strict';\n" + src[i:] +
-            "\nvar RENDER={'pine-v6':renderPine,'mql5':renderMql5,'ctrader':renderCTrader};\n"
+            "\nvar RENDER={'pine-v6':renderPine,'mql5':renderMql5,'ctrader':renderCTrader,'mql4':renderMql4,'ctrader-python':renderCTraderPython,'bookmap-python':renderBookmapPython};\n"
             f"var RECIPES={json.dumps(recipes, ensure_ascii=False)};\nvar TYPES={json.dumps(types)};\n"
             "root.BSVRender={validate:validateRecipe,render:function(r,t){validateRecipe(r);return RENDER[t](r)},recipes:RECIPES,types:TYPES};\n"
             + UI_JS.replace("__PRICE__", json.dumps(PRICE)) + "\n})(typeof window!=='undefined'?window:globalThis);\n")
@@ -152,7 +152,7 @@ def main():
     body = (
         f'<div class="container detail"><div class="breadcrumb"><a href="/trading/">← Traders Library</a> / <a href="/trading/build/">{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</a> / {both(T("Recipe builder", "レシピビルダー"))}</div>'
         f'<h1 class="detail-title">{both(T("Recipe builder", "レシピビルダー"))}</h1>'
-        f'{both(T("Pick a starter or start blank, edit the blocks, and the BSV generator renders TradingView Pine v6, MT5 MQL5 and cTrader C# right here in your browser. Nothing is sent to a server.", "ひな形を選ぶか白紙から始めてブロックを編集すると、BSVジェネレーターがTradingView（Pine v6）・MT5（MQL5）・cTrader（C#）のコードをこのブラウザ内で生成します。サーバーには何も送信しません。"), "p", "detail-lead")}'
+        f'{both(T("Pick a starter or start blank, edit the blocks, and the BSV generator renders TradingView Pine v6, MT5 MQL5, MT4 MQL4, cTrader C#, cTrader Python and Bookmap Python right here in your browser. Nothing is sent to a server.", "ひな形を選ぶか白紙から始めてブロックを編集すると、BSVジェネレーターがTradingView（Pine v6）・MT5（MQL5）・MT4（MQL4）・cTrader（C#／Python）・Bookmap（Python）のコードをこのブラウザ内で生成します。サーバーには何も送信しません。"), "p", "detail-lead")}'
         f'<div class="notice"><p>{both(T("Output is a structural starter: compile it on your platform and resolve every TODO marker before use. Not runtime tested by BSV; not investment advice; no profitability is promised.", "出力は構造のひな形です。各プラットフォームでコンパイルし、TODOをすべて解消してから使ってください。BSVでは実行検証していません。投資助言ではなく、収益も保証しません。"))}</p></div>'
         '<noscript><p class="no-js">JavaScript is required for the builder.</p></noscript>'
         '<div id="rb-app" class="rb-wrap"><section class="rb-panel" aria-label="Recipe editor">'
@@ -165,7 +165,7 @@ def main():
         f'<details class="source-block"><summary>{both(T("Recipe JSON (import / export)", "レシピJSON（読み込み・書き出し）"))}</summary><div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-json-apply">Apply JSON</button><button type="button" class="btn small-btn" id="rb-dl-json">Download recipe JSON</button></div><textarea id="rb-json" spellcheck="false" aria-label="Recipe JSON"></textarea></details>'
         '</section><section class="rb-panel rb-sticky" aria-label="Generated code">'
         f'<h2>{both(T("3. Generated code", "3. 生成されたコード"))}</h2>'
-        '<div class="rb-tabs" role="group" aria-label="Target"><button type="button" class="btn small-btn" data-rb-target="pine-v6" aria-pressed="true">TradingView · Pine v6</button><button type="button" class="btn small-btn" data-rb-target="mql5" aria-pressed="false">MT5 · MQL5</button><button type="button" class="btn small-btn" data-rb-target="ctrader" aria-pressed="false">cTrader · C#</button></div>'
+        '<div class="rb-tabs" role="group" aria-label="Target"><button type="button" class="btn small-btn" data-rb-target="pine-v6" aria-pressed="true">TradingView · Pine v6</button><button type="button" class="btn small-btn" data-rb-target="mql5" aria-pressed="false">MT5 · MQL5</button><button type="button" class="btn small-btn" data-rb-target="ctrader" aria-pressed="false">cTrader · C#</button><button type="button" class="btn small-btn" data-rb-target="mql4" aria-pressed="false">MT4 · MQL4</button><button type="button" class="btn small-btn" data-rb-target="ctrader-python" aria-pressed="false">cTrader · Python</button><button type="button" class="btn small-btn" data-rb-target="bookmap-python" aria-pressed="false">Bookmap · Python</button></div>'
         '<p id="rb-err" role="alert" hidden></p><p class="small" id="rb-todo"></p>'
         '<div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-copy">Copy code</button><button type="button" class="btn small-btn" id="rb-dl">Download file</button></div>'
         '<pre id="rb-out" tabindex="0" aria-live="polite"></pre></section></div>'
@@ -173,33 +173,33 @@ def main():
         f'<p class="small"><a href="/trading/tools/{SLUG}.html">{both(T("← Back to the summary page", "← 解説ページへ戻る"))}</a></p></div>'
     )
     extra = f'<style>{CSS.strip()}</style><script src="{js_path}" defer></script>'
-    blt.write(site / f"trading/items/{SLUG}.html", blt.trader_shell(site, "Recipe builder — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and render Pine v6, MQL5 and cTrader starters in the browser.", f"/trading/tools/{SLUG}.html", body, robots="noindex,nofollow", extra_head=extra))
+    blt.write(site / f"trading/items/{SLUG}.html", blt.trader_shell(site, "Recipe builder — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and render Pine v6, MQL5, MQL4, cTrader (C# / Python) and Bookmap Python starters in the browser.", f"/trading/tools/{SLUG}.html", body, robots="noindex,nofollow", extra_head=extra))
 
     # ---- public summary page (no generator code)
     nxt = f"/trading/register.html?next=%2Ftrading%2Fitems%2F{SLUG}.html"
     pub = (
         f'<div class="container detail"><div class="breadcrumb"><a href="/trading/">← Traders Library</a> / <a href="/trading/build/">{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</a> / {both(T("Recipe builder", "レシピビルダー"))}</div>'
-        f'<article class="prose"><div class="badges"><span class="badge">TradingView · MT5 · cTrader</span><span class="badge license">MIT</span><span class="badge">FREE</span></div>'
+        f'<article class="prose"><div class="badges"><span class="badge">TradingView · MT5 · MT4 · cTrader · Bookmap</span><span class="badge license">MIT</span><span class="badge">FREE</span></div>'
         f'<h1 class="detail-title">{both(T("Recipe builder (in your browser)", "レシピビルダー（ブラウザで動作）"))}</h1>'
-        f'{both(T("Edit indicator, signal, plot and alert blocks in a form and get Pine v6, MQL5 and cTrader C# starters generated instantly in your browser — the same BSV generator used for the pre-built recipes.", "指標・シグナル・プロット・アラートのブロックをフォームで編集すると、Pine v6・MQL5・cTrader C#のひな形がブラウザ内ですぐ生成されます。生成済みレシピと同じBSVジェネレーターです。"), "p", "detail-lead")}'
+        f'{both(T("Edit indicator, signal, plot and alert blocks in a form and get Pine v6, MQL5, MQL4, cTrader C#, cTrader Python and Bookmap Python starters generated instantly in your browser — the same BSV generator used for the pre-built recipes.", "指標・シグナル・プロット・アラートのブロックをフォームで編集すると、Pine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）のひな形がブラウザ内ですぐ生成されます。生成済みレシピと同じBSVジェネレーターです。"), "p", "detail-lead")}'
         f'<p><span class="bb-status bb-warn">{both(T("Browser port of the repository generator — output not runtime tested", "リポジトリのジェネレーターをブラウザに移植・出力は実行検証なし"))}</span> <span class="bb-orig">ORIGINAL BSV SOURCE</span></p>'
         f'<p><a class="btn primary" href="{nxt}" data-source-access="{SLUG}">{both(T("Open the builder — free email verification", "ビルダーを開く（無料のメール確認）"))}</a></p>'
         f'{both(T("The explanation is public. Using the builder (it contains the generator source) requires free email verification. Free stays free.", "解説は登録なしで読めます。ビルダー（ジェネレーターのソースを含みます）の利用には無料のメール確認が必要です。無料のものは無料のままです。"), "p", "small")}'
-        f'<h2>{both(T("What you can do", "できること"))}</h2><ul data-lang="en"><li>Start from one of {n_rec} starter recipes or a blank recipe.</li><li>Add, remove, reorder and edit blocks: EMA, SMA, RSI, ATR, session filter, cross, threshold, combine, plot, alert.</li><li>Switch the target between Pine v6, MQL5 and cTrader and see the TODO count for blocks a target cannot express yet.</li><li>Copy or download the code and the recipe JSON. Drafts stay in your browser.</li></ul>'
-        f'<ul data-lang="ja"><li>{n_rec}種類のひな形レシピか、白紙から始められます。</li><li>ブロック（EMA・SMA・RSI・ATR・時間帯フィルター・クロス・しきい値・組み合わせ・プロット・アラート）の追加・削除・並べ替え・編集ができます。</li><li>出力先をPine v6・MQL5・cTraderで切り替え、出力先でまだ表現できないブロックのTODO数を確認できます。</li><li>コードとレシピJSONをコピー・ダウンロードできます。下書きはブラウザ内に保存されます。</li></ul>'
+        f'<h2>{both(T("What you can do", "できること"))}</h2><ul data-lang="en"><li>Start from one of {n_rec} starter recipes or a blank recipe.</li><li>Add, remove, reorder and edit blocks: EMA, SMA, RSI, ATR, session filter, cross, threshold, combine, plot, alert.</li><li>Switch the target between Pine v6, MQL5, MQL4, cTrader C#, cTrader Python and Bookmap Python and see the TODO count for blocks a target cannot express yet.</li><li>Copy or download the code and the recipe JSON. Drafts stay in your browser.</li></ul>'
+        f'<ul data-lang="ja"><li>{n_rec}種類のひな形レシピか、白紙から始められます。</li><li>ブロック（EMA・SMA・RSI・ATR・時間帯フィルター・クロス・しきい値・組み合わせ・プロット・アラート）の追加・削除・並べ替え・編集ができます。</li><li>出力先をPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）で切り替え、出力先でまだ表現できないブロックのTODO数を確認できます。</li><li>コードとレシピJSONをコピー・ダウンロードできます。下書きはブラウザ内に保存されます。</li></ul>'
         f'<h2>{both(T("Verification status", "検証状態"))}</h2><table class="qa-table"><tbody>'
         f'<tr><td>{both(T("Generator parity", "ジェネレーターとの一致"))}</td><td>{both(T("Browser output is byte-identical to the repository generator for every starter recipe and target (automated check).", "すべてのひな形レシピと出力先で、ブラウザの出力がリポジトリのジェネレーターと完全に一致することを自動確認しています。"))}</td></tr>'
         f'<tr><td>{both(T("Compile on the platform", "プラットフォームでのコンパイル"))}</td><td>{both(T("Not performed by BSV", "BSVでは未実施"))}</td></tr>'
         f'<tr><td>{both(T("Backtest / demo / live run", "バックテスト・デモ・実運用"))}</td><td>{both(T("Not performed", "未実施"))}</td></tr></tbody></table>'
         f'<p class="small"><a href="/trading/build/">{both(T("← Build your own chart tool", "← 自分のチャートツールを作る"))}</a></p></article></div>'
     )
-    blt.write(site / f"trading/tools/{SLUG}.html", blt.trader_shell(site, "Recipe builder (browser) — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and generate Pine v6, MQL5 and cTrader starters in your browser. Free with email verification.", f"/trading/tools/{SLUG}.html", pub))
+    blt.write(site / f"trading/tools/{SLUG}.html", blt.trader_shell(site, "Recipe builder (browser) — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader (C# / Python) and Bookmap Python starters in your browser. Free with email verification.", f"/trading/tools/{SLUG}.html", pub))
 
     # ---- entry in the existing build hub
     hp = site / "trading/build/index.html"
     hub = hp.read_text()
     entry = (f'<section class="container bb-section" id="builder"><div class="bb-entry"><div><p class="eyebrow">{both(T("New · in your browser", "新着・ブラウザで動作"))}</p>'
-             f'<h2>{both(T("Recipe builder", "レシピビルダー"))}</h2>{both(T("Edit blocks in a form and get Pine v6 / MQL5 / cTrader starters instantly. Free with email verification.", "ブロックをフォームで編集すると、Pine v6・MQL5・cTraderのひな形がすぐ生成されます。無料のメール確認で使えます。"), "p")}</div>'
+             f'<h2>{both(T("Recipe builder", "レシピビルダー"))}</h2>{both(T("Edit blocks in a form and get Pine v6 / MQL5 / MQL4 / cTrader / Bookmap starters instantly. Free with email verification.", "ブロックをフォームで編集すると、Pine v6・MQL5・MQL4・cTrader・Bookmapのひな形がすぐ生成されます。無料のメール確認で使えます。"), "p")}</div>'
              f'<a class="btn primary" href="/trading/tools/{SLUG}.html">{both(T("Open recipe builder", "レシピビルダーへ"))}</a></div></section>')
     hub = blt.replace_block(hub, "recipe-builder", entry, '<section class="container bb-section" id="paths">')
     hp.write_text(hub, encoding="utf-8")
@@ -211,8 +211,8 @@ def main():
     idx = json.loads(ip.read_text())
     idx["rows"] = [r for r in idx["rows"] if r.get("id") != SLUG] + [{
         "s": "trading", "id": SLUG, "t": "Recipe builder (browser)", "k": "Builder", "kj": "ビルダー", "c": "Build your own chart tool",
-        "p": ["TradingView", "MT5", "cTrader"], "d": "Edit recipe blocks and generate Pine v6, MQL5 and cTrader starters in your browser.",
-        "dj": "レシピのブロックを編集して、Pine v6・MQL5・cTraderのひな形をブラウザで生成します。", "x": "recipe builder generator editor pine mql5 ctrader ORIGINAL BSV MIT",
+        "p": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap"], "d": "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader and Bookmap starters in your browser.",
+        "dj": "レシピのブロックを編集して、Pine v6・MQL5・MQL4・cTrader・Bookmapのひな形をブラウザで生成します。", "x": "recipe builder generator editor pine mql5 mql4 mt4 ctrader python bookmap ORIGINAL BSV MIT",
         "u": f"/trading/tools/{SLUG}.html", "uj": f"/trading/tools/{SLUG}.html?lang=ja", "a": "free"}]
     ip.write_text(json.dumps(idx, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     smp = site / "sitemap.xml"
