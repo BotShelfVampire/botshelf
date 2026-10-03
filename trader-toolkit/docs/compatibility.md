@@ -21,6 +21,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | ATAS | C# indicator API (`ATAS.Indicators`) | generator target (`atas`: `Indicator` with `OnCalculate`, `GetCandle`, `ValueDataSeries` lines, closed-bar `AddAlert`; EMA/SMA/RSI/ATR computed in the code; no orders) | Compiles with the .NET 8 C# compiler against BSV stubs written from the ATAS API reference; ATAS build and chart test still required |
 | AmiBroker | AFL (AmiBroker Formula Language) | generator target (`amibroker`: indicator formula with `MA`/`EMA`/`RSIa`/`ATR`, explicit cross comparisons with `Ref`, `Plot`, completed-bar `AlertIf`; no `Buy`/`Sell`/`Short`/`Cover`) | Checked by a BSV AFL-subset parser/evaluator (`check_amibroker_afl.mjs`); AmiBroker verification still required |
 | thinkorswim | thinkScript | generator target (`thinkscript`: study with `ExpAverage`/`Average`/`WildersAverage`/`TrueRange`, explicit cross comparisons, plots, `Alert(cond[1], …, Alert.BAR)`; no `AddOrder`) | Checked by a BSV thinkScript-subset parser/evaluator (`check_thinkscript.mjs`); thinkorswim verification still required |
+| Tradovate | Custom indicators (JavaScript) | generator target (`tradovate`: `module.exports` indicator, `Calculator.init`/`map(d, index)`, EMA/SMA/RSI/ATR computed in the generated code, `predef.plotters.singleline`/`dots`, closed-bar alert dots via `shifts`; no orders, no network calls) | Checked by running the output in node:vm against a BSV stub of the documented API (`check_tradovate.mjs`); Tradovate verification still required |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
 
 ## Vela
@@ -214,3 +215,16 @@ Sources:
 - https://tlc.thinkorswim.com/center/reference/thinkScript/Functions/Date---Time/SecondsFromTime (also SecondsTillTime)
 - https://tlc.thinkorswim.com/center/reference/thinkScript/Reserved-Words/plot (also def, declare, if, yes, no, crosses), …/Declarations/lower
 - https://toslc.thinkorswim.com/center/howToTos/thinkManual/charts/Using-Studies-and-Strategies (Edit studies… > Create… / Import…)
+
+## Tradovate (JavaScript custom indicators)
+
+Generator target since 2026-10-04 (`tradovate`): builder, CLI and a pre-generated starter on every recipe page. Status: UNTESTED_RUNTIME.
+
+The target writes one custom indicator as documented at tradovate.github.io/custom-indicators: `module.exports` with `name`, `description`, `calculator`, `params`, `inputType: "bars"`, `areaChoice`, `tags`, `plots`, `plotter`, `shifts` and `schemeStyles`, and a calculator class with `init()` and `map(d, index)` that reads `d.open()`/`high()`/`low()`/`close()`/`timestamp()`. EMA, SMA, RSI (Wilder) and ATR are computed in the generated code, seeded with the simple average of the first bars, so the only `require` is `./tools/predef` for `plotters.singleline`/`dots`. State is kept per bar index, so a repeated `map()` call for the forming bar recomputes that bar from the closed one before it. The published API has no alert call, so each alert condition is a dot plot (`A1`, `A2`, …) shifted onto the bar that just closed; notifications are left to the user. Session filters convert the bar time with `Intl.DateTimeFormat` to the recipe time zone. No orders, no network calls.
+
+Checked by BSV: `scripts/site/check_tradovate.mjs` runs every recipe's output in a bare node:vm context against a BSV stub of the documented API. It checks the exported fields and values, that only predef is required, that there are no network, eval, timer or order calls, that EMA/SMA/RSI/ATR equal an independent reference on every bar (and stay empty while warming up), that signals and session filters equal an independent reference, that re-running the forming bar with other prices changes nothing, and that alert dots appear only on closed bars, once per bar, with no misses. Deliberately broken outputs (alert on the forming bar, wrong Wilder average, inclusive session end) all fail. This is not Tradovate: nothing was verified or run in Tradovate by BSV.
+
+Sources:
+- https://tradovate.github.io/custom-indicators/ (Indicator, Calculator, BarInputEntity, Plots, ParameterDefinitions interfaces)
+- https://tradovate.github.io/custom-indicators/pages/Tutorial/ExponentialMovingAverage.html, …/DoubleEMA.html, …/SignalingATR.html, …/Alligator.html (shifts)
+- https://community.tradovate.com/t/is-it-possible-creating-own-indicators-like-in-tv/3050 (Code Explorer module)

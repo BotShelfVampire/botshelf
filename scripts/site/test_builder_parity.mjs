@@ -10,7 +10,7 @@ vm.runInContext(fs.readFileSync(path.join(site, 'trading/sources', js[0]), 'utf8
 const R = ctx.BSVRender; let n = 0, bad = 0;
 for (const f of fs.readdirSync(path.join(repo, 'trader-toolkit/recipes')).filter(f => f.endsWith('.json'))) {
   const p = path.join(repo, 'trader-toolkit/recipes', f);
-  for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower', 'sierra-acsil', 'prorealtime', 'gocharting-lipi', 'motivewave', 'vela', 'jforex', 'easylanguage', 'atas', 'amibroker', 'thinkscript']) {
+  for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower', 'sierra-acsil', 'prorealtime', 'gocharting-lipi', 'motivewave', 'vela', 'jforex', 'easylanguage', 'atas', 'amibroker', 'thinkscript', 'tradovate']) {
     const want = execFileSync('node', [path.join(repo, 'trader-toolkit/generator/render.mjs'), p, '--target', t], { encoding: 'utf8' });
     const got = R.render(JSON.parse(fs.readFileSync(p, 'utf8')), t); n++;
     if (got !== want) { bad++; console.log('MISMATCH', f, t); }
