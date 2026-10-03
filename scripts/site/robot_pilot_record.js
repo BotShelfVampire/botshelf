@@ -127,6 +127,11 @@
     });
     return rows.join('\r\n') + '\r\n';
   }
+  // Practice-log backup (#7 tranche 10): the whole log as one JSON array of session-evidence documents, unchanged, so
+  // the import below can restore it in another browser. Pure function: nothing is uploaded.
+  function toJson(list) {
+    return JSON.stringify((Array.isArray(list) ? list : []).filter(function (e) { return e && typeof e === 'object' && !Array.isArray(e); }), null, 2) + '\n';
+  }
   // Practice-log import (#7 tranche 9): add session-evidence files back into the browser log. Only documents that are
   // session evidence AND valid against the published schema are added; an evidenceId already in the log is skipped;
   // the log keeps its last 20 sessions, as the Save button does. Pure function: nothing is uploaded.
@@ -147,7 +152,7 @@
     return { list: out.slice(-LOG_MAX), added: added, skipped: skipped, rejected: rejected, dropped: dropped };
   }
 
-  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf, summarize: summarize, toCsv: toCsv, mergeLog: mergeLog };
+  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf, summarize: summarize, toCsv: toCsv, toJson: toJson, mergeLog: mergeLog };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BSVPilot = api;
   if (!root.document) return;
@@ -189,6 +194,7 @@
     renderLog();
     $('#rp-save').addEventListener('click', renderLog);
     var csvb = $('#rp-log-csv'); if (csvb) csvb.addEventListener('click', function () { var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} var b = new Blob([toCsv(a)], { type: 'text/csv' }), l = root.document.createElement('a'); l.href = URL.createObjectURL(b); l.download = 'bsv-practice-log.csv'; root.document.body.appendChild(l); l.click(); setTimeout(function () { URL.revokeObjectURL(l.href); l.remove(); }, 500); });
+    var jsb = $('#rp-log-json'); if (jsb) jsb.addEventListener('click', function () { var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} var b = new Blob([toJson(a)], { type: 'application/json' }), l = root.document.createElement('a'); l.href = URL.createObjectURL(b); l.download = 'bsv-practice-log.json'; root.document.body.appendChild(l); l.click(); setTimeout(function () { URL.revokeObjectURL(l.href); l.remove(); }, 500); });
     var imp = $('#rp-log-import'); if (imp) imp.addEventListener('change', function () {
       var m = $('#rp-log-import-msg'), fs0 = [].slice.call(imp.files || []); if (!m || !fs0.length) return;
       m.className = 'rq-msg'; m.textContent = 'Checking ' + fs0.length + ' file(s)…';
