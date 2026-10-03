@@ -257,6 +257,48 @@ def breadcrumbs(site: Path) -> dict:
     return {"breadcrumbs_added": added}
 
 
+# Paths the free-session edge gate serves only to verified sessions (netlify/edge-functions/free-session-gate.ts).
+GATED_PATHS = ("/registered.html", "/registered", "/switchboard-cos.html", "/switchboard-cos", "/trading/items/", "/trading/sources/", "/trading/downloads/", "/library/source/")
+
+
+def is_gated(u: str) -> bool:
+    p = u[len(ORIGIN):] if u.startswith(ORIGIN) else u
+    return any(p == g or (g.endswith("/") and p.startswith(g)) for g in GATED_PATHS)
+
+
+def sitemaps_sync(site: Path) -> dict:
+    """sitemap.xml is the source of truth: drop gated URLs from it, make sitemap.txt the same URL set, and point the
+    legacy /trading/sitemap.xml at the public /trading/tools/ descriptions instead of gated /trading/items/ pages."""
+    smp = site / "sitemap.xml"
+    s = smp.read_text()
+    dropped = []
+    def keep(m):
+        if is_gated(m.group(1)):
+            dropped.append(m.group(1))
+            return ""
+        return m.group(0)
+    s = re.sub(r"[ \t]*<url><loc>([^<]+)</loc>.*?</url>\n?", keep, s, flags=re.S)
+    smp.write_text(s)
+    locs = re.findall(r"<loc>([^<]+)</loc>", s)
+    (site / "sitemap.txt").write_text("\n".join(locs) + "\n")
+    tsm = site / "trading/sitemap.xml"
+    moved = 0
+    if tsm.exists():
+        t = tsm.read_text()
+        def fix(m):
+            nonlocal moved
+            u = m.group(1)
+            mm = re.match(re.escape(ORIGIN) + r"/trading/items/([a-z0-9-]+)\.html$", u)
+            if mm and (site / f"trading/tools/{mm.group(1)}.html").exists():
+                moved += 1
+                return f"<loc>{ORIGIN}/trading/tools/{mm.group(1)}.html</loc>"
+            return m.group(0)
+        t = re.sub(r"<loc>([^<]+)</loc>", fix, t)
+        t = re.sub(r"<url><loc>([^<]+)</loc>.*?</url>", lambda m: "" if is_gated(m.group(1)) else m.group(0), t, flags=re.S)
+        tsm.write_text(t)
+    return {"sitemap_gated_dropped": dropped, "sitemap_txt": len(locs), "trading_sitemap_moved_to_tools": moved}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--site", required=True)
@@ -270,6 +312,7 @@ def main():
     out.update(llms(site, today))
     out.update(org_email(site))
     out.update(breadcrumbs(site))
+    out.update(sitemaps_sync(site))
     print(json.dumps(out, ensure_ascii=False))
 
 

@@ -119,6 +119,23 @@ def schema_errors(x, sc, path="$"):
     return errs
 
 
+class _NoRedirect(__import__("urllib.request").request.HTTPRedirectHandler):
+    def redirect_request(self, *a, **k):
+        return None
+
+
+def status_no_redirect(u):
+    import urllib.request, urllib.error
+    op = urllib.request.build_opener(_NoRedirect)
+    try:
+        r = op.open(urllib.request.Request(u, method="HEAD", headers={"User-Agent": "Mozilla/5.0 BSV-discovery-check"}), timeout=30)
+        return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception:
+        return -1
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--site", required=True)
@@ -202,6 +219,18 @@ def main():
     ok(not re.search(r"local_source|sources/|@[a-z0-9-]+\.[a-z]", json.dumps(cm)) , "capabilities: no gated paths or emails")
     ok(m.get("capabilityManifests", {}).get("url") == ORIGIN + "/capabilities/index.json", "trust manifest links capability manifests")
     ok(ORIGIN + "/capabilities/index.json" in rd("llms.txt"), "llms links capability manifests")
+    # sitemaps: no gated URLs anywhere, txt == xml, legacy trading sitemap on public pages (#8 tranche 4)
+    edge = s.parent / "netlify/edge-functions/free-session-gate.ts"
+    if edge.exists():
+        pl = re.search(r"path:\s*\[([^\]]*)\]", edge.read_text()).group(1)
+        want = {x.rstrip("*") for x in re.findall(r'"([^"]+)"', pl)}
+        ok(want == set(bd.GATED_PATHS), f"GATED_PATHS match the edge gate config {sorted(want ^ set(bd.GATED_PATHS))}")
+    txt = [l.strip() for l in rd("sitemap.txt").splitlines() if l.strip()]
+    ok(set(txt) == set(locs) and len(txt) == len(locs), "sitemap.txt has exactly the sitemap.xml URLs")
+    tlocs = re.findall(r"<loc>([^<]+)</loc>", rd("trading/sitemap.xml"))
+    ok(not [u for u in list(locs) + txt + tlocs if bd.is_gated(u)], "no gated URL in any sitemap")
+    ok(tlocs and all(bd.url_to_file(s, u).exists() for u in tlocs), "trading/sitemap.xml URLs exist")
+    ok(not [c["canonicalUrl"] for c in cm["capabilities"] if bd.is_gated(c["canonicalUrl"])], "capability canonical URLs are public pages")
     # trust facts re-read from the built pages
     for key, page, sent in bd.FACTS:
         ok(sent in bd.visible_text(s / page), f"trust fact {key} not on {page}")
@@ -224,6 +253,13 @@ def main():
         for u in re.findall(r"https://botshelfvampire\.com/[^\s)]*", files[2].split(bd.LL_BEGIN, 1)[1]):
             st, _, _ = get(u.replace(ORIGIN, L))
             ok(st == 200, f"live llms link {u} {st}")
+        # every sitemap / capability URL answers 200 to an anonymous visitor without a redirect
+        from concurrent.futures import ThreadPoolExecutor
+        urls = sorted(set(locs) | set(tlocs) | {c["canonicalUrl"] for c in cm["capabilities"]})
+        with ThreadPoolExecutor(16) as ex:
+            sts = list(ex.map(lambda u: status_no_redirect(u.replace(ORIGIN, L)), urls))
+        badu = [(u, x) for u, x in zip(urls, sts) if x != 200]
+        ok(not badu, f"live: {len(urls)} sitemap/capability URLs 200 without redirect; bad {badu[:5]}")
         for ua in ["OAI-SearchBot/1.0; +https://openai.com/searchbot", "Mozilla/5.0"]:
             st, _, _ = get(f"{L}/trading/build/", ua)
             ok(st == 200, f"live /trading/build/ for {ua} {st}")
