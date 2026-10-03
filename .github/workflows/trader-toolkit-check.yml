@@ -1,0 +1,54 @@
+name: Trader toolkit structural check
+
+on:
+  push:
+    paths:
+      - 'trader-toolkit/**'
+      - '.github/workflows/trader-toolkit-check.yml'
+  pull_request:
+    paths:
+      - 'trader-toolkit/**'
+      - '.github/workflows/trader-toolkit-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check generator syntax
+        run: node --check trader-toolkit/generator/render.mjs
+      - name: Parse recipe JSON
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const dir = 'trader-toolkit/recipes';
+          for (const name of fs.readdirSync(dir).filter(x => x.endsWith('.json'))) {
+            const p = path.join(dir, name);
+            const x = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (x.schemaVersion !== '0.1' || !x.name || !Array.isArray(x.blocks)) {
+              throw new Error('Invalid basic recipe structure: ' + p);
+            }
+            const ids = new Set();
+            for (const b of x.blocks) {
+              if (!b.id || !b.type || typeof b.params !== 'object') throw new Error('Invalid block in ' + p);
+              if (ids.has(b.id)) throw new Error('Duplicate block id ' + b.id + ' in ' + p);
+              ids.add(b.id);
+            }
+          }
+          NODE
+      - name: Exercise generator targets
+        run: |
+          node trader-toolkit/generator/render.mjs trader-toolkit/recipes/mtf-trend-panel.json --target pine-v6 > /tmp/bsv.pine
+          node trader-toolkit/generator/render.mjs trader-toolkit/recipes/mtf-trend-panel.json --target mql5 > /tmp/bsv.mq5
+          node trader-toolkit/generator/render.mjs trader-toolkit/recipes/mtf-trend-panel.json --target ctrader > /tmp/bsv.cs
+          test -s /tmp/bsv.pine
+          test -s /tmp/bsv.mq5
+          test -s /tmp/bsv.cs
+      - name: Confirm unsupported advanced blocks stay explicit
+        run: |
+          node trader-toolkit/generator/render.mjs trader-toolkit/recipes/liquidity-sweep-alert.json --target pine-v6 > /tmp/advanced.pine
+          grep -q 'TODO unsupported block' /tmp/advanced.pine
