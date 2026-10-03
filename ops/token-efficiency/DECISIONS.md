@@ -18,3 +18,10 @@
 - Trader must evolve from an indicator directory into a composable environment builder for charts, indicators, dashboards, scanners, alerts, data layers and personalized analysis workspaces.
 - AI must evolve from a tool directory into a giant composable parts shelf for models, agents, local AI, workflows, memory, tools, runtimes and handoffs.
 - Innovation rule: copy market-standard basics where trust/usability require them; differentiate clearly in the core product experience and value-creation model.
+
+
+- Demand must be real. Never fabricate request counts, earnings, GMV, willingness-to-pay, or opportunity scores.
+- BSV should expose real demand so builders know what to build, then shorten the path from block/recipe to a free or paid product.
+- Operator identity stays low-profile; business mechanics become unusually transparent.
+- Infrastructure may follow reliable conventions. Core product experience must contain a clearly different value structure.
+- Frontier verticals are sector views over shared capability primitives, not eight disconnected empty marketplaces.
