@@ -1,0 +1,25 @@
+//@version=6
+indicator("BSV Volatility Regime Map", overlay=false)
+
+atrLength = input.int(14, "ATR length", minval=1)
+baselineLength = input.int(50, "ATR baseline", minval=2)
+highThreshold = input.float(1.25, "High regime ratio", minval=0.1, step=0.05)
+lowThreshold = input.float(0.80, "Low regime ratio", minval=0.1, step=0.05)
+
+atr = ta.atr(atrLength)
+baseline = ta.sma(atr, baselineLength)
+ratio = baseline != 0 ? atr / baseline : na
+
+regime = ratio >= highThreshold ? 1 : ratio <= lowThreshold ? -1 : 0
+
+plot(ratio, "ATR / ATR baseline", color=regime == 1 ? color.orange : regime == -1 ? color.aqua : color.gray, linewidth=2)
+hline(1.0, "Baseline")
+hline(highThreshold, "High threshold", color=color.new(color.orange, 45))
+hline(lowThreshold, "Low threshold", color=color.new(color.aqua, 45))
+
+bgcolor(regime == 1 ? color.new(color.orange, 90) : regime == -1 ? color.new(color.aqua, 90) : na)
+
+alertcondition(regime == 1 and regime[1] != 1, "High volatility regime", "BSV: volatility moved into HIGH regime")
+alertcondition(regime == -1 and regime[1] != -1, "Low volatility regime", "BSV: volatility moved into LOW regime")
+
+// ORIGINAL BSV starter. Regime thresholds are user-defined heuristics.
