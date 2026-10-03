@@ -1,0 +1,10 @@
+{
+  "model": "YOUR_LOCAL_MODEL_ID",
+  "endpointUrl": "http://localhost:8000",
+  "servers": [
+    {
+      "type": "sse",
+      "url": "https://YOUR-TRUSTED-SPACE.hf.space/gradio_api/mcp/sse"
+    }
+  ]
+}
