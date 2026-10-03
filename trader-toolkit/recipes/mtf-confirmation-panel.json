@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Higher-Timeframe Confirmation Panel",
+  "description": "Higher-timeframe EMA/RSI context with a compact status panel.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "htf",
+      "type": "data.higher_timeframe",
+      "params": {
+        "timeframe": "60"
+      }
+    },
+    {
+      "id": "ema",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 50,
+        "timeframeRef": "htf"
+      }
+    },
+    {
+      "id": "rsi",
+      "type": "indicator.rsi",
+      "params": {
+        "source": "close",
+        "length": 14,
+        "timeframeRef": "htf"
+      }
+    },
+    {
+      "id": "rsi_ok",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": ">=",
+        "value": 50
+      }
+    },
+    {
+      "id": "panel",
+      "type": "visual.table",
+      "params": {
+        "fields": [
+          "ema",
+          "rsi",
+          "rsi_ok"
+        ],
+        "title": "HTF Confirmation"
+      }
+    }
+  ]
+}
