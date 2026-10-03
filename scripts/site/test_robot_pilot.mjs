@@ -166,5 +166,22 @@ ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?a
   const h = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
   ok(h.includes('id="rp-log-csv"') && /nothing uploaded/.test(h), "csv: download button on the Academy page, says nothing is uploaded");
 }
+// practice-log import (#7 tranche 9): valid evidence only, dedupe by evidenceId, last 20 kept, nothing else touched
+{
+  const P = require(path.join(site, "robot-pilot", jsf[0])), EVS = sch("teleop-session-evidence-v0.1.json");
+  const mkE = id => { const o = P.build(Object.assign({}, base), cur.modules, {}, { evidenceId: id, pilotId: "pilot_t" }); return o.evidence; };
+  const a = mkE("teleop_" + "a".repeat(16)), b = mkE("teleop_" + "b".repeat(16));
+  ok(validate(EV, a).length === 0, "import: fixture evidence is valid");
+  const bad = Object.assign({}, b, { evidenceId: "teleop_" + "c".repeat(16), episodes: "x" });
+  const r = P.mergeLog([a], [a, b, bad, { practiceRecords: [] }, 7, null], EVS);
+  ok(r.added === 1 && r.skipped === 1 && r.rejected.length === 4 && r.list.length === 2 && r.list[1] === b, "import: adds valid new evidence, skips same evidenceId, rejects invalid/profile/non-objects");
+  ok(/schema problem/.test(r.rejected[0].reason) && /not a session-evidence/.test(r.rejected[1].reason), "import: rejection reasons name the cause");
+  ok(P.mergeLog([], [a], null).added === 0, "import: nothing is added without the schema");
+  const many = Array.from({ length: 25 }, (_, i) => mkE("teleop_" + String(i).padStart(16, "0")));
+  const r2 = P.mergeLog([a], many, EVS);
+  ok(r2.list.length === 20 && r2.dropped === 6 && r2.list[19] === many[24] && !r2.list.includes(a), "import: log keeps the last 20, oldest dropped and counted");
+  const h = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
+  ok(/<input type="file" id="rp-log-import" multiple/.test(h) && h.includes('id="rp-log-import-msg"') && /nothing uploaded/.test(h), "import: multi-file input on the Academy page, says nothing is uploaded");
+}
 console.log(JSON.stringify({ test: "robot-pilot", checks, failures }));
 process.exit(failures ? 1 : 0);
