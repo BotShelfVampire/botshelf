@@ -1,0 +1,36 @@
+name: Opportunity ranker check
+
+on:
+  push:
+    paths:
+      - 'growth/opportunity/**'
+      - '.github/workflows/opportunity-ranker-check.yml'
+  pull_request:
+    paths:
+      - 'growth/opportunity/**'
+      - '.github/workflows/opportunity-ranker-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax check
+        run: node --check growth/opportunity/rank.mjs
+      - name: Rank fixture
+        run: |
+          node growth/opportunity/rank.mjs growth/opportunity/fixture.example.json > /tmp/ranked.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const x = JSON.parse(fs.readFileSync('/tmp/ranked.json','utf8'));
+          if (x.schemaVersion !== '0.1') process.exit(1);
+          if (!Array.isArray(x.ranked) || x.ranked.length !== 3) process.exit(1);
+          if (!/Not a revenue/i.test(x.note)) process.exit(1);
+          if (x.ranked[0].jobKey !== 'tradingview-custom-session-dashboard') process.exit(1);
+          for (const row of x.ranked) {
+            if (typeof row.demandEvidenceScore !== 'number' || !row.components || !row.counts) process.exit(1);
+          }
+          NODE
