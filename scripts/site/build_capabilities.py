@@ -169,7 +169,62 @@ def build(site: Path) -> dict:
     sd = site / "schemas"
     sd.mkdir(exist_ok=True)
     (sd / "capability-manifest-v0.1.json").write_text((REPO / "schemas/bsv-capability-manifest.schema.json").read_text())
-    return {"capabilities": len(caps), "by_status": out["counts"]["byVerificationStatus"]}
+    (d / "index.html").write_text(page(site, out))
+    smp = site / "sitemap.xml"; sm = smp.read_text(); u = ORIGIN + "/capabilities/"
+    if f"<loc>{u}</loc>" not in sm:
+        smp.write_text(sm.replace("</urlset>", f"  <url><loc>{u}</loc><lastmod>2026-10-04</lastmod></url>\n</urlset>"))
+    return {"capabilities": len(caps), "by_status": out["counts"]["byVerificationStatus"], "page": "/capabilities/"}
+
+
+def page(site: Path, out: dict) -> str:
+    """Human-readable list of the same manifests as /capabilities/index.json (Issue #8 tranche 5). Static HTML, no
+    script: every row and count is read from `out`; nothing is added or upgraded."""
+    from build_request_market import both
+    if "tcss" not in blt.ASSET:
+        blt.assets(site)
+    esc = blt.esc
+    c = out["counts"]
+    cj = json.loads((site / "trading/catalog.json").read_text()); cj = cj if isinstance(cj, list) else cj.get("items", [])
+    rt = sum(1 for i in cj if isinstance(i, dict) and i.get("runtime_tested") is True)  # counted, not typed in
+    groups = [("catalogue", "Traders Library catalogue", "Traders Library カタログ", lambda x: x["capabilityId"].startswith("trading.")),
+              ("recipes", "BSV recipes (generator)", "BSVレシピ（ジェネレーター）", lambda x: x["capabilityId"].startswith("bsv.recipe.")),
+              ("teleop", "Teleop recipes", "遠隔操作レシピ", lambda x: x["capabilityId"].startswith("bsv.teleop-recipe."))]
+    def row(x):
+        url = x.get("canonicalUrl") or ""
+        title = f'<a href="{esc(url)}">{esc(x["title"])}</a>' if url.startswith(ORIGIN + "/") else esc(x["title"])
+        return (f'<tr id="{esc(x["capabilityId"])}"><td>{title}<div class="small muted">{esc(x["job"])}</div></td><td>{esc(x["runtime"]["platform"])}</td>'
+                f'<td><code>{esc(x["verification"]["status"])}</code></td><td class="small">{esc((x.get("license") or {}).get("label") or "—")}</td>'
+                f'<td class="small">{esc((x.get("monetization") or {}).get("mode") or "—")}</td></tr>')
+    secs, chips = "", ""
+    for gid, en, ja, f in groups:
+        rows = [x for x in out["capabilities"] if f(x)]
+        if not rows:
+            continue
+        chips += f'<a class="chip" href="#{gid}">{both(en, ja)} ({len(rows)})</a>'
+        secs += (f'<section class="container bb-section" id="{gid}"><h2>{both(en, ja)} <span class="small muted">({len(rows)})</span></h2>'
+                 f'<div class="bb-table-wrap"><table class="qa-table"><thead><tr><th>{both("Capability", "機能")}</th><th>{both("Runtime", "実行環境")}</th>'
+                 f'<th>{both("Verification", "検証")}</th><th>{both("License", "ライセンス")}</th><th>{both("Access", "提供")}</th></tr></thead><tbody>'
+                 + "".join(row(x) for x in rows) + '</tbody></table></div></section>')
+    st = " · ".join(f"<code>{esc(k)}</code> {v}" for k, v in c["byVerificationStatus"].items())
+    body = (
+        '<section class="container hero bb-hero"><div><div class="eyebrow">CAPABILITY MANIFESTS</div>'
+        f'<h1>{both("What each tool does, what it needs, and what was actually checked.", "それぞれのツールが何をし、何が必要で、実際に何を確認したか。")}</h1>'
+        f'<p>{both("The same records as /capabilities/index.json (capability-manifest v0.1), as a readable list. Verification is shown exactly as labelled.", "/capabilities/index.json（capability-manifest v0.1）と同じ記録を、読みやすい一覧にしたものです。検証の状態は表示どおりそのままです。")}</p>'
+        f'<p class="small"><q>{esc(out["method"])}</q></p>'
+        f'<p class="small"><a href="/capabilities/index.json">index.json</a> · <a href="/schemas/capability-manifest-v0.1.json">schema v0.1</a> · <a href="/transparency/#labels">{both("What the labels mean", "表示の意味")}</a></p>'
+        '</div><aside class="hero-stats"><div class="stat-lines">'
+        f'<div>{both("Manifests", "記録の数")}<b>{c["total"]}</b></div>'
+        f'<div>VERIFIED<b>{c["byVerificationStatus"].get("VERIFIED", 0)}</b></div>'
+        f'<div>{both("Runtime-tested by BSV", "BSVでの実行検証済み")}<b>{rt}</b></div>'
+        '</div></aside></section>'
+        f'<div class="container subnav">{chips}</div>'
+        f'<section class="container bb-section"><p class="small">{both("By verification status", "検証の状態ごと")}: {st}</p>'
+        f'<p class="small muted">{both("Gated source is not included. Links go to public pages only.", "メール確認が必要なソースは含めていません。リンク先は公開ページだけです。")}</p></section>'
+        + secs
+    )
+    return blt.trader_shell(site, "Capability manifests — what each tool does and what was checked · BotShelf Vampire",
+                            f"{c['total']} capability manifests: job, inputs, runtime, license and verification status for every public catalogue entry and BSV recipe." + (" Nothing is labelled VERIFIED." if not c["byVerificationStatus"].get("VERIFIED") else ""),
+                            "/capabilities/", body)
 
 
 def main():

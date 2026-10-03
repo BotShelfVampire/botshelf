@@ -221,6 +221,14 @@ def main():
     ok(not re.search(r"local_source|sources/|@[a-z0-9-]+\.[a-z]", json.dumps(cm)) , "capabilities: no gated paths or emails")
     ok(m.get("capabilityManifests", {}).get("url") == ORIGIN + "/capabilities/index.json", "trust manifest links capability manifests")
     ok(ORIGIN + "/capabilities/index.json" in rd("llms.txt"), "llms links capability manifests")
+    # readable /capabilities/ page (#8 tranche 5): one row per manifest, status as labelled, public links only
+    ch = rd("capabilities/index.html")
+    rows = re.findall(r'<tr id="([^"]+)"><td>(?:<a href="([^"]+)">)?.*?<td><code>([A-Z_]+)</code></td>', ch)
+    want = {x["capabilityId"]: x["verification"]["status"] for x in cm["capabilities"]}
+    ok(len(rows) == len(want) and all(want.get(i) == st for i, _, st in rows), f"capabilities page: {len(rows)} rows = manifests, statuses as labelled")
+    ok(not any(h and bd.is_gated(h) for _, h, _ in rows), "capabilities page: no links to gated pages")
+    ok(f"<loc>{ORIGIN}/capabilities/</loc>" in rd("sitemap.xml") and ORIGIN + "/capabilities/" in rd("llms.txt") and '<link rel="canonical" href="' + ORIGIN + '/capabilities/"' in ch, "capabilities page: sitemap, llms, canonical")
+    ok("VERIFIED<b>0</b>" in ch.replace("</div>", "") or ">VERIFIED<b>0<" in ch, "capabilities page: VERIFIED count shown as 0")
     # sitemaps: no gated URLs anywhere, txt == xml, legacy trading sitemap on public pages (#8 tranche 4)
     edge = s.parent / "netlify/edge-functions/free-session-gate.ts"
     if edge.exists():
