@@ -62,7 +62,10 @@ function render(j){var ul=$('#rq-list');ul.textContent='';var c=j.counts||{};
   if(r.willingnessToPay){var w=r.willingnessToPay;d.push('Stated budget: '+(w.min!=null?w.min:'?')+'–'+(w.max!=null?w.max:'?')+' USDT (not escrow)')}
   if(r.deadline)d.push('Deadline: '+r.deadline.slice(0,10));d.push('Posted: '+String(r.createdAt).slice(0,10)+' · '+r.requestId);
   li.appendChild(el('p',{'class':'small muted',text:d.join(' · ')}));ul.appendChild(li)})}
-function load(){fetch(API+'?op=public',{credentials:'omit'}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok)render(j);else throw 0}).catch(function(){var ul=$('#rq-list');ul.textContent='';ul.appendChild(el('li',{'class':'empty'},[bi('Could not load requests right now.','いまはリクエストを読み込めません。')]))})}
+function areas(rs){var ul=$('#rq-areas');if(!ul)return;ul.textContent='';var m={};rs.filter(function(r){return r.status==='OPEN'}).forEach(function(r){(r.domains||[]).forEach(function(d){m[d]=m[d]||{n:0,b:0};m[d].n++;if(r.willingnessToPay)m[d].b++})});
+ var ks=Object.keys(m).sort(function(a,b){return m[b].n-m[a].n});if(!ks.length){ul.appendChild(el('li',{'class':'empty'},[bi('No open public requests yet, so there is no area score yet.','公開中のリクエストがまだないため、分野ごとのスコアはまだありません。')]));return}
+ ks.forEach(function(k){ul.appendChild(el('li',{'class':'bb-card'},[el('strong',{text:(LAB[k]||k)+' — score '+m[k].n}),el('span',{'class':'small muted',text:'with a stated budget: '+m[k].b}) ]))})}
+function load(){fetch(API+'?op=public',{credentials:'omit'}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){render(j);areas(j.requests||[])}else throw 0}).catch(function(){var ul=$('#rq-list');ul.textContent='';ul.appendChild(el('li',{'class':'empty'},[bi('Could not load requests right now.','いまはリクエストを読み込めません。')]))})}
 function list(v){return String(v||'').split(',').map(function(s){return s.trim()}).filter(Boolean).slice(0,8)}
 function msg(cls,en,ja){var m=$('#rq-msg');m.className='rq-msg '+cls;m.textContent='';m.appendChild(bi(en,ja));if(m.querySelector('a'))return}
 function submit(ev){ev.preventDefault();var f=ev.target;var doms=[].slice.call(f.querySelectorAll('input[name=domain]:checked')).map(function(x){return x.value});
@@ -97,6 +100,48 @@ def both(en, ja, tag="span", cls=""):
     return f'<{tag} data-lang="en"{c}>{blt.esc(en)}</{tag}><{tag} data-lang="ja"{c}>{blt.esc(ja)}</{tag}>'
 
 
+def catalogue_gaps(site: Path) -> list:
+    """Supply gaps counted from /trading/catalog.json (facts about the catalogue, not demand)."""
+    cat = json.loads((site / "trading/catalog.json").read_text())
+    def ent(i):
+        return {"id": i["id"], "name": i["name"], "kind": i["kind"], "license": i.get("license"), "url": i.get("detail_url") or f"/trading/tools/{i['id']}.html"}
+    rules = [("tradingview-only", "TradingView (Pine) only: no MT4 or MT5 version in the catalogue", "TradingView（Pine）のみ: カタログにMT4・MT5版がない",
+              lambda p: p == {"TradingView"}),
+             ("mt-no-pine", "MT4/MT5 only: no TradingView (Pine) version in the catalogue", "MT4・MT5のみ: カタログにTradingView（Pine）版がない",
+              lambda p: "TradingView" not in p and ("MT4" in p or "MT5" in p)),
+             ("mt5-no-mt4", "MT5 only: no MT4 version in the catalogue", "MT5のみ: カタログにMT4版がない", lambda p: p == {"MT5"})]
+    out = []
+    for gid, en, ja, f in rules:
+        items = [ent(i) for i in cat if f(set(i["platforms"]))]
+        kinds = {}
+        for i in items:
+            kinds[i["kind"]] = kinds.get(i["kind"], 0) + 1
+        out.append({"id": gid, "label": en, "label_ja": ja, "count": len(items), "byKind": dict(sorted(kinds.items())), "entries": items})
+    return out
+
+
+def builders_section(site: Path) -> str:
+    import build_discovery as bd
+    gaps = catalogue_gaps(site)
+    rows = "".join(f'<tr><td>{both(g["label"], g["label_ja"])}</td><td>{g["count"]}</td><td class="small">{blt.esc(", ".join(f"{k} {v}" for k, v in g["byKind"].items()))}</td></tr>' for g in gaps)
+    split = [x for x in bd.FACTS if x[0] == "seller_split_payout"][0]
+    return (
+        f'<section class="container bb-section" id="builders"><h2>{both("For builders: opportunities from real signals", "作り手の方へ: 実際のデータからわかること")}</h2>'
+        f'<p>{both("Do not guess what to build. Everything below comes from real data; there are no revenue projections.", "何を作るか推測しなくて済むように、以下はすべて実際のデータです。売上の見込みは載せていません。")}</p>'
+        f'<h3>{both("Open public requests by area (live)", "分野ごとの公開中リクエスト（その場で集計）")}</h3>'
+        '<ul class="rq-list" id="rq-areas"><li class="empty">' + both("Loading…", "読み込み中…") + '</li></ul>'
+        f'<p class="small muted">{both("Score = number of open public requests in that area; budget = how many of them state one. Both come from the request store.", "スコア＝その分野の公開中リクエストの数、予算あり＝そのうち予算が書かれている数。どちらもリクエストの保存先から数えています。")}</p>'
+        f'<h3>{both("Supply gaps in the Traders Library catalogue", "Traders Library カタログの空き")}</h3>'
+        f'<p class="small">{both("Counted from /trading/catalog.json. This is a fact about the catalogue, not a measure of demand. Porting someone else's source must follow that entry's license.", "/trading/catalog.json から数えた値です。カタログの事実であって、需要の大きさではありません。他の人のソースを移植する場合は、その項目のライセンスに従ってください。")}</p>'
+        f'<div class="bb-table-wrap"><table class="qa-table"><thead><tr><th>{both("Gap", "空き")}</th><th>{both("Entries", "件数")}</th><th>{both("By type", "種類別")}</th></tr></thead><tbody>{rows}</tbody></table></div>'
+        f'<h3>{both("Signals not collected yet", "まだ集めていないデータ")}</h3>'
+        f'<p class="small">{both("No-result searches and page-view demand are not logged on this site, so they are not shown.", "結果0件の検索やページの閲覧数は記録していないため、表示していません。")}</p>'
+        f'<h3>{both("If you build it", "作ったら")}</h3><ul><li><q>{blt.esc(split[2])}</q> <a class="small" href="/{split[1]}">{split[1]}</a></li>'
+        f'<li>{both("Label exactly what you checked; untested stays untested.", "確認した範囲をそのまま表示します。未検証は未検証のままです。")} <a class="small" href="/transparency/#labels">/transparency/</a></li>'
+        f'<li><a href="/trading/build/">{both("Build from recipe blocks", "レシピのブロックから作る")}</a> · <a href="/for-sellers.html">{both("How to publish", "出品のしかた")}</a> · <a href="/requests/opportunities.json">opportunities.json</a></li></ul></section>'
+    )
+
+
 def page(site: Path, css_href: str, js_href: str) -> str:
     checks = "".join(f'<label><input type="checkbox" name="domain" value="{d}">{both(en, ja)}</label>' for d, en, ja in DOMAINS)
     body = (
@@ -115,6 +160,7 @@ def page(site: Path, css_href: str, js_href: str) -> str:
         '<ul class="rq-list" id="rq-list"><li class="empty">' + both("Loading…", "読み込み中…") + '</li></ul>'
         f'<p class="small muted">{both("A stated budget is what the requester typed. It is not escrow, a payment or a promise to pay.", "予算は依頼者が書いた金額です。エスクロー・支払い・支払いの約束ではありません。")} '
         f'<a href="{API}?op=public">JSON</a> · <a href="/schemas/demand-request-v0.1.json">schema v0.1</a></p></section>'
+        + builders_section(site) +
         f'<section class="container bb-section" id="new"><h2>{both("New request", "新しいリクエスト")}</h2>'
         f'<p class="small">{both("Sending needs a verified email (free registration with a 6-digit code). Up to 5 requests per day.", "送信にはメール確認が必要です（無料登録・6桁のコード）。1日5件まで。")}</p>'
         f'<p class="small rp-box" id="rq-mission" hidden>{both("Robot pilot mission: include the task, robot/embodiment, teleop interface, simulation or real hardware, location or remote, data needed, episode target and quality criteria. Real hardware stays under the robot owner's authorisation and safety rules. Request only; no escrow.", "ロボット遠隔操作のミッション: タスク、ロボット、遠隔操作の方法、シミュレーションか実機か、場所またはリモート、必要なデータ、エピソード数、品質の基準を書いてください。実機はロボットの所有者の許可と安全ルールのもとで行います。リクエストのみで、エスクローはありません。")}</p>'
@@ -158,6 +204,16 @@ def main():
     css_n, js_n = f"request-market.{h8(CSS)}.css", f"request-market.{h8(js)}.js"
     (d / css_n).write_text(CSS); (d / js_n).write_text(js)
     (d / "index.html").write_text(page(site, f"/requests/{css_n}", f"/requests/{js_n}"))
+    gaps = catalogue_gaps(site)
+    (d / "opportunities.json").write_text(json.dumps({
+        "schemaNote": "BSV builder opportunity feed v0.1. Real signals only; no revenue projections.",
+        "generatedAt": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "signals": {
+            "publicRequests": {"source": ORIGIN + API + "?op=public", "note": "Live: open public requests and their stated budgets, read from the request store."},
+            "noResultSearches": {"collected": False, "note": "Not logged on this site."},
+            "pageViews": {"collected": False, "note": "Not logged on this site."},
+            "catalogueGaps": {"source": ORIGIN + "/trading/catalog.json", "note": "Facts about the catalogue, not demand. Porting third-party source must follow its license.", "gaps": gaps}},
+    }, ensure_ascii=False, indent=1) + "\n")
     sd = site / "schemas"; sd.mkdir(exist_ok=True)
     (sd / "demand-request-v0.1.json").write_text((REPO / "schemas/bsv-demand-request.schema.json").read_text())
     smp = site / "sitemap.xml"; s = smp.read_text()

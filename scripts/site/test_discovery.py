@@ -107,6 +107,14 @@ def main():
         ok(not re.search(r"<script(?![^>]*\bsrc=)(?![^>]*application/ld\+json)[^>]*>", t), "requests: no inline script")
         ok("req_" not in t and all(re.search(rf'id="{i}">–<', t) for i in ("rq-c-received", "rq-c-published", "rq-c-budget")), "requests: no seeded requests or counts in HTML")
         ok('id="rq-form"' in t and "/register.html?next=/requests/" in "".join(p.read_text() for p in (s / "requests").glob("request-market.*.js")), "requests: form + sign-in path")
+        op = json.loads((s / "requests/opportunities.json").read_text())
+        cat = json.loads((s / "trading/catalog.json").read_text())
+        g = {x["id"]: x for x in op["signals"]["catalogueGaps"]["gaps"]}
+        ok(g["tradingview-only"]["count"] == sum(1 for i in cat if set(i["platforms"]) == {"TradingView"}), "opportunities: TradingView-only count matches catalog")
+        ok(g["mt-no-pine"]["count"] == sum(1 for i in cat if "TradingView" not in i["platforms"]), "opportunities: MT-only count matches catalog")
+        ok(all(x["count"] == len(x["entries"]) for x in g.values()), "opportunities: counts equal listed entries")
+        ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
+        ok('id="builders"' in t and 'id="rq-areas"' in t and not re.search(r"projected|forecast|potential revenue|\$\d", bd.visible_text(rq), re.I), "opportunities: section present, no revenue projections")
         sc = json.loads((s / "schemas/demand-request-v0.1.json").read_text())
         ok(sc.get("$id") == ORIGIN + "/schemas/demand-request-v0.1.json", "requests: schema published at its $id")
         ok("data-rq-link" in (s / "trading/build/index.html").read_text(), "requests: link from /trading/build/")
@@ -159,6 +167,8 @@ def main():
             j = json.loads(body)
             ok(j.get("ok") is True and isinstance(j.get("requests"), list) and j["counts"]["published"] == len(j["requests"]), "live requests API: counts match listed rows")
             ok(all("user_id" not in r and "@" not in json.dumps(r) for r in j["requests"]), "live requests API: no user ids or emails")
+            st2, ob, _ = get(f"{L}/requests/opportunities.json")
+            ok(st2 == 200 and json.loads(ob)["signals"]["noResultSearches"]["collected"] is False, f"live opportunities.json {st2}")
         else:
             ok(False, f"live requests API {st}")
         st, _, _ = get(f"{L}/.netlify/functions/demand-request?op=queue")
