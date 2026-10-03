@@ -40,3 +40,11 @@ Minimize back-and-forth. Execute reversible/no-spend work autonomously and surfa
 ## Current execution directive
 
 GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the existing Trader + AI category expansion moving through live integration, test, deploy and verification.
+
+## Active GrokBot identity
+
+- Active bot: **New Bobby / ニューボビー**
+- Old Bobby is hidden and must be treated as inactive.
+- New Bobby is the operational successor and should continue the same BSV production role without restarting the project from scratch.
+- Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
+- Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
