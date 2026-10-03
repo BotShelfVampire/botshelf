@@ -145,6 +145,38 @@ async function publicList() {
 // One signal per (first domain, first platform) group; FULFILLED requests form FULFILLED_REQUEST signals. No user ids,
 // no emails, no estimates: count/uniqueActors are counted rows, explicitWtp only from budgets the requesters stated.
 function signalSlug(s) { return String(s || "any").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "any"; }
+function xmlEsc(v) {
+  return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+async function feed() {
+  // Atom 1.0 feed of approved PUBLIC requests (Issue #6 tranche 4). Same filter and fields as op=public; no ids of
+  // accounts, no emails, nothing seeded. An empty store gives a valid feed with no entries.
+  var store = await blobs.getStore(STORE);
+  var pub = (await all(store)).filter(function (r) { return r.public === true && r.record.visibility === "PUBLIC" && r.state === "approved"; })
+    .sort(function (a, b) { return String(b.created_at).localeCompare(String(a.created_at)); }).slice(0, 50);
+  var O = ORIGINS[0], latest = pub.length ? pub.map(function (r) { return (r.review && r.review.at) || r.created_at; }).sort().pop() : "2026-10-04T00:00:00.000Z";
+  var x = ['<?xml version="1.0" encoding="utf-8"?>', '<feed xmlns="http://www.w3.org/2005/Atom">',
+    '<title>BotShelf Vampire Request Market: approved public requests</title>',
+    '<subtitle>Real requests only, listed after review. A stated budget is not escrow or a payment.</subtitle>',
+    '<id>' + O + '/requests/</id>', '<link rel="alternate" type="text/html" href="' + O + '/requests/"/>',
+    '<link rel="self" type="application/atom+xml" href="' + O + '/.netlify/functions/demand-request?op=feed"/>',
+    '<updated>' + xmlEsc(latest) + '</updated>', '<author><name>BotShelf Vampire Request Market</name></author>'];
+  pub.forEach(function (r) {
+    var v = publicView(r), w = v.willingnessToPay;
+    var lines = ["Areas: " + (v.domains || []).join(", "), "Platforms: " + ((v.platforms || []).join(", ") || "—"), "Status: " + v.status,
+      "Free / open solution OK: " + (v.freeSolutionAcceptable == null ? "—" : (v.freeSolutionAcceptable ? "yes" : "no")),
+      "Stated budget: " + (w ? ((w.min != null ? w.min : "?") + "–" + (w.max != null ? w.max : "?") + " " + (w.currency || "USDT") + " (not escrow)") : "none"),
+      "Deadline: " + (v.deadline || "—")];
+    x.push('<entry>', '<title>' + xmlEsc(String(v.job).slice(0, 120)) + '</title>', '<id>' + O + '/requests/#' + xmlEsc(v.requestId) + '</id>',
+      '<link rel="alternate" type="text/html" href="' + O + '/requests/#' + xmlEsc(v.requestId) + '"/>',
+      '<published>' + xmlEsc(v.createdAt) + '</published>', '<updated>' + xmlEsc((r.review && r.review.at) || v.createdAt) + '</updated>');
+    (v.domains || []).forEach(function (d) { x.push('<category term="' + xmlEsc(d) + '"/>'); });
+    x.push('<content type="text">' + xmlEsc(v.job + "\n\n" + lines.join("\n")) + '</content>', '</entry>');
+  });
+  x.push('</feed>');
+  return { statusCode: 200, headers: Object.assign({ "Content-Type": "application/atom+xml; charset=utf-8", "Cache-Control": "public, max-age=300",
+    "X-Content-Type-Options": "nosniff", "Access-Control-Allow-Origin": "*" }), body: x.join("\n") + "\n" };
+}
 async function signals() {
   var store = await blobs.getStore(STORE);
   var rows = (await all(store)).filter(function (r) { return r.public === true && r.record.visibility === "PUBLIC" && r.state === "approved"; });
@@ -259,6 +291,7 @@ exports.handler = async function (event) {
     if (method === "POST" && !op) return await submit(event);
     if (method === "GET" && op === "public") return await publicList();
     if (method === "GET" && op === "signals") return await signals();
+    if (method === "GET" && op === "feed") return await feed();
     if (method === "GET" && op === "mine") return await mine(event);
     if (method === "GET" && op === "queue") return await queue(event);
     if (method === "POST" && op === "review") return await review(event);

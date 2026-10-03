@@ -26,6 +26,7 @@ CHANGES = [  # material public changes, dated (JST), from this branch's LIVE dep
     ("2026-10-04", "Teleop recipe library: an original SO-101 simulation practice-session recipe (not run by BSV).", "/robot-pilot/#recipes"),
     ("2026-10-04", "Builder opportunity signals (opportunity-signal v0.1) counted from approved public requests only.", "/requests/#builders"),
     ("2026-10-04", "Capability manifests (capability-manifest v0.1) for every public catalogue entry and BSV recipe; nothing marked VERIFIED.", "/capabilities/index.json"),
+    ("2026-10-04", "Request Market Atom feed of approved public requests; robot-pilot open missions board (real approved requests only).", "/requests/"),
     ("2026-10-04", "backtrader (Python) starters listed; 20 builder targets.", "/trading/build/"),
     ("2026-10-04", "Tradovate (JavaScript custom indicator) starters listed; 19 builder targets.", "/trading/build/"),
     ("2026-10-04", "Request Market builder view: live request counts by area and catalogue gaps (no estimates).", "/requests/#builders"),
