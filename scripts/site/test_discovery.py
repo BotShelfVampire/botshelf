@@ -281,6 +281,14 @@ def main():
                 ok(sum(g["count"] for g in sj["signals"]) == j["counts"]["published"], "live signals: counts add up to published requests")
             else:
                 ok(False, f"live signals API {st4}")
+            st5, fb, _ = get(f"{L}/.netlify/functions/demand-request?op=feed")
+            try:
+                import xml.etree.ElementTree as ET
+                fr = ET.fromstring(fb.encode("utf-8")); ns = "{http://www.w3.org/2005/Atom}"
+                ents = fr.findall(ns + "entry")
+                ok(st5 == 200 and fr.tag == ns + "feed" and len(ents) == min(50, j["counts"]["published"]) and "@" not in fb, f"live Atom feed: parses, {len(ents)} entries = published requests, no emails")
+            except Exception as e:
+                ok(False, f"live Atom feed {st5}: {e}")
             st2, ob, _ = get(f"{L}/requests/opportunities.json")
             ok(st2 == 200 and json.loads(ob)["signals"]["noResultSearches"]["collected"] is False, f"live opportunities.json {st2}")
         else:

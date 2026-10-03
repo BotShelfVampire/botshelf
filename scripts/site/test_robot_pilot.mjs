@@ -68,6 +68,23 @@ ok(/never a licence, a certification or permission to operate real hardware/.tes
 ok(/pilot-record\?op=stats|pilot-record' \+ '\?op=stats|API \+ '\?op=stats'/.test(fs.readFileSync(path.join(site, "robot-pilot", jsf[0]), "utf8")), "record JS reads real counts from stats");
 ok(/BSV has not run this curriculum itself yet/.test(html) && /Not a government licence/.test(html) && /Not permission to operate real hardware/.test(html) && /never upgrades the record/.test(html), "page: boundary statements");
 ok(!/certified pilot|licensed pilot|BSV verified/i.test(html), "page: no licence/certification claims");
+// Open missions board (#7 tranche 4): approved PUBLIC robot-pilot requests only, counts not hard-coded, text-only rendering
+{
+  const rows = [
+    { requestId: "req_a", job: "Collect 50 SO-101 pick-and-place episodes in simulation", domains: ["robot-pilot"], platforms: ["Isaac Lab"], visibility: "PUBLIC", status: "OPEN", willingnessToPay: { min: 20, max: 40, currency: "USDT" }, deadline: "2026-12-01T00:00:00Z", createdAt: "2026-10-04T01:00:00Z" },
+    { requestId: "req_b", job: "TradingView indicator for session ranges please", domains: ["trading"], platforms: ["TradingView"], visibility: "PUBLIC", status: "OPEN", createdAt: "2026-10-04T01:00:00Z" },
+    { requestId: "req_c", job: "Private robot request should never show", domains: ["robot-pilot"], visibility: "PRIVATE", status: "OPEN", createdAt: "2026-10-04T01:00:00Z" },
+    { requestId: "req_d", job: "<img src=x onerror=alert(1)> teleop dataset", domains: ["robotics", "robot-pilot"], visibility: "PUBLIC", status: "CLAIMED", createdAt: "2026-10-04T02:00:00Z" }];
+  const ms = P.missions(rows);
+  ok(ms.length === 2 && ms[0].id === "req_a" && ms[1].id === "req_d", "missions: only PUBLIC rows whose areas include robot-pilot");
+  ok(/stated, not escrow/.test(ms[0].budget) && ms[1].budget === "" && ms[0].deadline === "2026-12-01", "missions: budget only when stated, marked not escrow");
+  ok(P.missions(null).length === 0 && P.missions([{}]).length === 0, "missions: empty / malformed input gives no rows");
+  const js = fs.readFileSync(path.join(site, "robot-pilot", jsf[0]), "utf8");
+  const blk = js.slice(js.indexOf("demand-request?op=public"), js.indexOf("?op=stats"));
+  ok(blk.length > 100 && !/innerHTML/.test(blk) && /textContent/.test(blk), "missions: rendered with textContent only");
+  ok(/id="missions"/.test(html) && /id="rp-c-missions">–</.test(html) && /href="#missions"/.test(html) && /href="#recipes"/.test(html), "page: missions section, count not hard-coded, Teleop recipes + Open missions chips");
+  ok(/no escrow, no contract and no permission to operate real hardware/.test(html) && /Nothing is seeded or estimated/.test(html), "page: missions boundary text");
+}
 ok(/href="\/requests\/\?area=robot-pilot&amp;kind=mission"/.test(html), "page: mission request link");
 ok(!/<script(?![^>]*\bsrc=)(?![^>]*application\/(ld\+)?json)[^>]*>/.test(html), "page: no inline executable script");
 for (const m of cur.modules) ok(html.includes('id="mod-' + m.id + '"'), "page: module " + m.id);

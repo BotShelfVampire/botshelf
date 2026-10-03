@@ -82,6 +82,14 @@ const RK = { "x-bsv-reviewer-key": process.env.COMPILE_REVIEWER_KEY };
     for (const k of Object.keys(sg)) ok(k in sc.properties, "signal field in schema: " + k);
     ok(new RegExp(sc.properties.signalId.pattern).test(sg.signalId) && sc.properties.signalType.enum.includes(sg.signalType) && sg.jobKey.length >= 3 && !isNaN(Date.parse(sg.windowStart)) && !isNaN(Date.parse(sg.windowEnd)), "signal matches schema pattern/enum/date-time");
   } else ok(false, "opportunity-signal schema published in the deploy");
+  // Atom feed (#6 tranche 4): approved PUBLIC requests only, well-formed, no ids/emails/private text, no reviewer identity
+  r = await fn.handler(ev("GET", { q: { op: "feed" } }));
+  const fx = r.body || "";
+  ok(r.statusCode === 200 && /^application\/atom\+xml/.test(r.headers["Content-Type"]) && fx.startsWith('<?xml version="1.0" encoding="utf-8"?>\n<feed xmlns="http://www.w3.org/2005/Atom">'), "feed: Atom content type and root");
+  ok((fx.match(/<entry>/g) || []).length === 1 && (fx.match(/<\/entry>/g) || []).length === 1 && fx.includes("/requests/#" + id1), "feed: one entry, for the one approved public request");
+  ok(!fx.includes("req1@example.com") && !fx.includes(u.id) && !fx.includes("robot teleop checklist") && !fx.includes(id2) && !/reviewer|x-admin/i.test(fx), "feed: no email, user id, private request or reviewer");
+  ok(/<updated>\d{4}-\d{2}-\d{2}T[^<]+<\/updated>/.test(fx) && /<id>https:\/\/botshelfvampire\.com\/requests\/<\/id>/.test(fx) && fx.includes('rel="self"') && fx.includes("not escrow"), "feed: required Atom elements, budget caveat");
+  ok(!/<(?!\/?(feed|title|subtitle|id|link|updated|author|name|entry|published|category|content)\b|\?xml)/.test(fx) && !/&(?!amp;|lt;|gt;|quot;)/.test(fx), "feed: only Atom elements, XML-escaped text");
   r = await fn.handler(ev("POST", { q: { op: "review" }, h: RK, body: { id: id1, decision: "fulfilled", capabilityId: "bsv-recipe-session-breakout" } }));
   ok(J(r).status === "FULFILLED", "fulfilled status after approval");
   r = await fn.handler(ev("GET", { q: { op: "signals" } })); j = J(r);

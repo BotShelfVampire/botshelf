@@ -159,7 +159,7 @@ def page(site: Path, css_href: str, js_href: str) -> str:
         f'<section class="container bb-section" id="open"><h2>{both("Open requests", "公開中のリクエスト")}</h2>'
         '<ul class="rq-list" id="rq-list"><li class="empty">' + both("Loading…", "読み込み中…") + '</li></ul>'
         f'<p class="small muted">{both("A stated budget is what the requester typed. It is not escrow, a payment or a promise to pay.", "予算は依頼者が書いた金額です。エスクロー・支払い・支払いの約束ではありません。")} '
-        f'<a href="{API}?op=public">JSON</a> · <a href="/schemas/demand-request-v0.1.json">schema v0.1</a></p></section>'
+        f'<a href="{API}?op=public">JSON</a> · <a href="{API}?op=feed">{both("Atom feed", "Atomフィード")}</a> · <a href="/schemas/demand-request-v0.1.json">schema v0.1</a></p></section>'
         + builders_section(site) +
         f'<section class="container bb-section" id="new"><h2>{both("New request", "新しいリクエスト")}</h2>'
         f'<p class="small">{both("Sending needs a verified email (free registration with a 6-digit code). Up to 5 requests per day.", "送信にはメール確認が必要です（無料登録・6桁のコード）。1日5件まで。")}</p>'
@@ -182,7 +182,7 @@ def page(site: Path, css_href: str, js_href: str) -> str:
     )
     html_ = blt.trader_shell(site, "Request Market — ask for a tool, indicator or workflow · BotShelf Vampire",
                              "Describe a trading tool, AI workflow or frontier-industry capability you need. Only real, reviewed requests are listed; counts come from the request store.",
-                             "/requests/", body, extra_head=f'<link rel="stylesheet" href="{css_href}"><script src="{js_href}" defer></script>')
+                             "/requests/", body, extra_head=f'<link rel="stylesheet" href="{css_href}"><link rel="alternate" type="application/atom+xml" title="BSV Request Market: approved public requests" href="{API}?op=feed"><script src="{js_href}" defer></script>')
     foot = ('<footer class="site-footer"><div class="container"><p data-lang="en">Requests are written by users and reviewed by BSV before they are listed. BSV does not promise that a request will be built, and a stated budget is not a payment. Paid listings follow the seller guide.</p>'
             '<p data-lang="ja">リクエストは利用者が書いたもので、公開の前にBSVが確認します。作られる約束はなく、記載された予算は支払いではありません。有料の出品は出品者ガイドに従います。</p></div></footer>')
     html_ = re.sub(r'<footer class="site-footer">.*?</footer>', foot, html_, count=1, flags=re.S)

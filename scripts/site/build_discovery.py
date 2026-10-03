@@ -164,7 +164,7 @@ def trust(site: Path, today: str) -> dict:
 LLMS_LINKS = [
     ("Recipe builder (edit recipe blocks, generate chart-tool starters in the browser)", "trading/build/"),
     ("Traders Library", "trading/"),
-    ("Request Market (real, reviewed requests only; JSON at /.netlify/functions/demand-request?op=public)", "requests/"),
+    ("Request Market (real, reviewed requests only; JSON at /.netlify/functions/demand-request?op=public, Atom feed at /.netlify/functions/demand-request?op=feed)", "requests/"),
     ("Robot Pilot Academy (simulation-first teleoperation practice; self-reported records)", "robot-pilot/"),
     ("Transparency Center (rules quoted from production pages; figures counted from public files)", "transparency/"),
     ("Buyer guide", "for-buyers.html"),

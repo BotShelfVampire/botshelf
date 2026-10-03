@@ -43,7 +43,16 @@
     };
     return { errors: errs, evidence: ev, profile: rec };
   }
-  var api = { build: build };
+  // Open robot-pilot missions (Issue #7 tranche 4): approved PUBLIC requests from the Request Market whose areas
+  // include robot-pilot. Rows come from demand-request?op=public as-is; nothing is added, seeded or estimated.
+  function missions(rows) {
+    return (Array.isArray(rows) ? rows : []).filter(function (r) { return r && r.visibility === 'PUBLIC' && Array.isArray(r.domains) && r.domains.indexOf('robot-pilot') !== -1; })
+      .map(function (r) { var w = r.willingnessToPay;
+        return { id: s(r.requestId, 80), job: s(r.job, 280), status: s(r.status, 20), platforms: (r.platforms || []).map(function (x) { return s(x, 60); }).join(', '),
+          budget: w && (w.min != null || w.max != null) ? (w.min != null ? w.min : '?') + '–' + (w.max != null ? w.max : '?') + ' ' + s(w.currency || 'USDT', 8) + ' (stated, not escrow)' : '',
+          deadline: r.deadline ? s(r.deadline, 10) : '', createdAt: s(r.createdAt, 10) }; });
+  }
+  var api = { build: build, missions: missions };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BSVPilot = api;
   if (!root.document) return;
@@ -73,6 +82,15 @@
     $('#rp-save').addEventListener('click', function () { var o = current(); if (!show(o)) return; var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} a.push(o.evidence); try { root.localStorage.setItem(KEY, JSON.stringify(a.slice(-20))); } catch (e) {} $('#rp-saved').textContent = a.length + ' saved in this browser'; });
     try { var a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); if (a.length) $('#rp-saved').textContent = a.length + ' saved in this browser'; } catch (e) {}
     var API = '/.netlify/functions/pilot-record';
+    fetch('/.netlify/functions/demand-request?op=public', { credentials: 'omit' }).then(function (r) { return r.json(); }).then(function (j) {
+      var ul = $('#rp-missions'), c = $('#rp-c-missions'); if (!ul || !j || !j.ok) return;
+      var ms = missions(j.requests); c.textContent = String(ms.length); ul.textContent = '';
+      if (!ms.length) { var e = root.document.createElement('li'); e.className = 'empty'; e.textContent = 'No approved robot-pilot missions yet. / 承認済みのロボットパイロットのミッションはまだありません。'; ul.appendChild(e); return; }
+      ms.forEach(function (m) { var li = root.document.createElement('li'), a = root.document.createElement('a'), meta = root.document.createElement('div');
+        a.href = '/requests/#' + encodeURIComponent(m.id); a.textContent = m.job; meta.className = 'small muted';
+        meta.textContent = [m.status, m.platforms, m.budget, m.deadline ? 'deadline ' + m.deadline : '', 'listed ' + m.createdAt].filter(Boolean).join(' · ');
+        li.appendChild(a); li.appendChild(meta); ul.appendChild(li); });
+    }).catch(function () { var ul = $('#rp-missions'); if (ul) ul.textContent = 'Could not load missions. / ミッションを読み込めませんでした。'; });
     fetch(API + '?op=stats', { credentials: 'omit' }).then(function (r) { return r.json(); }).then(function (j) { if (j && j.ok) { $('#rp-c-received').textContent = String(j.counts.received); $('#rp-c-reviewed').textContent = String(j.counts.reviewed); } }).catch(function () {});
     $('#rp-send').addEventListener('click', function () { var o = current(); if (!show(o)) return; var m = $('#rp-msg'), b = $('#rp-send'); b.disabled = true;
       fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ evidence: o.evidence }) })
