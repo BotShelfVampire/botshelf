@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Liquidity sweep candidates (signal.liquidity_sweep) and regular divergence (signal.divergence) rendered on backtrader, Backtesting.py and NautilusTrader, checked bar by bar against an independent reference with a no-lookahead prefix test. Candidates only; not run on a broker or live feed.", "/trading/build/coverage/"),
     ("2026-10-04", "thinkorswim (thinkScript) now reads the last closed higher-timeframe bar (secondary aggregation with [1] taken in that aggregation, never mixed with chart prices); BSV's thinkScript-subset evaluator models secondary contexts, compares with an hourly reference and checks it never looks ahead. Not run in thinkorswim.", "/trading/build/coverage/"),
     ("2026-10-04", "AmiBroker (AFL) now reads the last closed higher-timeframe bar (TimeFrameSet + Ref(x, -1) + TimeFrameExpand expandFirst, as the AFL guide advises for trading rules); BSV's AFL-subset evaluator compares it with an hourly reference and checks it never looks ahead. Not run in AmiBroker.", "/trading/build/coverage/"),
     ("2026-10-04", "cTrader (C#) now reads the last closed higher-timeframe bar (MarketData.GetBars + GetIndexByTime stepped back, minus 1; at most one extra bar of lag, never a forming bar) and the cTrader output compiles against BSV stubs from the API reference. Not run on cTrader.", "/trading/build/coverage/"),

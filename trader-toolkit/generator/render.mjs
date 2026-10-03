@@ -186,6 +186,55 @@ function webhookOk(recipe, b) {
   if (!w || !isBoolType(w.type) || w.type === 'alert.webhook' || !pl || typeof pl !== 'object' || Array.isArray(pl) || !Object.keys(pl).length) return false;
   return Object.values(pl).every(x => ['number', 'boolean'].includes(typeof x) || (typeof x === 'string' && [...x.matchAll(/\{\{([^}]*)\}\}/g)].every(m => ['symbol', 'timeframe', 'time', 'open', 'high', 'low', 'close'].includes(m[1]))));
 }
+// signal.liquidity_sweep (a candidate only): on a completed bar, the wick goes beyond the last pivot high / low known
+// before this bar by at least minAtrFraction x ATR (this bar's ATR) and the close is back inside that level.
+// signal.divergence (regular): a newly confirmed price pivot high above the previous pivot high while the oscillator at
+// those two pivot bars is lower (bearish), or the mirror for pivot lows (bullish); true only on the bar that confirms
+// the new pivot (`right` bars after it), using the pivot block's left / right / source. Python targets only.
+function sweepOk(recipe, b) {
+  if (!recipe.bsvRangeReal || !b || b.type !== 'signal.liquidity_sweep') return false;
+  const q = b.params || {}, m = blockMap(recipe), a = m.get(q.atr), f = q.minAtrFraction === undefined ? 0 : q.minAtrFraction;
+  return pivotOk(recipe, m.get(q.pivot)) && !!a && a.type === 'indicator.atr' && !(a.params && a.params.timeframeRef) && typeof f === 'number' && Number.isFinite(f) && f >= 0 && f <= 10;
+}
+function divergenceOk(recipe, b) {
+  if (!recipe.bsvRangeReal || !b || b.type !== 'signal.divergence') return false;
+  const q = b.params || {}, m = blockMap(recipe), pv = m.get(q.pivot), o = m.get(q.oscillator);
+  if (!pivotOk(recipe, pv) || !o || !/^indicator\.(ema|sma|rsi|atr)$/.test(o.type) || (o.params && o.params.timeframeRef)) return false;
+  return (q.price === undefined || q.price === (pv.params.source || 'close')) && ['both', 'bullish', 'bearish'].includes(q.direction || 'both');
+}
+function pySignalLines(recipe) {
+  const L = [];
+  if (recipe.blocks.some(b => sweepOk(recipe, b))) L.push(
+    'def bsv_sweep(ph, pl, h, l, c, atr, frac):  # ph / pl = the last pivot high / low known before this bar; a candidate only',
+    '    if atr != atr:',
+    '        return False',
+    '    up = ph == ph and h > ph and h - ph >= frac * atr and c < ph  # wick above the prior high, close back below it',
+    '    dn = pl == pl and l < pl and pl - l >= frac * atr and c > pl  # wick below the prior low, close back above it',
+    '    return bool(up or dn)',
+    '',
+    '');
+  if (recipe.blocks.some(b => divergenceOk(recipe, b))) L.push(
+    'def bsv_divergence_step(st, h, l, x, left, right, direction):  # st = [recent highs, lows, oscillator, previous pivot high (price, osc), previous pivot low]',
+    '    st[0].append(h)',
+    '    st[1].append(l)',
+    '    st[2].append(x)',
+    '    if len(st[0]) > left + right + 1:',
+    '        del st[0][0], st[1][0], st[2][0]',
+    '    bear = bull = False',
+    '    if len(st[0]) == left + right + 1:  # the bar `right` bars ago is confirmed only now: no lookahead',
+    '        p, o = st[0][left], st[2][left]',
+    '        if all(p > y for y in st[0][:left]) and all(p >= y for y in st[0][left + 1:]):',
+    '            bear = st[3] is not None and p > st[3][0] and o < st[3][1]  # higher price high, lower oscillator',
+    '            st[3] = (p, o)',
+    '        p, o = st[1][left], st[2][left]',
+    '        if all(p < y for y in st[1][:left]) and all(p <= y for y in st[1][left + 1:]):',
+    '            bull = st[4] is not None and p < st[4][0] and o > st[4][1]  # lower price low, higher oscillator',
+    '            st[4] = (p, o)',
+    '    return bool(bear or bull) if direction == "both" else bool(bear if direction == "bearish" else bull)',
+    '',
+    '');
+  return L;
+}
 function pyPivotLines() {
   return [
     'def bsv_pivot_step(st, h, l, left, right):  # st = [recent highs, recent lows, last pivot high, last pivot low]',
@@ -245,6 +294,8 @@ function referencesFor(block) {
     case 'signal.breakout': return [p.range].filter(Boolean);
     case 'visual.zone': return [p.source].filter(Boolean);
     case 'alert.webhook': return [p.when].filter(Boolean);
+    case 'signal.liquidity_sweep': return [p.pivot, p.atr].filter(Boolean);
+    case 'signal.divergence': return [p.pivot, p.oscillator].filter(Boolean);
     default: return [];
   }
 }
@@ -2439,6 +2490,7 @@ function renderBacktrader(recipe) {
   const ranges = recipe.blocks.filter(b => rangeOk(recipe, b));
   if (ranges.length) pyRangeLines().forEach(x => L.push(x));
   if (pivots.length) pyPivotLines().forEach(x => L.push(x));
+  pySignalLines(recipe).forEach(x => L.push(x));
   if (hooks.length) pyWebhookLines(recipe).forEach(x => L.push(x));
   const noLines = !lines.length;
   if (noLines) lines.push('idle');  // backtrader needs at least one line; this one stays NaN and is not plotted
@@ -2464,6 +2516,7 @@ function renderBacktrader(recipe) {
   tzs.forEach((tz, n) => L.push(`        self.tz${n} = ZoneInfo(${pyText(tz)})`));
   ranges.forEach(b => L.push(`        self.rg_${id(b.id)} = [False, NAN, NAN]  # ${tsNote(b.id)}: window state`));
   pivots.forEach(b => L.push(`        self.pv_${id(b.id)} = [[], [], NAN, NAN]  # ${tsNote(b.id)}: pivot state`));
+  recipe.blocks.filter(b => divergenceOk(recipe, b)).forEach(b => L.push(`        self.dv_${id(b.id)} = [[], [], [], None, None]  # ${tsNote(b.id)}: divergence state`));
   htfSrc.forEach(h => L.push(`        self.htf_${id(h)} = BsvHtf(${htfMinutes(map.get(h))})  # ${tsNote(h)}: closed higher-timeframe bars only`));
   L.push('');
   L.push('    def prenext(self):');
@@ -2500,6 +2553,17 @@ function renderBacktrader(recipe) {
       case 'alert.webhook':
         if (!webhookOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = False`); }
         break;
+      case 'signal.liquidity_sweep': {
+        if (!sweepOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = False`); break; }
+        L.push(`        s[${k}] = bsv_sweep(p.get(${pyText(q.pivot + '.high')}, NAN), p.get(${pyText(q.pivot + '.low')}, NAN), d.high[0], d.low[0], d.close[0], ${val(q.atr)}, ${Number(q.minAtrFraction || 0)})  # candidate only`);
+        break;
+      }
+      case 'signal.divergence': {
+        if (!divergenceOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = False`); break; }
+        const pq = map.get(q.pivot).params, hl = (pq.source || 'close') === 'high_low' ? 'd.high[0], d.low[0]' : 'd.close[0], d.close[0]';
+        L.push(`        s[${k}] = bsv_divergence_step(self.dv_${id(b.id)}, ${hl}, ${val(q.oscillator)}, ${pq.left}, ${pq.right}, ${pyText(q.direction || 'both')})`);
+        break;
+      }
       case 'signal.breakout': {
         if (!breakoutOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = False`); break; }
         const r = map.get(q.range);
@@ -2698,6 +2762,7 @@ function renderBacktestingPy(recipe) {
   if ((ranges.length || pivots.length) && !htf.length) L.push('NAN = float("nan")');
   if (ranges.length) pyRangeLines().forEach(x => L.push(x));
   if (pivots.length) pyPivotLines().forEach(x => L.push(x));
+  pySignalLines(recipe).forEach(x => L.push(x));
   if (hooks.length) pyWebhookLines(recipe).forEach(x => L.push(x));
   L.push(`class ${cls}(Strategy):`);
   L.push(`    messages = (${alerts.map(b => pyText(b.params?.message || b.id)).join(', ')}${alerts.length === 1 ? ',' : ''})`);
@@ -2730,6 +2795,17 @@ function renderBacktestingPy(recipe) {
       continue;
     }
     if (zoneOk(recipe, b) || webhookOk(recipe, b)) continue;
+    if (sweepOk(recipe, b)) {
+      L.push(`            ph_, pl_, a_ = bsv_prev(v[${pyText(q.pivot + '.high')}]), bsv_prev(v[${pyText(q.pivot + '.low')}]), ${val(q.atr)}  # ${tsNote(b.id)}: pivot levels known before bar i`);
+      L.push(`            s[${k}] = np.array([bsv_sweep(ph_[i], pl_[i], h[i], l[i], c[i], a_[i], ${Number(q.minAtrFraction || 0)}) for i in range(len(c))], bool)  # candidate only`);
+      continue;
+    }
+    if (divergenceOk(recipe, b)) {
+      const pq = map.get(q.pivot).params, [hh, ll] = (pq.source || 'close') === 'high_low' ? ['h', 'l'] : ['c', 'c'];
+      L.push(`            st, x_ = [[], [], [], None, None], ${val(q.oscillator)}  # ${tsNote(b.id)}: bar i only uses bars 0..i`);
+      L.push(`            s[${k}] = np.array([bsv_divergence_step(st, float(${hh}[i]), float(${ll}[i]), float(x_[i]), ${pq.left}, ${pq.right}, ${pyText(q.direction || 'both')}) for i in range(len(c))], bool)`);
+      continue;
+    }
     if (breakoutOk(recipe, b)) {
       const r = map.get(q.range);
       L.push(`            ins, pc = ${bool(r.params.during)}, bsv_prev(c)`);
@@ -2950,6 +3026,7 @@ function renderNautilus(recipe) {
   const zones = recipe.blocks.filter(b => zoneOk(recipe, b)), hooks = recipe.blocks.filter(b => webhookOk(recipe, b)), pivots = recipe.blocks.filter(b => pivotOk(recipe, b));
   if (ranges.length) pyRangeLines().forEach(x => L.push(x));
   if (pivots.length) pyPivotLines().forEach(x => L.push(x));
+  pySignalLines(recipe).forEach(x => L.push(x));
   if (hooks.length) pyWebhookLines(recipe).forEach(x => L.push(x));
   L.push(`class ${cls}Config(StrategyConfig, frozen=True):`);
   L.push('    bar_type: str');
@@ -2972,6 +3049,7 @@ function renderNautilus(recipe) {
   tzs.forEach((tz, n) => L.push(`        self.tz${n} = ZoneInfo(${pyText(tz)})`));
   ranges.forEach(b => L.push(`        self.rg_${id(b.id)} = [False, NAN, NAN]  # ${tsNote(b.id)}: window state`));
   pivots.forEach(b => L.push(`        self.pv_${id(b.id)} = [[], [], NAN, NAN]  # ${tsNote(b.id)}: pivot state`));
+  recipe.blocks.filter(b => divergenceOk(recipe, b)).forEach(b => L.push(`        self.dv_${id(b.id)} = [[], [], [], None, None]  # ${tsNote(b.id)}: divergence state`));
   htfSrc.forEach(h => L.push(`        self.htf_${id(h)} = BsvHtf(${htfMinutes(map.get(h))})  # ${tsNote(h)}: closed higher-timeframe bars only`));
   L.push('');
   L.push('    def on_start(self):');
@@ -2992,6 +3070,8 @@ function renderNautilus(recipe) {
     if (pivotOk(recipe, b)) { L.push(`        v[${pyText(b.id + '.high')}], v[${pyText(b.id + '.low')}] = bsv_pivot_step(self.pv_${ik}, ${(q.source || 'close') === 'high_low' ? 'h, l' : 'c, c'}, ${q.left}, ${q.right})`); continue; }
     if (zoneOk(recipe, b)) { L.push(`        v[${pyText('zone:' + b.id + '.high')}], v[${pyText('zone:' + b.id + '.low')}] = v[${pyText(q.source + '.high')}], v[${pyText(q.source + '.low')}]  # zone ${tsNote(q.title || b.id)} (no chart in this starter)`); continue; }
     if (webhookOk(recipe, b)) { L.push(`        s[${k}] = ${bool(q.when)}  # webhook`); continue; }
+    if (sweepOk(recipe, b)) { L.push(`        s[${k}] = bsv_sweep(pv.get(${pyText(q.pivot + '.high')}, NAN), pv.get(${pyText(q.pivot + '.low')}, NAN), h, l, c, ${val(q.atr)}, ${Number(q.minAtrFraction || 0)})  # candidate only`); continue; }
+    if (divergenceOk(recipe, b)) { const pq = map.get(q.pivot).params; L.push(`        s[${k}] = bsv_divergence_step(self.dv_${ik}, ${(pq.source || 'close') === 'high_low' ? 'h, l' : 'c, c'}, ${val(q.oscillator)}, ${pq.left}, ${pq.right}, ${pyText(q.direction || 'both')})`); continue; }
     if (breakoutOk(recipe, b)) { const r = map.get(q.range); L.push(`        s[${k}] = bsv_breakout(${bool(r.params.during)}, v[${pyText(r.id + '.high')}], v[${pyText(r.id + '.low')}], c, pv.get("close", NAN), ${pyText(q.direction || 'either')})`); continue; }
     switch (b.type) {
       case 'indicator.ema': case 'indicator.sma': case 'indicator.rsi':
