@@ -152,6 +152,7 @@ def trust(site: Path, today: str) -> dict:
                            "note": "Counted from the public catalogue at build time; matches the figures on " + ORIGIN + "/trading/"},
         "transparencyCenter": ORIGIN + "/transparency/",
         "capabilityManifests": {"url": ORIGIN + "/capabilities/index.json", "schema": ORIGIN + "/schemas/capability-manifest-v0.1.json"} if (site / "capabilities/index.json").exists() else None,
+        "generatorCoverage": {"url": ORIGIN + "/trading/build/coverage.json", "note": "Which BSV check covers each generator target, and TODO lines per recipe x target. runtimeTestedByBSV is 0."} if (site / "trading/build/coverage.json").exists() else None,
         "policies": {"buyers": page_url("for-buyers.html"), "sellers": page_url("for-sellers.html"),
                      "privacy": page_url("privacy.html")},
     }
@@ -193,6 +194,7 @@ def llms(site: Path, today: str) -> dict:
     block = [LL_BEGIN, "", f"## Start here, rules and trust facts ({today})", *lines,
              f"- Trust facts (machine-readable; each fact quotes its production page): {ORIGIN}/.well-known/bsv-trust.json",
              *([f"- Capability manifests (capability-manifest v0.1; every public catalogue entry and BSV recipe, verification as labelled): {ORIGIN}/capabilities/index.json"] if (site / "capabilities/index.json").exists() else []),
+             *([f"- Generator coverage (per target: which BSV check covers it; per recipe x target: TODO lines; none runtime-tested by BSV): {ORIGIN}/trading/build/coverage.json"] if (site / "trading/build/coverage.json").exists() else []),
              f"- Sitemap: {ORIGIN}/sitemap.xml",
              "- Gated source is not listed here and needs a verified email session; this file does not replace robots.txt, sitemap.xml or canonical URLs.",
              "", LL_END]

@@ -78,7 +78,12 @@ function target(){var h=decodeURIComponent((location.hash||'').slice(1));if(!/^r
 function areas(rs){var ul=$('#rq-areas');if(!ul)return;ul.textContent='';var m={};rs.filter(function(r){return r.status==='OPEN'}).forEach(function(r){(r.domains||[]).forEach(function(d){m[d]=m[d]||{n:0,b:0};m[d].n++;if(r.willingnessToPay)m[d].b++})});
  var ks=Object.keys(m).sort(function(a,b){return m[b].n-m[a].n});if(!ks.length){ul.appendChild(el('li',{'class':'empty'},[bi('No open public requests yet, so there is no area score yet.','公開中のリクエストがまだないため、分野ごとのスコアはまだありません。')]));return}
  ks.forEach(function(k){ul.appendChild(el('li',{'class':'bb-card'},[el('strong',{text:(LAB[k]||k)+' — score '+m[k].n}),el('span',{'class':'small muted',text:'with a stated budget: '+m[k].b}) ]))})}
-function load(){fetch(API+'?op=public',{credentials:'omit'}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){render(j);filters(j.requests||[]);areas(j.requests||[]);target()}else throw 0}).catch(function(){var ul=$('#rq-list');ul.textContent='';ul.appendChild(el('li',{'class':'empty'},[bi('Could not load requests right now.','いまはリクエストを読み込めません。')]))})}
+function heat(rs){var t=$('#rq-heat');if(!t)return;t.textContent='';var open=rs.filter(function(r){return r.status==='OPEN'}),cols=[],rows=[],m={};
+ open.forEach(function(r){var ps=(r.platforms||[]).length?r.platforms.slice(0,8):['—'];(r.domains||[]).forEach(function(d){if(rows.indexOf(d)<0)rows.push(d);ps.forEach(function(p){if(cols.indexOf(p)<0)cols.push(p);var k=d+'\u0000'+p;m[k]=(m[k]||0)+1})})});
+ if(!open.length){t.appendChild(el('caption',{'class':'small muted'},[bi('No open public requests yet, so every cell is 0 and nothing is drawn.','公開中のリクエストがまだないため、すべて0で、表は空です。')]));return}
+ rows.sort();cols.sort(function(a,b){return a==='—'?1:b==='—'?-1:a<b?-1:1});var hr=el('tr',{},[el('th',{text:'Area \u00d7 platform'})]);cols.forEach(function(c){hr.appendChild(el('th',{text:c}))});t.appendChild(el('thead',{},[hr]));var tb=el('tbody',{});
+ rows.forEach(function(d){var tr=el('tr',{},[el('th',{text:LAB[d]||d})]);cols.forEach(function(c){var n=m[d+'\u0000'+c]||0;tr.appendChild(el('td',{'data-n':String(n),text:String(n)}))});tb.appendChild(tr)});t.appendChild(tb)}
+function load(){fetch(API+'?op=public',{credentials:'omit'}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){render(j);filters(j.requests||[]);areas(j.requests||[]);heat(j.requests||[]);target()}else throw 0}).catch(function(){var ul=$('#rq-list');ul.textContent='';ul.appendChild(el('li',{'class':'empty'},[bi('Could not load requests right now.','いまはリクエストを読み込めません。')]))})}
 function list(v){return String(v||'').split(',').map(function(s){return s.trim()}).filter(Boolean).slice(0,8)}
 function msg(cls,en,ja){var m=$('#rq-msg');m.className='rq-msg '+cls;m.textContent='';m.appendChild(bi(en,ja));if(m.querySelector('a'))return}
 function submit(ev){ev.preventDefault();var f=ev.target;var doms=[].slice.call(f.querySelectorAll('input[name=domain]:checked')).map(function(x){return x.value});
@@ -133,21 +138,34 @@ def catalogue_gaps(site: Path) -> list:
     return out
 
 
-def generator_gaps() -> dict:
-    """Block types used by the BSV recipes that the BSV generator does not render yet (Issue #6 tranche 6). Counted at
-    build time by rendering every recipe for every target and reading the generator's own 'TODO unsupported block'
-    lines. A fact about the generator, not a measure of demand."""
+_RENDERED = {}
+
+
+def _render_all():
+    """Render every recipe for every target once per build; keep TODO counts and unsupported block types."""
+    if _RENDERED:
+        return
     import subprocess
     from concurrent.futures import ThreadPoolExecutor
     tk = json.loads((REPO / "trader-toolkit/catalog.json").read_text())
-    targets = [t for t, _, _ in blt.TARGETS]
     gen = REPO / "trader-toolkit/generator/render.mjs"
     def run(job):
         stem, t = job
         out = subprocess.run(["node", str(gen), str(REPO / f"trader-toolkit/recipes/{stem}.json"), "--target", t], capture_output=True, text=True, check=True).stdout
-        return stem, t, sorted(set(re.findall(r"TODO unsupported block ([a-z_]+\.[a-z_]+)", out)))
+        return job, {"unsupported": sorted(set(re.findall(r"TODO unsupported block ([a-z_]+\.[a-z_]+)", out))), "todo": len(re.findall(r"\bTODO\b", out))}
     with ThreadPoolExecutor(8) as ex:
-        res = list(ex.map(run, [(stem, t) for stem in tk["recipes"] for t in targets]))
+        for job, v in ex.map(run, [(stem, t) for stem in tk["recipes"] for t, _, _ in blt.TARGETS]):
+            _RENDERED[job] = v
+
+
+def generator_gaps() -> dict:
+    """Block types used by the BSV recipes that the BSV generator does not render yet (Issue #6 tranche 6). Counted at
+    build time by rendering every recipe for every target and reading the generator's own 'TODO unsupported block'
+    lines. A fact about the generator, not a measure of demand."""
+    tk = json.loads((REPO / "trader-toolkit/catalog.json").read_text())
+    targets = [t for t, _, _ in blt.TARGETS]
+    _render_all()
+    res = [(stem, t, _RENDERED[(stem, t)]["unsupported"]) for stem in tk["recipes"] for t in targets]
     by = {}
     for stem, t, types in res:
         for ty in types:
@@ -156,6 +174,46 @@ def generator_gaps() -> dict:
     gaps = [{"blockType": ty, "recipes": sorted(g["recipes"]), "recipeCount": len(g["recipes"]), "targetsWithoutIt": len(g["targets"]), "targetsWithIt": len(targets) - len(g["targets"])}
             for ty, g in sorted(by.items(), key=lambda kv: (-len(kv[1]["recipes"]), kv[0]))]
     return {"targets": len(targets), "recipes": len(tk["recipes"]), "recipesWithGaps": len({stem for stem, _, types in res if types}), "gaps": gaps}
+
+
+TARGET_CHECKS = {  # which BSV check covers each target (facts from build_stage / scripts/site); nothing here is a platform run
+    "backtrader": ("LIBRARY_RUN", "scripts/site/check_backtrader.py", "Executed inside the backtrader library on synthetic bars; not a broker or live feed."),
+    "backtesting-py": ("LIBRARY_RUN", "scripts/site/check_backtesting_py.py", "Executed inside the Backtesting.py library on synthetic bars; not a broker or live feed."),
+    "nautilus": ("LIBRARY_RUN", "scripts/site/check_nautilus.py", "Executed inside the NautilusTrader BacktestEngine on synthetic bars; not a broker, venue or live feed."),
+    "thinkscript": ("SUBSET_EVALUATOR", "scripts/site/check_thinkscript.mjs", "BSV-written thinkScript-subset parser/evaluator; not thinkorswim."),
+    "amibroker": ("SUBSET_EVALUATOR", "scripts/site/check_amibroker_afl.mjs", "BSV-written AFL-subset parser/evaluator; not AmiBroker."),
+    "tradovate": ("API_STUB_RUN", "scripts/site/check_tradovate.mjs", "Run in node:vm against a BSV stub of the documented custom-indicator API; not Tradovate."),
+    "vela": ("ENGINE_STAND_IN", "scripts/site/test_vela_engine.mjs", "Vela imports swapped for local stand-ins and run over synthetic bars; not a Vela runtime test."),
+    "motivewave": ("STUB_COMPILE", "scripts/site/check_motivewave_stubs.sh", "javac against BSV stubs written from the public SDK javadoc; not the real SDK."),
+    "jforex": ("STUB_COMPILE", "scripts/site/check_jforex_stubs.sh", "javac against BSV stubs written from the JForex API javadoc; not run."),
+    "atas": ("STUB_COMPILE", "scripts/site/check_atas_stubs.sh", "dotnet build against BSV stubs from the ATAS API reference; not a real ATAS build."),
+    "easylanguage": ("STRUCTURAL", "scripts/site/check_easylanguage_output.mjs", "Structural check only; not a TradeStation Verify."),
+}
+PARITY_ONLY = ("PARITY_ONLY", "scripts/site/test_builder_parity.mjs", "Only checked that the browser builder output equals the CLI generator; no target-specific check.")
+
+
+def generator_coverage() -> dict:
+    """Per target: which BSV check covers it; per recipe x target: generator TODO lines (Issue #8 tranche 7)."""
+    _render_all()
+    tk = json.loads((REPO / "trader-toolkit/catalog.json").read_text())
+    targets = []
+    for t, label, ext in blt.TARGETS:
+        kind, script, note = TARGET_CHECKS.get(t, PARITY_ONLY)
+        if not (REPO / script).exists():
+            raise SystemExit(f"coverage: missing check script {script}")
+        targets.append({"id": t, "label": label, "extension": ext, "check": {"kind": kind, "script": script, "note": note}, "runtimeTestedByBSV": False})
+    recipes = []
+    for stem in tk["recipes"]:
+        row = {t: _RENDERED[(stem, t)] for t, _, _ in blt.TARGETS}
+        recipes.append({"id": stem, "todoLines": {t: v["todo"] for t, v in row.items()}, "unsupportedBlocks": sorted({x for v in row.values() for x in v["unsupported"]})})
+    kinds = {}
+    for x in targets:
+        kinds[x["check"]["kind"]] = kinds.get(x["check"]["kind"], 0) + 1
+    return {"schemaNote": "BSV generator coverage v0.1. Facts counted from the generator and BSV's own checks at build time. No target is runtime-tested by BSV.",
+            "generatedFrom": "trader-toolkit/generator/render.mjs, trader-toolkit/recipes and scripts/site checks in the BSV repository",
+            "counts": {"targets": len(targets), "recipes": len(recipes), "byCheckKind": dict(sorted(kinds.items())), "runtimeTestedByBSV": 0,
+                       "recipeTargetPairsWithoutTodo": sum(1 for r in recipes for v in r["todoLines"].values() if v == 0)},
+            "targets": targets, "recipes": recipes}
 
 
 def builders_section(site: Path) -> str:
@@ -173,11 +231,14 @@ def builders_section(site: Path) -> str:
         f'<h3>{both("Open public requests by area (live)", "分野ごとの公開中リクエスト（その場で集計）")}</h3>'
         '<ul class="rq-list" id="rq-areas"><li class="empty">' + both("Loading…", "読み込み中…") + '</li></ul>'
         f'<p class="small muted">{both("Score = number of open public requests in that area; budget = how many of them state one. Both come from the request store.", "スコア＝その分野の公開中リクエストの数、予算あり＝そのうち予算が書かれている数。どちらもリクエストの保存先から数えています。")}</p>'
+        f'<h3 id="heatmap">{both("Demand heatmap: area × platform (live)", "需要ヒートマップ：分野×プラットフォーム（その場で集計）")}</h3>'
+        f'<p class="small">{both("Counts of open public requests only, aggregated in your browser from the same public JSON. A request with several areas or platforms counts once in each cell; “—” = no platform stated. No user ids, no private or pending requests, no searches or page views.", "公開中のリクエストの件数だけを、同じ公開JSONからこのブラウザ内で集計します。複数の分野・プラットフォームを持つリクエストは各マスに1件ずつ数えます。「—」はプラットフォーム未記入です。ユーザーID・非公開や確認待ちのリクエスト・検索・閲覧数は含みません。")}</p>'
+        '<div class="bb-table-wrap"><table class="qa-table" id="rq-heat"></table></div>'
         f'<h3>{both("Supply gaps in the Traders Library catalogue", "Traders Library カタログの空き")}</h3>'
         f'<p class="small">{both("Counted from /trading/catalog.json. This is a fact about the catalogue, not a measure of demand. Porting someone else's source must follow that entry's license.", "/trading/catalog.json から数えた値です。カタログの事実であって、需要の大きさではありません。他の人のソースを移植する場合は、その項目のライセンスに従ってください。")}</p>'
         f'<div class="bb-table-wrap"><table class="qa-table"><thead><tr><th>{both("Gap", "空き")}</th><th>{both("Entries", "件数")}</th><th>{both("By type", "種類別")}</th></tr></thead><tbody>{rows}</tbody></table></div>'
         f'<h3 id="generator-gaps">{both("Blocks the generator cannot render yet", "ジェネレーターがまだ出力できないブロック")}</h3>'
-        f'<p class="small">{both(gen_en, gen_ja)}</p>'
+        f'<p class="small">{both(gen_en, gen_ja)} <a href="/trading/build/coverage.json">coverage.json</a></p>'
         f'<div class="bb-table-wrap"><table class="qa-table" id="rq-gen-gaps"><thead><tr><th>{both("Block type", "ブロックの種類")}</th><th>{both("Recipes using it", "使っているレシピ")}</th><th>{both("Targets that render it", "出力できる出力先")}</th></tr></thead><tbody>{grows}</tbody></table></div>'
         f'<h3>{both("Signals not collected yet", "まだ集めていないデータ")}</h3>'
         f'<p class="small">{both("No-result searches and page-view demand are not logged on this site, so they are not shown.", "結果0件の検索やページの閲覧数は記録していないため、表示していません。")}</p>'
@@ -262,6 +323,8 @@ def main():
             "generatorGaps": {"source": "trader-toolkit/generator/render.mjs and trader-toolkit/recipes in the BSV repository", "note": "Block types the BSV generator does not render yet, counted from its own TODO lines at build time. Facts about the generator, not demand.", **generator_gaps()},
             "catalogueGaps": {"source": ORIGIN + "/trading/catalog.json", "note": "Facts about the catalogue, not demand. Porting third-party source must follow its license.", "gaps": gaps}},
     }, ensure_ascii=False, indent=1) + "\n")
+    (site / "trading/build").mkdir(parents=True, exist_ok=True)
+    (site / "trading/build/coverage.json").write_text(json.dumps(generator_coverage(), ensure_ascii=False, indent=1) + "\n")
     sd = site / "schemas"; sd.mkdir(exist_ok=True)
     (sd / "demand-request-v0.1.json").write_text((REPO / "schemas/bsv-demand-request.schema.json").read_text())
     (sd / "opportunity-signal-v0.1.json").write_text((REPO / "schemas/bsv-opportunity-signal.schema.json").read_text())
