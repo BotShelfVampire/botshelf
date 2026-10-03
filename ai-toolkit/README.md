@@ -32,3 +32,12 @@ The local Tiny Agent path is deliberately useful for BSV's broader local/self-ho
 - `dots/activity-review-checklist.md`
 
 These are practical rule/responsibility templates for an always-on dot. They do not override built-in safeguards or turn a draft instruction into permission for consequential actions.
+
+## Additional current agent surfaces
+
+- **LM Studio Bionic** — project-worker and context-compressor templates for local/open-model work
+- **Hugging Face smolagents** — LM Studio local ToolCallingAgent starter with no tools enabled by default
+- **Letta** — durable project-memory layout for stateful agents
+- **OpenAI Agents SDK** — guarded no-side-effect worker starter that can later be extended with tools, handoffs, guardrails and sandbox agents
+
+These are intentionally different patterns: Bionic is an agent harness/app, smolagents is a lightweight Python framework, Letta focuses on persistent state/memory, and the OpenAI Agents SDK provides managed agent orchestration primitives. BSV should help users choose by job instead of pretending every agent framework is interchangeable.
