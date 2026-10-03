@@ -1,6 +1,6 @@
 # BSV compact state
 
-Updated: 2026-10-04 00:41 JST
+Updated: 2026-10-04 01:15 JST
 
 ## Goal
 
@@ -48,6 +48,15 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - New Bobby is the operational successor and should continue the same BSV production role without restarting the project from scratch.
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
+
+## #4 + P0 tranche 3 LIVE (2026-10-04 01:15 JST)
+
+- Production deploy: 6ac12969543384071db67c7b. Chain: 6ac12003 -> 6ac1254b (#4 Tradovate) -> 6ac12969 (#8/#6/#7 tranche 3).
+- #4: Tradovate JavaScript custom-indicator target. Checked by check_tradovate.mjs (360/0) against a node:vm stub of the documented API; this is not a Tradovate run. Listed the ATAS way: 19 starters, 19 builder tabs.
+- #8 t3: /capabilities/index.json, capability-manifest v0.1, 90 manifests, nothing VERIFIED.
+- #6 t3: demand-request?op=signals, opportunity-signal v0.1, from approved public requests only.
+- #7 t3: /robot-pilot/#recipes, the SO-101 simulation practice-session recipe (UNTESTED_RUNTIME).
+- Next: #8 t4 (trading item pages into sitemap + canonical), then the next #4 target.
 
 ## P0 tranche 2 LIVE (2026-10-04 00:41 JST)
 
