@@ -97,7 +97,7 @@ var HINTS={
  'visual.plot':['Plots draw a value block as a line. On Bookmap, overlay lines are price levels.','値ブロックを線として描きます。Bookmapでは重ね表示の線は価格水準として描かれます。'],
  'alert.condition':['MQL4 and cTrader Python alert once per closed bar; Pine needs an alert set up in TradingView. Check alert frequency before use.','MQL4とcTrader Pythonは確定足ごとに1回通知します。PineはTradingView側でアラート設定が必要です。使う前に通知頻度を確認してください。'],
  'alert.webhook':['Webhooks: Pine alert() plus a TradingView webhook URL. On MT4/MT5, WebRequest only runs in Expert Advisors/scripts (not indicators) and the URL must be allow-listed. Never put secrets in the message.','Webhook：PineはalertとTradingViewのWebhook URLで送ります。MT4・MT5のWebRequestはEA・スクリプトでのみ動き（インジケーター不可）、URLの許可設定が必要です。メッセージに秘密情報を入れないでください。'],
- 'data.higher_timeframe':['Request higher-timeframe bars (Pine request.security, MQL iMA with a timeframe argument, cTrader MarketData.GetBars) and use only closed higher-timeframe bars to avoid lookahead.','上位足のデータを取得します（Pineはrequest.security、MQLは時間足を指定したiMA、cTraderはMarketData.GetBars）。先読みを避けるため確定した上位足だけを使います。'],
+ 'data.higher_timeframe':['The generator computes higher-timeframe values from closed higher-timeframe bars only on backtrader, Backtesting.py and NautilusTrader. On other targets blocks that use it stay TODO stubs (never computed on the chart timeframe): use the platform API (Pine request.security, MQL iMA with a timeframe, cTrader MarketData.GetBars) with closed bars only.','ジェネレーターは backtrader・Backtesting.py・NautilusTrader でだけ、確定した上位足から値を計算します。ほかの出力先では、上位足を使うブロックはTODOのスタブのままです（表示中の足では計算しません）。プラットフォームのAPI（Pineはrequest.security、MQLは時間足を指定したiMA、cTraderはMarketData.GetBars）で、確定した足だけを使ってください。'],
  'structure.pivot':['A pivot is a bar whose high/low is the extreme of N bars on each side; it is confirmed only N bars later.','ピボットは左右N本の中で高値・安値が最も外側の足です。確定するのはN本後です。'],
  'structure.range':['Track the high/low of a defined window (for example the opening range) and reset it each session.','決めた時間帯（例：寄り付きレンジ）の高値・安値を記録し、セッションごとにリセットします。'],
  'signal.breakout':['Breakout = close beyond a range or pivot level. Decide close vs intrabar and how to avoid repeated alerts.','ブレイクアウトはレンジやピボットの水準を終値で超えることです。終値判定か足の途中で判定するか、通知の重複をどう防ぐかを決めます。'],
@@ -365,7 +365,7 @@ def port_js(repo: Path) -> str:
     types = schema["properties"]["blocks"]["items"]["properties"]["type"]["enum"]
     return ("/* BSV recipe builder — gated. Generator functions are copied verbatim from trader-toolkit/generator/render.mjs (MIT). */\n"
             "(function(root){'use strict';\n" + src[i:] +
-            "\nvar RENDER={" + ",".join(f"'{t}':{TARGET_FN[t]}" for t, _, _ in blt.TARGETS + BUILDER_EXTRA_TARGETS) + "};\n"
+            "\nvar RENDER={" + ",".join(f"'{t}':function(r){{return renderFor('{t}',{TARGET_FN[t]},r)}}" for t, _, _ in blt.TARGETS + BUILDER_EXTRA_TARGETS) + "};\n"
             f"var RECIPES={json.dumps(recipes, ensure_ascii=False)};\nvar RECIPE_IDS={json.dumps([p.stem for p in rfiles])};\nvar TYPES={json.dumps(types)};\n"
             "root.BSVRender={validate:validateRecipe,render:function(r,t){validateRecipe(r);return RENDER[t](r)},recipes:RECIPES,types:TYPES};\n"
             + UI_JS.replace("__PRICE__", json.dumps(PRICE)).replace("__EXT__", json.dumps({t: e for t, _, e in blt.TARGETS + BUILDER_EXTRA_TARGETS})) + "\n})(typeof window!=='undefined'?window:globalThis);\n")

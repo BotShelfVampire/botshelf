@@ -189,6 +189,10 @@ TARGET_CHECKS = {  # which BSV check covers each target (facts from build_stage 
     "atas": ("STUB_COMPILE", "scripts/site/check_atas_stubs.sh", "dotnet build against BSV stubs from the ATAS API reference; not a real ATAS build."),
     "easylanguage": ("STRUCTURAL", "scripts/site/check_easylanguage_output.mjs", "Structural check only; not a TradeStation Verify."),
 }
+HTF_REAL = blt.HTF_REAL  # must match htfRealTargets() in render.mjs (checked by check_htf.py)
+HTF_DISCLOSURE = ("Correction (2026-10-04): before this date every BSV generator target computed indicators marked with a higher "
+                  "timeframe (timeframeRef) on the chart timeframe, with no warning. This affected the recipe mtf-confirmation-panel. "
+                  "Now 3 targets compute real higher-timeframe values from closed bars and the other 19 leave those blocks as TODO stubs.")
 PARITY_ONLY = ("PARITY_ONLY", "scripts/site/test_builder_parity.mjs", "Only checked that the browser builder output equals the CLI generator; no target-specific check.")
 
 
@@ -201,7 +205,12 @@ def generator_coverage() -> dict:
         kind, script, note = TARGET_CHECKS.get(t, PARITY_ONLY)
         if not (REPO / script).exists():
             raise SystemExit(f"coverage: missing check script {script}")
-        targets.append({"id": t, "label": label, "extension": ext, "check": {"kind": kind, "script": script, "note": note}, "runtimeTestedByBSV": False})
+        real = t in HTF_REAL
+        targets.append({"id": t, "label": label, "extension": ext, "check": {"kind": kind, "script": script, "note": note},
+                        "higherTimeframe": {"status": "CLOSED_BARS_CHECKED" if real else "UNSUPPORTED_TODO",
+                                            "note": "Computed from closed higher-timeframe bars only (no repaint, no lookahead); checked in the library on synthetic bars, including a cut-off run and a stop on too-coarse bars." if real
+                                            else "Blocks that use a higher timeframe are left as unsupported stubs with a TODO line (empty value / false signal); never computed on the chart timeframe."},
+                        "runtimeTestedByBSV": False})
     recipes = []
     for stem in tk["recipes"]:
         row = {t: _RENDERED[(stem, t)] for t, _, _ in blt.TARGETS}
@@ -211,7 +220,9 @@ def generator_coverage() -> dict:
         kinds[x["check"]["kind"]] = kinds.get(x["check"]["kind"], 0) + 1
     return {"schemaNote": "BSV generator coverage v0.1. Facts counted from the generator and BSV's own checks at build time. No target is runtime-tested by BSV.",
             "generatedFrom": "trader-toolkit/generator/render.mjs, trader-toolkit/recipes and scripts/site checks in the BSV repository",
+            "higherTimeframeDisclosure": HTF_DISCLOSURE,
             "counts": {"targets": len(targets), "recipes": len(recipes), "byCheckKind": dict(sorted(kinds.items())), "runtimeTestedByBSV": 0,
+                       "higherTimeframeReal": sum(1 for x in targets if x["higherTimeframe"]["status"] == "CLOSED_BARS_CHECKED"),
                        "recipeTargetPairsWithoutTodo": sum(1 for r in recipes for v in r["todoLines"].values() if v == 0)},
             "targets": targets, "recipes": recipes}
 
