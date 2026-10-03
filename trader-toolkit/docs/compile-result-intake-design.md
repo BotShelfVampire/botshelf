@@ -1,6 +1,6 @@
 # Compile-result intake — design (owner-confirmable, never auto-verified)
 
-Status: DESIGN ONLY. Nothing here is implemented or deployed. No new endpoint, form, email or storage exists yet.
+Status: IMPLEMENTED (conservative), cycle 8, 2026-10-03. The owner answered the open questions with the most conservative option; see "Implemented (cycle 8)" at the end. The flow below is the original proposal; where it differs, the cycle-8 section wins.
 
 ## Why
 
@@ -57,8 +57,35 @@ owner review page (/ops, owner session only) ◀──────┘   list pen
 - [ ] `test_live_toolkit.py` gains a check that no page says "verified" for a target whose only evidence is user reports.
 - [ ] Gate tests, CSP sweep and payment/health checks unchanged.
 
-## Open questions for the owner
+## Open questions for the owner (answered 2026-10-03, see below)
 
 1. Is "User-reported" wording acceptable on public pages, or should approved reports stay internal only?
 2. Should failed-compile reports be public?
 3. Retention period for rejected reports (proposal: 30 days, then delete).
+
+## Implemented (cycle 8) — owner answers, most conservative option
+
+| Question | Answer |
+|---|---|
+| Who may send | Email-verified accounts only (`requireUser`, `botshelf_sid` session). Anonymous → 401, foreign `Origin` → 403. |
+| Where stored | Server-side in the existing Netlify Blobs setup, store `compile_reports`, key `rep:<id>`, record keyed to the account id. |
+| PII | None beyond the existing account email. The report holds `user_id` only; the review queue looks up the email from the account at read time. No IP, no user agent, no name. |
+| Who reviews | Owner only: `GET /.netlify/functions/compile-report?op=queue[&state=pending]` and `POST ...?op=review` with header `x-admin-secret` (`LICENSE_ADMIN_SECRET`). No public UI, no list endpoint for users. |
+| Auto-promotion | Never. States: `pending` → `approved-user-reported` / `rejected` / `needs-info`. There is no `verified` state, and every stored report has `self_reported:true, bsv_verified:false, public:false`. No code path reads reports into a page, catalog or count. |
+| Public display (Q1) | None. Approved reports stay internal. |
+| Failed compiles public (Q2) | No. Not shown anywhere. |
+| Retention (Q3) | Rejected reports are deleted 30 days after review (lazy purge when the owner opens the queue). |
+| Limits | 10 reports per account per day; same account + recipe + target + fp + status is merged (`duplicate:true`). Whitelisted fields only: `recipe` ≤120, `target` (builder target list), `status` (5 values), `platform` ≤120, `notes` ≤1000 (HTML stripped), `steps` ≤12 booleans, `fp` `^[0-9a-f]{8}$`, optional `builder` file name. Any other field → 400. |
+| Messages | No email is sent to anyone when a report arrives or is reviewed. |
+
+Source: `site-functions/compile-report.js` (installed into `<deploy root>/netlify/functions/` by
+`scripts/site/install_compile_report_fn.py`). Test: `node scripts/site/test_compile_report_fn.js <root>` (in-memory store).
+Builder: "Send to BSV (owner review)" button under "Record your result"; the browser copy (localStorage) works as before.
+
+Owner review, example:
+
+```
+curl -s -H "x-admin-secret: $LICENSE_ADMIN_SECRET" 'https://botshelfvampire.com/.netlify/functions/compile-report?op=queue&state=pending'
+curl -s -X POST -H "x-admin-secret: $LICENSE_ADMIN_SECRET" -H 'Content-Type: application/json' \
+  -d '{"id":"crp_...","decision":"rejected","note":"QA"}' 'https://botshelfvampire.com/.netlify/functions/compile-report?op=review'
+```
