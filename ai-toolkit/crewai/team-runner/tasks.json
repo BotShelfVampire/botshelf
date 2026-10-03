@@ -1,0 +1,66 @@
+{
+  "note": "Task ids match the BSV Library AI Teams. Prompt bodies are not stored here: paste the SYSTEM block from the team's full-text page (free email verification) into prompts/<task>.txt.",
+  "origin": "https://botshelfvampire.com",
+  "tasks": {
+    "coding-review": {
+      "title": "Coding Review",
+      "team_page": "/library/teams/coding-review/",
+      "implementation_page": "/library/crewai/coding-review/",
+      "full_text_page": "/library/source/team-crewai-coding-review.html"
+    },
+    "data-analysis": {
+      "title": "Data Analysis",
+      "team_page": "/library/teams/data-analysis/",
+      "implementation_page": "/library/crewai/data-analysis/",
+      "full_text_page": "/library/source/team-crewai-data-analysis.html"
+    },
+    "deep-research": {
+      "title": "Deep Research",
+      "team_page": "/library/teams/deep-research/",
+      "implementation_page": "/library/crewai/deep-research/",
+      "full_text_page": "/library/source/team-crewai-deep-research.html"
+    },
+    "doc-review": {
+      "title": "Doc Review",
+      "team_page": "/library/teams/doc-review/",
+      "implementation_page": "/library/crewai/doc-review/",
+      "full_text_page": "/library/source/team-crewai-doc-review.html"
+    },
+    "lead-research": {
+      "title": "Lead Research",
+      "team_page": "/library/teams/lead-research/",
+      "implementation_page": "/library/crewai/lead-research/",
+      "full_text_page": "/library/source/team-crewai-lead-research.html"
+    },
+    "monitoring": {
+      "title": "Monitoring Check",
+      "team_page": "/library/teams/monitoring/",
+      "implementation_page": "/library/crewai/monitoring/",
+      "full_text_page": "/library/source/team-crewai-monitoring.html"
+    },
+    "personal-assistant": {
+      "title": "Personal Assistant",
+      "team_page": "/library/teams/personal-assistant/",
+      "implementation_page": "/library/crewai/personal-assistant/",
+      "full_text_page": "/library/source/team-crewai-personal-assistant.html"
+    },
+    "seo-brief": {
+      "title": "SEO Brief",
+      "team_page": "/library/teams/seo-brief/",
+      "implementation_page": "/library/crewai/seo-brief/",
+      "full_text_page": "/library/source/team-crewai-seo-brief.html"
+    },
+    "support-triage": {
+      "title": "Support Triage",
+      "team_page": "/library/teams/support-triage/",
+      "implementation_page": "/library/crewai/support-triage/",
+      "full_text_page": "/library/source/team-crewai-support-triage.html"
+    },
+    "writing-draft": {
+      "title": "Writing Draft",
+      "team_page": "/library/teams/writing-draft/",
+      "implementation_page": "/library/crewai/writing-draft/",
+      "full_text_page": "/library/source/team-crewai-writing-draft.html"
+    }
+  }
+}

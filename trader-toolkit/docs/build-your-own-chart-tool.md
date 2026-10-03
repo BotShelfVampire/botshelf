@@ -45,6 +45,8 @@ Other current targets:
 --target mql4            # MT4
 --target ctrader-python  # cTrader Python (attribute file in the header comments)
 --target bookmap-python  # Bookmap Python API add-on (open beta; time bars built from trades)
+--target ninjatrader     # NinjaTrader 8 NinjaScript indicator
+--target quantower       # Quantower C# indicator
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.

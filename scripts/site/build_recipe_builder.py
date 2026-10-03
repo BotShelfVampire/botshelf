@@ -19,6 +19,9 @@ import build_live_toolkit as blt  # noqa: E402
 esc, both, T = blt.esc, blt.both, blt.T
 SLUG = "bsv-builder"
 PRICE = ["open", "high", "low", "close", "hl2", "hlc3", "ohlc4"]
+# target id -> render function in trader-toolkit/generator/render.mjs (labels / extensions come from build_live_toolkit.TARGETS)
+TARGET_FN = {"pine-v6": "renderPine", "mql5": "renderMql5", "ctrader": "renderCTrader", "mql4": "renderMql4", "ctrader-python": "renderCTraderPython",
+             "bookmap-python": "renderBookmapPython", "ninjatrader": "renderNinja", "quantower": "renderQuantower"}
 
 UI_JS = r"""
 var PRICE=__PRICE__;
@@ -34,7 +37,7 @@ var FIELDS={
 var DEFAULTS={'indicator.ema':{source:'close',length:20},'indicator.sma':{source:'close',length:50},'indicator.rsi':{source:'close',length:14},'indicator.atr':{length:14},
  'filter.session':{session:'0800-1200',timezone:'Europe/London'},'signal.cross':{left:'',right:'',direction:'above'},'signal.threshold':{left:'',op:'>=',value:50},
  'signal.combine':{mode:'all',signals:[]},'visual.plot':{source:'',title:''},'alert.condition':{when:'',message:'BSV recipe alert'}};
-var EXT={'pine-v6':'.pine','mql5':'.mq5','ctrader':'.cs','mql4':'.mq4','ctrader-python':'.py','bookmap-python':'.py'};
+var EXT=__EXT__;
 var KEY='bsv-rb-draft-v1';
 function $(s){return document.querySelector(s)}
 function el(tag,attrs,kids){var e=document.createElement(tag);if(attrs)Object.keys(attrs).forEach(function(k){if(k==='text')e.textContent=attrs[k];else e.setAttribute(k,attrs[k])});(kids||[]).forEach(function(c){e.appendChild(c)});return e}
@@ -68,7 +71,7 @@ function draw(){var r=state.recipe;$('#rb-name').value=r.name||'';$('#rb-desc').
 function update(){var r=state.recipe,out='',err='';save();$('#rb-json').value=JSON.stringify(r,null,2);
  try{var copy=clone(r);validateRecipe(copy);out=RENDER[state.target](copy)}catch(e){err=String(e&&e.message||e)}
  $('#rb-err').hidden=!err;$('#rb-err').textContent=err?('Fix this first: '+err):'';
- $('#rb-out').textContent=out;var todo=(out.match(/TODO/g)||[]).length;$('#rb-todo').textContent=out?('TODO markers: '+todo):'';renderHints(out);
+ $('#rb-out').textContent=out;var todo=(out.match(/TODO/g)||[]).length;$('#rb-todo').textContent=out?('TODO markers: '+todo):'';renderHints(out);renderLint();renderChecklist();
  ['#rb-copy','#rb-dl'].forEach(function(s){$(s).disabled=!out})}
 function load(r){state.recipe=clone(r);if(!Array.isArray(state.recipe.blocks))state.recipe.blocks=[];draw()}
 function toast(t){var e=$('#toast');if(!e)return;e.textContent=t;e.hidden=false;setTimeout(function(){e.hidden=true},1600)}
@@ -161,6 +164,54 @@ function initShare(){
  if(got){loadKeep(got);toast('Shared recipe loaded');if(history.replaceState)history.replaceState(null,'',location.pathname+location.search)}
  if(err){$('#rb-err').hidden=false;$('#rb-err').textContent='Shared link error: '+err}
  return !!got}
+// ---- builder: recipe lint (structure checks before render) + per-target compile checklist
+var SINK=/^(visual|alert)\./;
+function refsOf(b){var out=[];try{out=referencesFor(b).slice()}catch(e){}
+ // also count id-like strings in params of block types the generator does not model yet (fields, during, range, timeframeRef, ...)
+ var p=b.params||{};Object.keys(p).forEach(function(k){var v=p[k];(Array.isArray(v)?v:[v]).forEach(function(x){if(typeof x==='string'&&/^[a-z][a-z0-9_]*$/.test(x)&&out.indexOf(x)<0&&LINT_IDS[x])out.push(x)})});return out}
+var LINT_IDS={};
+function isBoolT(t){return /^(signal|filter|alert)\./.test(t||'')}
+function reorder(r){var by={},order=[],state={},cyc=[];LINT_IDS={};r.blocks.forEach(function(b){by[b.id]=b;LINT_IDS[b.id]=true});
+ function visit(b,stack){if(state[b.id]===2)return;if(state[b.id]===1){cyc.push(b.id);return}state[b.id]=1;
+  refsOf(b).forEach(function(x){if(by[x]&&x!==b.id)visit(by[x])});state[b.id]=2;order.push(b)}
+ r.blocks.forEach(function(b){visit(b)});return {blocks:order,cycle:cyc}}
+function lint(r){var out=[],pos={},by={},used={};LINT_IDS={};r.blocks.forEach(function(b,i){pos[b.id]=i;by[b.id]=b;LINT_IDS[b.id]=true});
+ var add=function(level,id,code,en,ja,fix){out.push({level:level,id:id,code:code,msg:[en,ja],fix:fix||''})};
+ r.blocks.forEach(function(b,i){var p=b.params||{};
+  refsOf(b).forEach(function(x){used[x]=true;
+   if(x===b.id)add('error',b.id,'self-ref',b.id+' refers to itself.',b.id+' が自分自身を参照しています。');
+   else if(pos[x]>i)add('warn',b.id,'forward-ref',b.id+' uses '+x+', which is defined below it. Pine and Bookmap evaluate top to bottom, so move '+x+' above (use "Fix order").',b.id+' が下にある '+x+' を参照しています。PineとBookmapは上から順に評価するため、'+x+' を上に移動してください（「順序を修正」）。','reorder')});
+  if(b.type==='alert.condition'&&p.when&&!isBoolT((by[p.when]||{}).type))add('warn',b.id,'alert-value','Alert "'+b.id+'" watches '+p.when+', which is a value, not a condition; it fires whenever the value is non-zero.','アラート「'+b.id+'」が条件ではなく値（'+p.when+'）を見ています。値が0以外のあいだ毎回通知されます。');
+  if(b.type==='signal.combine'){var s=p.signals||[];if(s.length<2)add('warn',b.id,'combine-few',b.id+' combines fewer than two signals.',b.id+' で組み合わせるシグナルが2つ未満です。');
+   s.forEach(function(x){if(by[x]&&!isBoolT(by[x].type))add('warn',b.id,'combine-value',b.id+' combines '+x+', which is a value, not a condition.',b.id+' が条件ではなく値（'+x+'）を組み合わせています。')})}
+  if(b.type==='signal.cross'&&p.left&&p.left===p.right)add('warn',b.id,'cross-same',b.id+' crosses '+p.left+' with itself; it can never fire.',b.id+' は同じ値同士のクロスなので成立しません。');
+  if(b.type==='signal.threshold'&&(by[p.left]||{}).type==='indicator.rsi'&&(Number(p.value)<0||Number(p.value)>100))add('warn',b.id,'rsi-range',b.id+': RSI is 0-100, so '+p.value+' is never reached.',b.id+'：RSIは0〜100なので '+p.value+' には届きません。');
+  if(b.type==='filter.session'&&!/^\d{4}-\d{4}$/.test(String(p.session||'')))add('error',b.id,'session-format',b.id+': session must look like HHMM-HHMM.',b.id+'：時間帯は HHMM-HHMM の形で入力してください。');
+  if(b.type==='visual.plot'){var src=by[p.source]||{};
+   if(r.overlay&&(src.type==='indicator.rsi'||isBoolT(src.type)))add('info',b.id,'scale',b.id+' plots '+p.source+' (0-100 or 0/1) on the price chart. Turn "overlay" off to see it in its own pane.',b.id+' は '+p.source+'（0〜100または0/1）を価格チャートに描きます。別ペインで見るには overlay をオフにしてください。');
+   if(!r.overlay&&(['indicator.ema','indicator.sma'].indexOf(src.type)>=0||/^(open|high|low|close|hl2|hlc3|ohlc4)$/.test(p.source||'')))add('info',b.id,'scale',b.id+' plots a price-scale value in a separate pane. Turn "overlay" on to draw it on the price chart.',b.id+' は価格と同じ尺度の値を別ペインに描きます。価格チャートに重ねるには overlay をオンにしてください。')}});
+ r.blocks.forEach(function(b){if(!SINK.test(b.type)&&!used[b.id])add('warn',b.id,'unused',b.id+' is not plotted, alerted or used by another block.',b.id+' はプロット・アラート・他のブロックのどれにも使われていません。','remove')});
+ if(!r.blocks.some(function(b){return SINK.test(b.type)}))add('warn','','no-output','Nothing is plotted or alerted yet. Add a visual.plot or alert.condition block.','まだ何も描画・通知されません。visual.plot か alert.condition を追加してください。');
+ var ro=reorder(r);ro.cycle.forEach(function(id){add('error',id,'cycle',id+' is part of a reference loop.',id+' が参照のループに含まれています。')});
+ return out}
+var COMMON_CHECK=[['Resolve every TODO marker (see the hints above).','TODOをすべて解消する（上のヒント参照）。'],['Check the result on history and a demo or replay account before any live use.','実運用の前に、過去データとデモ・リプレイ環境で確認する。'],['Record the platform name, version and build you used; BSV lists a target as verified only with that evidence.','使ったプラットフォーム名・バージョン・ビルドを記録する。BSVはその証拠があるときだけ検証済みとして扱います。']];
+var CHECKLIST={
+ 'pine-v6':[['TradingView: open the Pine Editor, create a new indicator, paste, then Save and "Add to chart".','TradingView：Pineエディターで新規インジケーターを作り、貼り付けて保存し「チャートに追加」。'],['Fix anything the editor console reports, then re-add the script.','エディターのコンソールに出たエラーを直し、もう一度追加する。'],['For alerts, create an alert on the chart and pick this indicator\'s alert condition.','アラートはチャートでアラートを作成し、このインジケーターの条件を選ぶ。']],
+ 'mql5':[['MetaTrader 5: MetaEditor > New > Custom Indicator, paste, Compile (F7) with 0 errors.','MetaTrader 5：MetaEditorで「新規作成→カスタムインディケータ」、貼り付けてコンパイル（F7）しエラー0にする。'],['Attach it from the Navigator and watch the Experts / Journal tabs for runtime messages.','ナビゲーターからチャートに適用し、「エキスパート」「操作履歴」タブのメッセージを確認する。']],
+ 'mql4':[['MetaTrader 4: MetaEditor > New > Custom Indicator, paste, Compile (F7) with 0 errors.','MetaTrader 4：MetaEditorで「新規作成→カスタムインディケータ」、貼り付けてコンパイル（F7）しエラー0にする。'],['Refresh the Navigator, attach the indicator and check the Experts / Journal tabs.','ナビゲーターを更新してチャートに適用し、「エキスパート」「操作履歴」タブを確認する。']],
+ 'ctrader':[['cTrader: Algo > Indicators > New (C#), replace the code, Build (Ctrl+B) with no errors.','cTrader：Algo→インジケーター→新規（C#）でコードを置き換え、ビルド（Ctrl+B）しエラーなしにする。'],['Add it to a chart; alert lines appear in the Log tab (Print).','チャートに追加する。アラートはログタブに出力されます（Print）。']],
+ 'ctrader-python':[['cTrader: Algo > Indicators > New, language Python, same name as the generated class.','cTrader：Algo→インジケーター→新規で言語をPythonにし、生成されたクラスと同じ名前で作る。'],['Paste the commented attribute block into the .cs file and the rest into <Name>_main.py, then Build.','コメント内の属性部分を.csファイルに、残りを<Name>_main.pyに貼り付けてビルドする。']],
+ 'bookmap-python':[['Bookmap: set up the Python API add-on (open beta) as in the official BookmapAPI/python-api guide.','Bookmap：公式のBookmapAPI/python-apiの手順でPython APIアドオン（オープンベータ）を準備する。'],['Load the script, enable it for one instrument and check the add-on log; adjust BAR_SECONDS.','スクリプトを読み込んで1銘柄で有効にし、アドオンのログを確認する。BAR_SECONDSを調整する。']],
+ 'ninjatrader':[['NinjaTrader 8: New > NinjaScript Editor, create an indicator with the generated class name (or save the file under bin\\Custom\\Indicators), paste, Compile (F5).','NinjaTrader 8：「新規→NinjaScriptエディター」で生成されたクラス名のインジケーターを作る（またはbin\\Custom\\Indicatorsに保存）。貼り付けてコンパイル（F5）。'],['Add it to a chart; check the NinjaScript Output window. Alert() only fires in real time — use Market Replay to test alerts.','チャートに追加し、NinjaScript出力ウィンドウを確認する。Alert()はリアルタイムでのみ動くため、アラートはマーケットリプレイで確認する。']],
+ 'quantower':[['Quantower: create an indicator project with the Quantower Algo extension for Visual Studio, replace the class, build.','Quantower：Visual Studio用のQuantower Algo拡張でインジケーターのプロジェクトを作り、クラスを置き換えてビルドする。'],['Add the indicator to a chart; alert lines go to the Quantower event log.','インジケーターをチャートに追加する。アラートの行はQuantowerのイベントログに出ます。']]};
+function renderLint(){var box=$('#rb-lint'),list=$('#rb-lint-list');if(!box)return;list.textContent='';var issues=lint(state.recipe),hasOrder=false;
+ issues.forEach(function(it){var li=el('li',{'class':'rb-lint-'+it.level});li.appendChild(el('strong',{text:it.level.toUpperCase()+' '}));li.appendChild(bi(it.msg));
+  if(it.fix==='remove'){li.appendChild(mk('Remove '+it.id,function(){state.recipe.blocks=state.recipe.blocks.filter(function(b){return b.id!==it.id});draw()}))}
+  if(it.fix==='reorder')hasOrder=true;list.appendChild(li)});
+ $('#rb-lint-fix').hidden=!hasOrder;var e=issues.filter(function(x){return x.level==='error'}).length,w=issues.filter(function(x){return x.level==='warn'}).length;
+ $('#rb-lint-sum').textContent=issues.length?('Recipe check: '+e+' error(s), '+w+' warning(s), '+(issues.length-e-w)+' note(s)'):'Recipe check: no issues';box.classList.toggle('rb-lint-ok',!issues.length)}
+function renderChecklist(){var ol=$('#rb-check-list');if(!ol)return;ol.textContent='';(CHECKLIST[state.target]||[]).concat(COMMON_CHECK).forEach(function(pair){ol.appendChild(el('li',{},[bi(pair)]))});
+ var b=document.querySelector('[data-rb-target="'+state.target+'"]');$('#rb-check-target').textContent=b?b.textContent:state.target}
 function init(){if(!$('#rb-app'))return;
  var st=$('#rb-start');RECIPES.forEach(function(r,i){st.appendChild(el('option',{value:String(i),text:r.name}))});
  st.addEventListener('change',function(){if(st.value==='blank')load({schemaVersion:'0.1',name:'My chart tool',description:'',overlay:true,blocks:[]});else if(st.value!=='')load(RECIPES[+st.value])});
@@ -174,11 +225,12 @@ function init(){if(!$('#rb-app'))return;
  $('#rb-copy').addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText($('#rb-out').textContent).then(function(){toast('Copied')})});
  $('#rb-dl').addEventListener('click',function(){download(fileBase()+EXT[state.target],$('#rb-out').textContent)});
  $('#rb-dl-json').addEventListener('click',function(){download(fileBase()+'.recipe.json',JSON.stringify(sanitize(state.recipe).recipe,null,2)+'\n')});
+ $('#rb-lint-fix').addEventListener('click',function(){var ro=reorder(state.recipe);if(!ro.cycle.length){state.recipe.blocks=ro.blocks;draw();toast('Blocks reordered')}});
  if(initShare())return;
  var d=null;try{d=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
  var ok=null;try{ok=d?sanitize(d).recipe:null}catch(e){}
  load(ok||RECIPES[0]);}
-root.BSVBuilder={sanitize:sanitize,sharePayload:sharePayload,readPayload:readPayload,todoMap:todoMap,hints:HINTS,b64e:b64e,b64d:b64d};
+root.BSVBuilder={lint:lint,reorder:reorder,checklist:CHECKLIST,common:COMMON_CHECK,sanitize:sanitize,sharePayload:sharePayload,readPayload:readPayload,todoMap:todoMap,hints:HINTS,b64e:b64e,b64d:b64d};
 if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init()}
 """
 
@@ -219,6 +271,15 @@ CSS = """
 .rb-hint{border-top:1px solid var(--line);padding:6px 0;font-size:12px}
 .rb-hint p{margin:2px 0}
 .rb-todo-lines{font:11px var(--mono);white-space:pre-wrap;margin:4px 0 0;padding:6px;max-height:120px;overflow:auto}
+#rb-lint,#rb-check{margin:8px 0;border:1px solid var(--line);border-radius:4px;padding:8px 10px;font-size:12px}
+#rb-lint summary,#rb-check summary{cursor:pointer}
+#rb-lint-list{list-style:none;padding:0;margin:6px 0}
+#rb-lint-list li{border-top:1px solid var(--line);padding:5px 0}
+#rb-lint-list li .btn{margin-left:8px}
+.rb-lint-error strong{color:var(--danger)}.rb-lint-warn strong{color:var(--danger)}.rb-lint-info strong{color:var(--muted)}
+#rb-lint.rb-lint-ok summary{color:var(--green)}
+#rb-check-list{margin:6px 0 0 18px;padding:0}
+#rb-check-list li{margin:3px 0}
 .rb-share{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 #rb-share-url{width:100%;font:11px var(--mono);background:#090d0b;color:var(--text);border:1px solid var(--line);border-radius:4px;padding:6px}
 .rb-file{display:inline-flex;align-items:center;gap:6px;font-size:12px}
@@ -238,10 +299,10 @@ def port_js(repo: Path) -> str:
     types = schema["properties"]["blocks"]["items"]["properties"]["type"]["enum"]
     return ("/* BSV recipe builder — gated. Generator functions are copied verbatim from trader-toolkit/generator/render.mjs (MIT). */\n"
             "(function(root){'use strict';\n" + src[i:] +
-            "\nvar RENDER={'pine-v6':renderPine,'mql5':renderMql5,'ctrader':renderCTrader,'mql4':renderMql4,'ctrader-python':renderCTraderPython,'bookmap-python':renderBookmapPython};\n"
+            "\nvar RENDER={" + ",".join(f"'{t}':{TARGET_FN[t]}" for t, _, _ in blt.TARGETS) + "};\n"
             f"var RECIPES={json.dumps(recipes, ensure_ascii=False)};\nvar RECIPE_IDS={json.dumps([p.stem for p in rfiles])};\nvar TYPES={json.dumps(types)};\n"
             "root.BSVRender={validate:validateRecipe,render:function(r,t){validateRecipe(r);return RENDER[t](r)},recipes:RECIPES,types:TYPES};\n"
-            + UI_JS.replace("__PRICE__", json.dumps(PRICE)) + "\n})(typeof window!=='undefined'?window:globalThis);\n")
+            + UI_JS.replace("__PRICE__", json.dumps(PRICE)).replace("__EXT__", json.dumps({t: e for t, _, e in blt.TARGETS})) + "\n})(typeof window!=='undefined'?window:globalThis);\n")
 
 
 def main():
@@ -263,7 +324,7 @@ def main():
     body = (
         f'<div class="container detail"><div class="breadcrumb"><a href="/trading/">← Traders Library</a> / <a href="/trading/build/">{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</a> / {both(T("Recipe builder", "レシピビルダー"))}</div>'
         f'<h1 class="detail-title">{both(T("Recipe builder", "レシピビルダー"))}</h1>'
-        f'{both(T("Pick a starter or start blank, edit the blocks, and the BSV generator renders TradingView Pine v6, MT5 MQL5, MT4 MQL4, cTrader C#, cTrader Python and Bookmap Python right here in your browser. Nothing is sent to a server.", "ひな形を選ぶか白紙から始めてブロックを編集すると、BSVジェネレーターがTradingView（Pine v6）・MT5（MQL5）・MT4（MQL4）・cTrader（C#／Python）・Bookmap（Python）のコードをこのブラウザ内で生成します。サーバーには何も送信しません。"), "p", "detail-lead")}'
+        f'{both(T("Pick a starter or start blank, edit the blocks, and the BSV generator renders TradingView Pine v6, MT5 MQL5, MT4 MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8 and Quantower right here in your browser. Nothing is sent to a server.", "ひな形を選ぶか白紙から始めてブロックを編集すると、BSVジェネレーターがTradingView（Pine v6）・MT5（MQL5）・MT4（MQL4）・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantowerのコードをこのブラウザ内で生成します。サーバーには何も送信しません。"), "p", "detail-lead")}'
         f'<div class="notice"><p>{both(T("Output is a structural starter: compile it on your platform and resolve every TODO marker before use. Not runtime tested by BSV; not investment advice; no profitability is promised.", "出力は構造のひな形です。各プラットフォームでコンパイルし、TODOをすべて解消してから使ってください。BSVでは実行検証していません。投資助言ではなく、収益も保証しません。"))}</p></div>'
         '<noscript><p class="no-js">JavaScript is required for the builder.</p></noscript>'
         '<div id="rb-app" class="rb-wrap"><section class="rb-panel" aria-label="Recipe editor">'
@@ -279,9 +340,12 @@ def main():
         f'<details class="source-block"><summary>{both(T("Recipe JSON (import / export)", "レシピJSON（読み込み・書き出し）"))}</summary><div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-json-apply">Apply JSON</button><button type="button" class="btn small-btn" id="rb-dl-json">Download recipe JSON</button></div><textarea id="rb-json" spellcheck="false" aria-label="Recipe JSON"></textarea></details>'
         '</section><section class="rb-panel rb-sticky" aria-label="Generated code">'
         f'<h2>{both(T("3. Generated code", "3. 生成されたコード"))}</h2>'
-        '<div class="rb-tabs" role="group" aria-label="Target"><button type="button" class="btn small-btn" data-rb-target="pine-v6" aria-pressed="true">TradingView · Pine v6</button><button type="button" class="btn small-btn" data-rb-target="mql5" aria-pressed="false">MT5 · MQL5</button><button type="button" class="btn small-btn" data-rb-target="ctrader" aria-pressed="false">cTrader · C#</button><button type="button" class="btn small-btn" data-rb-target="mql4" aria-pressed="false">MT4 · MQL4</button><button type="button" class="btn small-btn" data-rb-target="ctrader-python" aria-pressed="false">cTrader · Python</button><button type="button" class="btn small-btn" data-rb-target="bookmap-python" aria-pressed="false">Bookmap · Python</button></div>'
-        '<p id="rb-err" role="alert" hidden></p><p class="small" id="rb-todo"></p>'
+        '<div class="rb-tabs" role="group" aria-label="Target">' + "".join(f'<button type="button" class="btn small-btn" data-rb-target="{t}" aria-pressed="{"true" if k == 0 else "false"}">{esc(lbl)}</button>' for k, (t, lbl, _) in enumerate(blt.TARGETS)) + '</div>'
+        '<p id="rb-err" role="alert" hidden></p>'
+        f'<details id="rb-lint" open><summary id="rb-lint-sum">Recipe check</summary><ul id="rb-lint-list"></ul><button type="button" class="btn small-btn" id="rb-lint-fix" hidden>{both(T("Fix order", "順序を修正"))}</button></details>'
+        '<p class="small" id="rb-todo"></p>'
         f'<details id="rb-hints" open hidden><summary>{both(T("TODO hints for this target (per block)", "この出力先のTODOヒント（ブロック別）"))}</summary><ul id="rb-hint-list"></ul></details>'
+        f'<details id="rb-check"><summary>{both(T("Compile checklist", "コンパイル確認リスト"))} — <span id="rb-check-target"></span></summary><ol id="rb-check-list"></ol></details>'
         '<div class="source-toolbar"><button type="button" class="btn small-btn" id="rb-copy">Copy code</button><button type="button" class="btn small-btn" id="rb-dl">Download file</button></div>'
         '<pre id="rb-out" tabindex="0" aria-live="polite"></pre></section></div>'
         f'<p class="small">{both(T("Your draft is kept only in this browser (localStorage). Generator: trader-toolkit/generator/render.mjs (ORIGINAL BSV, MIT), ported unchanged to the browser.", "下書きはこのブラウザ内（localStorage）にだけ保存されます。ジェネレーター：trader-toolkit/generator/render.mjs（BSVオリジナル・MIT）をそのままブラウザに移植しています。"))}</p>'
@@ -300,34 +364,34 @@ def main():
     share_path = f"/trading/assets/{SLUG}-share.{sh_h}.js"
     blt.write(site / share_path.lstrip("/"), share_js)
     extra = f'<link rel="stylesheet" href="{css_path}"><script src="{js_path}" defer></script>'
-    blt.write(site / f"trading/items/{SLUG}.html", blt.trader_shell(site, "Recipe builder — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and render Pine v6, MQL5, MQL4, cTrader (C# / Python) and Bookmap Python starters in the browser.", f"/trading/tools/{SLUG}.html", body, robots="noindex,nofollow", extra_head=extra))
+    blt.write(site / f"trading/items/{SLUG}.html", blt.trader_shell(site, "Recipe builder — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and render Pine v6, MQL5, MQL4, cTrader (C# / Python) Bookmap Python, NinjaTrader 8 and Quantower starters in the browser.", f"/trading/tools/{SLUG}.html", body, robots="noindex,nofollow", extra_head=extra))
 
     # ---- public summary page (no generator code)
     nxt = f"/trading/register.html?next=%2Ftrading%2Fitems%2F{SLUG}.html"
     pub = (
         f'<div class="container detail"><div class="breadcrumb"><a href="/trading/">← Traders Library</a> / <a href="/trading/build/">{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</a> / {both(T("Recipe builder", "レシピビルダー"))}</div>'
-        f'<article class="prose"><div class="badges"><span class="badge">TradingView · MT5 · MT4 · cTrader · Bookmap</span><span class="badge license">MIT</span><span class="badge">FREE</span></div>'
+        f'<article class="prose"><div class="badges"><span class="badge">TradingView · MT5 · MT4 · cTrader · Bookmap · NinjaTrader · Quantower</span><span class="badge license">MIT</span><span class="badge">FREE</span></div>'
         f'<h1 class="detail-title">{both(T("Recipe builder (in your browser)", "レシピビルダー（ブラウザで動作）"))}</h1>'
-        f'{both(T("Edit indicator, signal, plot and alert blocks in a form and get Pine v6, MQL5, MQL4, cTrader C#, cTrader Python and Bookmap Python starters generated instantly in your browser — the same BSV generator used for the pre-built recipes.", "指標・シグナル・プロット・アラートのブロックをフォームで編集すると、Pine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）のひな形がブラウザ内ですぐ生成されます。生成済みレシピと同じBSVジェネレーターです。"), "p", "detail-lead")}'
+        f'{both(T("Edit indicator, signal, plot and alert blocks in a form and get Pine v6, MQL5, MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8 and Quantower starters generated instantly in your browser — the same BSV generator used for the pre-built recipes.", "指標・シグナル・プロット・アラートのブロックをフォームで編集すると、Pine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantowerのひな形がブラウザ内ですぐ生成されます。生成済みレシピと同じBSVジェネレーターです。"), "p", "detail-lead")}'
         f'<p><span class="bb-status bb-warn">{both(T("Browser port of the repository generator — output not runtime tested", "リポジトリのジェネレーターをブラウザに移植・出力は実行検証なし"))}</span> <span class="bb-orig">ORIGINAL BSV SOURCE</span></p>'
         f'<div class="notice" id="rb-shared-note" hidden><p>{both(T("This link carries a shared recipe (block settings only). It opens automatically in the builder after free email verification; until then it is kept only in this browser for 24 hours.", "このリンクには共有されたレシピ（ブロックの設定のみ）が入っています。無料のメール確認後、ビルダーで自動的に開きます。それまではこのブラウザ内に24時間だけ保存されます。"))}</p></div>'
         f'<p><a class="btn primary" href="{nxt}" data-source-access="{SLUG}">{both(T("Open the builder — free email verification", "ビルダーを開く（無料のメール確認）"))}</a></p>'
         f'{both(T("The explanation is public. Using the builder (it contains the generator source) requires free email verification. Free stays free.", "解説は登録なしで読めます。ビルダー（ジェネレーターのソースを含みます）の利用には無料のメール確認が必要です。無料のものは無料のままです。"), "p", "small")}'
-        f'<h2>{both(T("What you can do", "できること"))}</h2><ul data-lang="en"><li>Start from one of {n_rec} starter recipes or a blank recipe.</li><li>Add, remove, reorder and edit blocks: EMA, SMA, RSI, ATR, session filter, cross, threshold, combine, plot, alert.</li><li>Switch the target between Pine v6, MQL5, MQL4, cTrader C#, cTrader Python and Bookmap Python and see the TODO count for blocks a target cannot express yet.</li><li>Copy or download the code and the recipe JSON. Drafts stay in your browser.</li><li>See per-block TODO hints for the selected target, and share your own recipe as a link or JSON file (block settings only — never generated code or BSV source).</li></ul>'
-        f'<ul data-lang="ja"><li>{n_rec}種類のひな形レシピか、白紙から始められます。</li><li>ブロック（EMA・SMA・RSI・ATR・時間帯フィルター・クロス・しきい値・組み合わせ・プロット・アラート）の追加・削除・並べ替え・編集ができます。</li><li>出力先をPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）で切り替え、出力先でまだ表現できないブロックのTODO数を確認できます。</li><li>コードとレシピJSONをコピー・ダウンロードできます。下書きはブラウザ内に保存されます。</li><li>選んだ出力先のTODOヒントをブロックごとに確認でき、自分のレシピをリンクやJSONファイルで共有できます（ブロックの設定のみ。生成コードやBSVのソースは含みません）。</li></ul>'
+        f'<h2>{both(T("What you can do", "できること"))}</h2><ul data-lang="en"><li>Start from one of {n_rec} starter recipes or a blank recipe.</li><li>Add, remove, reorder and edit blocks: EMA, SMA, RSI, ATR, session filter, cross, threshold, combine, plot, alert.</li><li>Switch the target between Pine v6, MQL5, MQL4, cTrader C# / Python, Bookmap Python, NinjaTrader 8 and Quantower and see the TODO count for blocks a target cannot express yet.</li><li>Copy or download the code and the recipe JSON. Drafts stay in your browser.</li><li>Get a recipe check (unused blocks, blocks used before they are defined, value-vs-condition mix-ups) with one-click fixes, and a compile checklist for the selected platform.</li><li>See per-block TODO hints for the selected target, and share your own recipe as a link or JSON file (block settings only — never generated code or BSV source).</li></ul>'
+        f'<ul data-lang="ja"><li>{n_rec}種類のひな形レシピか、白紙から始められます。</li><li>ブロック（EMA・SMA・RSI・ATR・時間帯フィルター・クロス・しきい値・組み合わせ・プロット・アラート）の追加・削除・並べ替え・編集ができます。</li><li>出力先をPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantowerで切り替え、出力先でまだ表現できないブロックのTODO数を確認できます。</li><li>コードとレシピJSONをコピー・ダウンロードできます。下書きはブラウザ内に保存されます。</li><li>レシピの点検（使われていないブロック、定義より前での参照、値と条件の取り違え）とワンクリック修正、選んだプラットフォーム向けのコンパイル確認リストを表示します。</li><li>選んだ出力先のTODOヒントをブロックごとに確認でき、自分のレシピをリンクやJSONファイルで共有できます（ブロックの設定のみ。生成コードやBSVのソースは含みません）。</li></ul>'
         f'<h2>{both(T("Verification status", "検証状態"))}</h2><table class="qa-table"><tbody>'
         f'<tr><td>{both(T("Generator parity", "ジェネレーターとの一致"))}</td><td>{both(T("Browser output is byte-identical to the repository generator for every starter recipe and target (automated check).", "すべてのひな形レシピと出力先で、ブラウザの出力がリポジトリのジェネレーターと完全に一致することを自動確認しています。"))}</td></tr>'
         f'<tr><td>{both(T("Compile on the platform", "プラットフォームでのコンパイル"))}</td><td>{both(T("Not performed by BSV", "BSVでは未実施"))}</td></tr>'
         f'<tr><td>{both(T("Backtest / demo / live run", "バックテスト・デモ・実運用"))}</td><td>{both(T("Not performed", "未実施"))}</td></tr></tbody></table>'
         f'<p class="small"><a href="/trading/build/">{both(T("← Build your own chart tool", "← 自分のチャートツールを作る"))}</a></p></article></div>'
     )
-    blt.write(site / f"trading/tools/{SLUG}.html", blt.trader_shell(site, "Recipe builder (browser) — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader (C# / Python) and Bookmap Python starters in your browser. Free with email verification.", f"/trading/tools/{SLUG}.html", pub, extra_head=f'<script src="{share_path}" defer></script>'))
+    blt.write(site / f"trading/tools/{SLUG}.html", blt.trader_shell(site, "Recipe builder (browser) — Build your own chart tool · BotShelf Vampire", "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader (C# / Python) Bookmap Python, NinjaTrader 8 and Quantower starters in your browser. Free with email verification.", f"/trading/tools/{SLUG}.html", pub, extra_head=f'<script src="{share_path}" defer></script>'))
 
     # ---- entry in the existing build hub
     hp = site / "trading/build/index.html"
     hub = hp.read_text()
     entry = (f'<section class="container bb-section" id="builder"><div class="bb-entry"><div><p class="eyebrow">{both(T("New · in your browser", "新着・ブラウザで動作"))}</p>'
-             f'<h2>{both(T("Recipe builder", "レシピビルダー"))}</h2>{both(T("Edit blocks in a form and get Pine v6 / MQL5 / MQL4 / cTrader / Bookmap starters instantly. Free with email verification.", "ブロックをフォームで編集すると、Pine v6・MQL5・MQL4・cTrader・Bookmapのひな形がすぐ生成されます。無料のメール確認で使えます。"), "p")}</div>'
+             f'<h2>{both(T("Recipe builder", "レシピビルダー"))}</h2>{both(T("Edit blocks in a form and get Pine v6 / MQL5 / MQL4 / cTrader / Bookmap / NinjaTrader / Quantower starters instantly. Free with email verification.", "ブロックをフォームで編集すると、Pine v6・MQL5・MQL4・cTrader・Bookmap・NinjaTrader・Quantowerのひな形がすぐ生成されます。無料のメール確認で使えます。"), "p")}</div>'
              f'<a class="btn primary" href="/trading/tools/{SLUG}.html">{both(T("Open recipe builder", "レシピビルダーへ"))}</a></div></section>')
     hub = blt.replace_block(hub, "recipe-builder", entry, '<section class="container bb-section" id="paths">')
     hp.write_text(hub, encoding="utf-8")
@@ -339,8 +403,8 @@ def main():
     idx = json.loads(ip.read_text())
     idx["rows"] = [r for r in idx["rows"] if r.get("id") != SLUG] + [{
         "s": "trading", "id": SLUG, "t": "Recipe builder (browser)", "k": "Builder", "kj": "ビルダー", "c": "Build your own chart tool",
-        "p": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap"], "d": "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader and Bookmap starters in your browser.",
-        "dj": "レシピのブロックを編集して、Pine v6・MQL5・MQL4・cTrader・Bookmapのひな形をブラウザで生成します。", "x": "recipe builder generator editor pine mql5 mql4 mt4 ctrader python bookmap ORIGINAL BSV MIT",
+        "p": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower"], "d": "Edit recipe blocks and generate Pine v6, MQL5, MQL4, cTrader, Bookmap, NinjaTrader and Quantower starters in your browser.",
+        "dj": "レシピのブロックを編集して、Pine v6・MQL5・MQL4・cTrader・Bookmap・NinjaTrader・Quantowerのひな形をブラウザで生成します。", "x": "recipe builder generator editor pine mql5 mql4 mt4 ctrader python bookmap ninjatrader ninjascript quantower ORIGINAL BSV MIT",
         "u": f"/trading/tools/{SLUG}.html", "uj": f"/trading/tools/{SLUG}.html?lang=ja", "a": "free"}]
     ip.write_text(json.dumps(idx, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     smp = site / "sitemap.xml"

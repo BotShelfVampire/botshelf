@@ -21,7 +21,7 @@ for (const r of R.recipes) {
   ok(!(r.description && dec.includes(JSON.stringify(r.description).slice(1, -1))), 'starter description not shared: ' + r.name);
   const back = B.readPayload(p); const want = B.sanitize(m).recipe; delete want.description;
   ok(JSON.stringify(back) === JSON.stringify(want), 'custom roundtrip ' + r.name);
-  for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python']) ok(R.render(JSON.parse(JSON.stringify(back)), t).length > 0, 'shared recipe renders ' + t);
+  for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower']) ok(R.render(JSON.parse(JSON.stringify(back)), t).length > 0, 'shared recipe renders ' + t);
 }
 // 3) sanitizer rejects bad input
 for (const [x, why] of [[[], 'array'], [{ blocks: 'x' }, 'blocks string'], [{ blocks: [{ id: 'Bad Id', type: 'indicator.ema', params: {} }] }, 'bad id'], [{ blocks: [{ id: 'a', type: 'evil.type', params: {} }] }, 'bad type'], [{ blocks: Array.from({ length: 41 }, (_, i) => ({ id: 'b' + i, type: 'indicator.ema', params: {} })) }, 'too many']]) {
@@ -30,7 +30,7 @@ for (const [x, why] of [[[], 'array'], [{ blocks: 'x' }, 'blocks string'], [{ bl
 let big = false; try { B.sharePayload({ schemaVersion: '0.1', name: 'x', overlay: true, blocks: Array.from({ length: 40 }, (_, i) => ({ id: 'b' + i, type: 'alert.condition', params: { when: 'close', message: 'm'.repeat(200) } })) }); } catch (e) { big = true; } ok(big, 'oversized share rejected');
 ok(B.sanitize({ __proto__: { x: 1 }, blocks: [] }).recipe.x === undefined, 'proto ignored');
 // 4) TODO hints: every TODO line of every starter maps to a block id or is reported as general; counts add up
-for (const r of R.recipes) for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python']) {
+for (const r of R.recipes) for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower']) {
   const out = R.render(JSON.parse(JSON.stringify(r)), t); const tm = B.todoMap(out, r.blocks);
   const mapped = Object.values(tm.map).reduce((a, v) => a + v.length, 0);
   ok(mapped + tm.general.length === tm.total, 'todo count ' + r.name + ' ' + t);
@@ -39,5 +39,32 @@ for (const r of R.recipes) for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4'
 { const tm = B.todoMap('   // alert: TODO add deduplicated alert for divergence\n// TODO unsupported block structure.pivot: pivot\n# TODO session: bar times are UTC', [{ id: 'divergence' }, { id: 'alert' }, { id: 'pivot' }, { id: 'session' }]);
   ok(tm.map.alert && tm.map.alert.length === 1 && tm.map.pivot.length === 1 && tm.map.session.length === 1 && !tm.map.divergence, 'todo line owner by prefix'); }
 for (const t of Object.keys(B.hints)) ok(B.hints[t].length === 2 && B.hints[t].every(s => s.length > 20), 'hint en/ja ' + t);
+// 5) recipe lint + reorder + compile checklist
+const T8 = ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower'];
+const lintSummary = {};
+for (const r of R.recipes) { const L = B.lint(JSON.parse(JSON.stringify(r))); ok(!L.some(x => x.level === 'error' || x.code === 'forward-ref'), 'starter lint clean of errors/forward refs: ' + r.name); lintSummary[r.name] = L.map(x => x.code + ':' + x.id).join(','); }
+const fwd = { schemaVersion: '0.1', name: 'fwd', overlay: true, blocks: [
+  { id: 'x', type: 'signal.cross', params: { left: 'fast', right: 'slow', direction: 'above' } },
+  { id: 'fast', type: 'indicator.ema', params: { source: 'close', length: 9 } },
+  { id: 'slow', type: 'indicator.ema', params: { source: 'close', length: 21 } },
+  { id: 'lonely', type: 'indicator.rsi', params: { source: 'close', length: 14 } },
+  { id: 'a', type: 'alert.condition', params: { when: 'x', message: 'm' } },
+  { id: 'a2', type: 'alert.condition', params: { when: 'fast', message: 'm' } }] };
+const Lf = B.lint(fwd);
+ok(Lf.filter(x => x.code === 'forward-ref').length === 2, 'forward refs flagged');
+ok(Lf.some(x => x.code === 'unused' && x.id === 'lonely'), 'unused flagged');
+ok(Lf.some(x => x.code === 'alert-value' && x.id === 'a2'), 'alert on value flagged');
+ok(!Lf.some(x => x.code === 'unused' && (x.id === 'fast' || x.id === 'x')), 'used blocks not flagged');
+const ro = B.reorder(fwd); ok(ro.cycle.length === 0, 'no cycle');
+const fixed = Object.assign({}, fwd, { blocks: ro.blocks }); ok(!B.lint(fixed).some(x => x.code === 'forward-ref'), 'reorder removes forward refs');
+ok(ro.blocks.map(b => b.id).join() === 'fast,slow,x,lonely,a,a2', 'reorder is stable: ' + ro.blocks.map(b => b.id).join());
+for (const t of T8) ok(R.render(JSON.parse(JSON.stringify(fixed)), t).length > 0, 'reordered renders ' + t);
+const cyc = { schemaVersion: '0.1', name: 'c', overlay: true, blocks: [{ id: 'p', type: 'signal.combine', params: { mode: 'all', signals: ['q', 'p'] } }, { id: 'q', type: 'signal.combine', params: { mode: 'all', signals: ['p'] } }] };
+const Lc = B.lint(cyc); ok(Lc.some(x => x.code === 'self-ref') && Lc.some(x => x.code === 'cycle'), 'cycle/self-ref flagged');
+ok(B.lint({ schemaVersion: '0.1', name: 'e', overlay: true, blocks: [] }).some(x => x.code === 'no-output'), 'no output flagged');
+ok(B.lint({ schemaVersion: '0.1', name: 'r', overlay: true, blocks: [{ id: 'r', type: 'indicator.rsi', params: { source: 'close', length: 14 } }, { id: 't', type: 'signal.threshold', params: { left: 'r', op: '>', value: 150 } }, { id: 'pl', type: 'visual.plot', params: { source: 'r', title: 'RSI' } }, { id: 'al', type: 'alert.condition', params: { when: 't', message: 'm' } }] }).filter(x => ['rsi-range', 'scale'].includes(x.code)).length === 2, 'rsi range + overlay scale flagged');
+for (const t of T8) ok(Array.isArray(B.checklist[t]) && B.checklist[t].length >= 2 && B.checklist[t].every(p => p.length === 2 && p[0] && p[1]), 'checklist ' + t);
+ok(B.common.length === 3, 'common checklist');
+console.log(JSON.stringify({ starter_lint: lintSummary }));
 console.log(JSON.stringify({ file: js[0], checks: n, failures: bad }));
 process.exit(bad ? 1 : 0);

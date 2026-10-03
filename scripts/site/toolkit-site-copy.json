@@ -76,21 +76,21 @@
   },
   "trader-generator": {
    "summary": {
-    "en": "Node.js generator that turns one recipe into a Pine Script v6, MQL5, MQL4, cTrader C#, cTrader Python or Bookmap Python starter. Unsupported blocks stay visible as TODO comments instead of silently disappearing.",
-    "ja": "1つのレシピからPine Script v6・MQL5・MQL4・cTrader（C#）・cTrader（Python）・Bookmap（Python）のひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
+    "en": "Node.js generator that turns one recipe into a Pine Script v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8 or Quantower starter. Unsupported blocks stay visible as TODO comments instead of silently disappearing.",
+    "ja": "1つのレシピからPine Script v6・MQL5・MQL4・cTrader（C#）・cTrader（Python）・Bookmap（Python）・NinjaTrader 8・Quantowerのひな形を出力するNode.js製ジェネレーター。未対応のブロックは黙って消さず、TODOコメントとして残します。"
    },
    "use": {
     "en": [
      "Install Node.js 18 or later.",
-     "Run: node render.mjs <recipe.json> --target pine-v6 (or mql5 / mql4 / ctrader / ctrader-python / bookmap-python).",
+     "Run: node render.mjs <recipe.json> --target pine-v6 (or mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower).",
      "Paste the output into the platform editor, compile there, and resolve every TODO before relying on it.",
-     "No Node.js? Each recipe page offers the six pre-generated starters, and the browser recipe builder renders all six targets."
+     "No Node.js? Each recipe page offers the eight pre-generated starters, and the browser recipe builder renders all eight targets."
     ],
     "ja": [
      "Node.js 18以上を用意します。",
-     "node render.mjs <recipe.json> --target pine-v6（または mql5 / mql4 / ctrader / ctrader-python / bookmap-python）を実行します。",
+     "node render.mjs <recipe.json> --target pine-v6（または mql5 / mql4 / ctrader / ctrader-python / bookmap-python / ninjatrader / quantower）を実行します。",
      "出力を各プラットフォームのエディターに貼り付けてコンパイルし、TODOをすべて解消してから使います。",
-     "Node.jsがなくても、各レシピのページで6種類の生成済みひな形を取得でき、ブラウザのレシピビルダーでも6種類すべてを生成できます。"
+     "Node.jsがなくても、各レシピのページで8種類の生成済みひな形を取得でき、ブラウザのレシピビルダーでも8種類すべてを生成できます。"
     ]
    }
   },
@@ -416,6 +416,22 @@
    "refs": [
     "https://openai.github.io/openai-agents-python/"
    ]
+  },
+  "LangGraph": {
+   "slug": "langgraph",
+   "en": "Graph runtime with checkpoints and human-in-the-loop interrupts. The team runner pauses before saving anything.",
+   "ja": "チェックポイントと人の確認（interrupt）を持つグラフ型の実行環境。チームランナーは保存の前に必ず止まります。",
+   "refs": [
+    "https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/"
+   ]
+  },
+  "CrewAI": {
+   "slug": "crewai",
+   "en": "Role-based multi-agent crews. The team runner uses a lead and a checker on a local model, with your approval before saving.",
+   "ja": "役割ごとのエージェントで組むマルチエージェント。チームランナーはローカルモデル上で担当と確認役を使い、保存の前にあなたの承認を求めます。",
+   "refs": [
+    "https://docs.crewai.com/concepts/llms"
+   ]
   }
  },
  "ai": {
@@ -502,6 +518,20 @@
     "en": "Python starter for the OpenAI Agents SDK: one worker, no side-effect tools, explicit UNVERIFIED output.",
     "ja": "OpenAI Agents SDK用のPythonひな形。作業役は1つ、副作用のあるツールはなく、未確認の内容はUNVERIFIEDと明示します。"
    }
+  },
+  "langgraph-team-runner": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Runs any of the 10 Library AI Team tasks as a LangGraph graph on a local model (LM Studio or Ollama): produce, check the required sections, pause for your approval, then save. You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、ローカルモデル（LM StudioまたはOllama）上のLangGraphのグラフとして動かします。作成→必要な項目の確認→あなたの承認待ち→保存の順です。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
+  },
+  "crewai-team-runner": {
+   "job": "orchestration",
+   "summary": {
+    "en": "Runs any of the 10 Library AI Team tasks as a two-agent CrewAI crew (lead + checker) on a local model, checks the required sections and saves only after your approval. You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、ローカルモデル上のCrewAIの2人構成（担当＋確認役）で動かします。必要な項目を確認し、あなたが承認したときだけ保存します。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
   }
  },
  "ai_team_links": {
@@ -536,5 +566,17 @@
    "support-triage",
    "coding-review"
   ]
+ },
+ "ai_team_runners": {
+  "langgraph": {
+   "item": "langgraph-team-runner",
+   "platform": "LangGraph",
+   "cmd": "python runner.py --task {task} --input notes.md"
+  },
+  "crewai": {
+   "item": "crewai-team-runner",
+   "platform": "CrewAI",
+   "cmd": "python crew_runner.py --task {task} --input notes.md"
+  }
  }
 }

@@ -106,6 +106,22 @@
       "type": "copy-paste-code",
       "status": "UNTESTED_RUNTIME",
       "path": "ai-toolkit/openai-agents/guarded-worker.py"
+    },
+    {
+      "id": "langgraph-team-runner",
+      "title": "LangGraph Team Runner (per-task, local model)",
+      "platform": "LangGraph",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "ai-toolkit/langgraph/team-runner/"
+    },
+    {
+      "id": "crewai-team-runner",
+      "title": "CrewAI Team Runner (per-task, local model)",
+      "platform": "CrewAI",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "ai-toolkit/crewai/team-runner/"
     }
   ]
 }

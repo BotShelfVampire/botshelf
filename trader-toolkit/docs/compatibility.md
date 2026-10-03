@@ -8,8 +8,8 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | MT5 | MQL5 | generator target (`mql5`: computes EMA/SMA/RSI/ATR, cross/threshold/combine, plots, closed-bar alerts) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | cTrader | C# or Python custom indicators in cTrader Algo | C# and Python generator targets (both compute indicators, signals, plots and closed-bar alerts) + EMA/ATR (C# and Python) + RSI source | Source prepared; runtime build still required |
 | Vela | JavaScript/TypeScript chart library + optional scripting engines | runnable custom web-chart starter | Source prepared; runtime test required |
-| NinjaTrader | NinjaScript/C# | EMA/ATR overlay source | Source prepared; runtime compile still required |
-| Quantower | C# Quantower Algo | simple SMA source | Source prepared; runtime compile still required |
+| NinjaTrader | NinjaScript/C# | generator target (`ninjatrader`: built-in EMA/SMA/RSI/ATR, cross/threshold/combine, plots, closed-bar `Alert()`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
+| Quantower | C# Quantower Algo | generator target (`quantower`: built-in indicators, cross/threshold/combine, line series, closed-bar log alerts) + simple SMA source | Source prepared; runtime compile still required |
 | Sierra Chart | ACSIL/C++ | EMA overlay custom-study source | Source prepared; runtime build still required |
 | GoCharting | Lipi scripting | dual-EMA Lipi source | Source prepared; Lipi-editor validation still required |
 | MT4 | MQL4 | generator target (`mql4`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
@@ -55,12 +55,23 @@ Bookmap's Python API (open beta, MIT) exposes trade/depth handlers, a 0.1-second
 Official docs:
 - https://github.com/BookmapAPI/python-api
 
+## NinjaTrader 8
+
+NinjaScript indicators derive from `Indicator`, declare plots with `AddPlot` in `State.SetDefaults`, create built-in indicators (`EMA`, `SMA`, `RSI`, `ATR`) in `State.DataLoaded` and compute in `OnBarUpdate` with `Calculate.OnBarClose`. The `ninjatrader` target follows that layout; `Alert()` only fires in real time (State.Realtime), and session filters use the chart's time zone setting, so they stay marked TODO. Not compiled in NinjaTrader by BSV yet.
+
+- https://ninjatrader.com/support/helpguides/nt8/indicator.htm
+- https://ninjatrader.com/support/helpguides/nt8/alert.htm
+
 ## Quantower
 
 Quantower Algo custom indicators derive from `Indicator`, can add line series, access chart prices and publish values from `OnUpdate`.
 
 Official starter:
 - https://help.quantower.com/quantower/quantower-algo/simple-indicator
+- https://help.quantower.com/quantower/quantower-algo/built-in-indicators
+- https://api.quantower.com/docs/TradingPlatform.BusinessLayer.BuiltInIndicators.html
+
+The `quantower` target creates built-in indicators with `Core.Indicators.BuiltIn` (`EMA`, `SMA`, `RSI`, `ATR`) and `AddIndicator`, publishes line series with `SetValue`, and logs once per closed bar on `UpdateReason.NewBar`. Not compiled in Quantower by BSV yet.
 
 ## Sierra Chart
 
