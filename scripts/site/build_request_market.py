@@ -171,7 +171,8 @@ def generator_gaps() -> dict:
         for ty in types:
             g = by.setdefault(ty, {"recipes": set(), "targets": set()})
             g["recipes"].add(stem); g["targets"].add(t)
-    gaps = [{"blockType": ty, "recipes": sorted(g["recipes"]), "recipeCount": len(g["recipes"]), "targetsWithoutIt": len(g["targets"]), "targetsWithIt": len(targets) - len(g["targets"])}
+    gaps = [{"blockType": ty, "recipes": sorted(g["recipes"]), "recipeCount": len(g["recipes"]), "targetsWithoutIt": len(g["targets"]), "targetsWithIt": len(targets) - len(g["targets"]),
+             "targetsRenderingIt": [t for t in targets if t not in g["targets"]]}
             for ty, g in sorted(by.items(), key=lambda kv: (-len(kv[1]["recipes"]), kv[0]))]
     return {"targets": len(targets), "recipes": len(tk["recipes"]), "recipesWithGaps": len({stem for stem, _, types in res if types}), "gaps": gaps}
 
@@ -193,6 +194,8 @@ HTF_REAL = blt.HTF_REAL  # must match htfRealTargets() in render.mjs (checked by
 HTF_DISCLOSURE = ("Correction (2026-10-04): before this date every BSV generator target computed indicators marked with a higher "
                   "timeframe (timeframeRef) on the chart timeframe, with no warning. This affected the recipe mtf-confirmation-panel. "
                   "Now 3 targets compute real higher-timeframe values from closed bars and the other 19 leave those blocks as TODO stubs.")
+HTF_DISCLOSURE_JA = ("訂正（2026-10-04）：この日より前は、BSVジェネレーターのすべての出力先で、上位足を指定した指標（timeframeRef）を、注記なしで表示中の足で計算していました。"
+                     "影響したのはレシピ mtf-confirmation-panel です。現在は3つの出力先で確定した上位足から計算し、ほかの19ではそのブロックをTODOのスタブにしています。")
 PARITY_ONLY = ("PARITY_ONLY", "scripts/site/test_builder_parity.mjs", "Only checked that the browser builder output equals the CLI generator; no target-specific check.")
 
 
@@ -227,13 +230,49 @@ def generator_coverage() -> dict:
             "targets": targets, "recipes": recipes}
 
 
+KIND_TEXT = {"LIBRARY_RUN": ("Run inside the library", "ライブラリ内で実行"), "SUBSET_EVALUATOR": ("BSV subset evaluator", "BSVの部分評価器"),
+             "API_STUB_RUN": ("Run against a BSV API stub", "BSVのAPIスタブで実行"), "ENGINE_STAND_IN": ("BSV stand-in engine", "BSVの代替エンジン"),
+             "STUB_COMPILE": ("Compiled against BSV stubs", "BSVのスタブでコンパイル"), "STRUCTURAL": ("Structural check only", "構造チェックのみ"),
+             "PARITY_ONLY": ("Browser = CLI output only", "ブラウザとCLIの一致のみ")}
+
+
+def coverage_page(site: Path, cov: dict) -> str:
+    """Readable view of /trading/build/coverage.json (Issue #8 tranche 8). Static HTML, no script; every cell is read
+    from `cov`."""
+    c = cov["counts"]; T = cov["targets"]; nT, nP = c["targets"], c["recipeTargetPairsWithoutTodo"]
+    trows = "".join(
+        f'<tr id="cov-{blt.esc(x["id"])}"><td>{blt.esc(x["label"])}</td><td data-kind="{x["check"]["kind"]}">{both(*KIND_TEXT[x["check"]["kind"]])}</td>'
+        f'<td><code>{blt.esc(x["check"]["script"])}</code></td><td data-htf="{x["higherTimeframe"]["status"]}">{both("Closed bars, checked", "確定足・確認済み") if x["higherTimeframe"]["status"] == "CLOSED_BARS_CHECKED" else both("TODO stub", "TODOのスタブ")}</td>'
+        f'<td class="small">{blt.esc(x["check"]["note"])}</td></tr>' for x in T)
+    head = "".join(f'<th title="{blt.esc(x["label"])}"><code>{blt.esc(x["id"])}</code></th>' for x in T)
+    mrows = "".join(f'<tr id="todo-{blt.esc(r["id"])}"><th><code>{blt.esc(r["id"])}</code></th>' + "".join(f'<td data-n="{r["todoLines"][x["id"]]}">{r["todoLines"][x["id"]]}</td>' for x in T) + "</tr>" for r in cov["recipes"])
+    kinds = " · ".join(f'{KIND_TEXT[k][0]} {n}' for k, n in c["byCheckKind"].items())
+    desc = f'For each of the {c["targets"]} BSV generator targets, which BSV check covers it, and the TODO lines per recipe and target. None is runtime-tested by BSV.'
+    body = (f'<section class="container bb-section"><p class="small"><a href="/trading/build/">{both("Recipe builder", "レシピビルダー")}</a> › {both("Coverage", "確認状況")}</p>'
+            f'<h1>{both("Generator coverage: what BSV checks for each target", "ジェネレーターの確認状況：出力先ごとにBSVが確かめていること")}</h1>'
+            f'<p>{both(desc, f"BSVジェネレーターの{nT}種類の出力先それぞれについて、どのBSVチェックで確かめているか、レシピ×出力先ごとのTODO行の数を示します。BSVが実際の環境で動かして確かめた出力先はありません。")}</p>'
+            f'<p class="small">{blt.esc(kinds)} · runtimeTestedByBSV: {c["runtimeTestedByBSV"]} · <a href="/trading/build/coverage.json">coverage.json</a></p>'
+            f'<div class="rp-box"><p class="small">{both(cov["higherTimeframeDisclosure"], HTF_DISCLOSURE_JA)}</p></div>'
+            f'<h2 id="targets">{both("Targets", "出力先")}</h2><div class="bb-table-wrap"><table class="qa-table" id="cov-targets"><thead><tr><th>{both("Target", "出力先")}</th><th>{both("BSV check", "BSVのチェック")}</th><th>{both("Script", "スクリプト")}</th><th>{both("Higher timeframe", "上位足")}</th><th>{both("What it is not", "これは何でないか")}</th></tr></thead><tbody>{trows}</tbody></table></div>'
+            f'<h2 id="todo">{both("TODO lines per recipe and target", "レシピ×出力先ごとのTODO行")}</h2>'
+            f'<p class="small">{both(f"0 means the generator rendered every block of that recipe for that target ({nP} pairs). It does not mean the output was run on the platform.", "0は、その出力先でレシピのすべてのブロックを出力できたという意味です。プラットフォームで動かしたという意味ではありません。")}</p>'
+            f'<div class="bb-table-wrap"><table class="qa-table" id="cov-todo"><thead><tr><th>{both("Recipe", "レシピ")}</th>{head}</tr></thead><tbody>{mrows}</tbody></table></div></section>')
+    ld = {"@context": "https://schema.org", "@type": "Dataset", "name": "BSV generator coverage", "description": desc, "url": ORIGIN + "/trading/build/coverage/",
+          "isAccessibleForFree": True, "creator": {"@type": "Organization", "name": "BotShelf Vampire", "url": ORIGIN + "/"},
+          "variableMeasured": ["check.kind", "higherTimeframe.status", "todoLines", "runtimeTestedByBSV"],
+          "distribution": [{"@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": ORIGIN + "/trading/build/coverage.json"}]}
+    return blt.trader_shell(site, "Generator coverage — what BSV checks for each target · BotShelf Vampire", desc, "/trading/build/coverage/", body,
+                            extra_head='<script type="application/ld+json">' + json.dumps(ld, ensure_ascii=False, separators=(",", ":")) + "</script>")
+
+
 def builders_section(site: Path) -> str:
     import build_discovery as bd
     gaps = catalogue_gaps(site)
     rows = "".join(f'<tr><td>{both(g["label"], g["label_ja"])}</td><td>{g["count"]}</td><td class="small">{blt.esc(", ".join(f"{k} {v}" for k, v in g["byKind"].items()))}</td></tr>' for g in gaps)
     split = [x for x in bd.FACTS if x[0] == "seller_split_payout"][0]
     gg = generator_gaps()
-    grows = "".join(f'<tr id="gap-{blt.esc(g["blockType"])}"><td><code>{blt.esc(g["blockType"])}</code></td><td>{g["recipeCount"]} <span class="small muted">({blt.esc(", ".join(g["recipes"]))})</span></td><td>{g["targetsWithIt"]} / {gg["targets"]}</td></tr>' for g in gg["gaps"])
+    LABEL = {t: lab for t, lab, _ in blt.TARGETS}
+    grows = "".join(f'<tr id="gap-{blt.esc(g["blockType"])}"><td><code>{blt.esc(g["blockType"])}</code></td><td>{g["recipeCount"]} <span class="small muted">({blt.esc(", ".join(g["recipes"]))})</span></td><td>{g["targetsWithIt"]} / {gg["targets"]}{(' <span class="small muted">(' + blt.esc(", ".join(LABEL[t] for t in g["targetsRenderingIt"])) + ')</span>') if g["targetsRenderingIt"] else ""}</td></tr>' for g in gg["gaps"])
     gen_en = f"Counted at build time by rendering all {gg['recipes']} BSV recipes for all {gg['targets']} targets and reading the generator's own TODO lines ({gg['recipesWithGaps']} recipes have at least one). A fact about the generator, not a measure of demand."
     gen_ja = f"BSVレシピ{gg['recipes']}件を{gg['targets']}種類の出力先すべてで生成し、ジェネレーター自身のTODO行から数えた値です（1つ以上あるレシピは{gg['recipesWithGaps']}件）。ジェネレーターについての事実で、需要の量ではありません。"
     return (
@@ -249,7 +288,7 @@ def builders_section(site: Path) -> str:
         f'<p class="small">{both("Counted from /trading/catalog.json. This is a fact about the catalogue, not a measure of demand. Porting someone else's source must follow that entry's license.", "/trading/catalog.json から数えた値です。カタログの事実であって、需要の大きさではありません。他の人のソースを移植する場合は、その項目のライセンスに従ってください。")}</p>'
         f'<div class="bb-table-wrap"><table class="qa-table"><thead><tr><th>{both("Gap", "空き")}</th><th>{both("Entries", "件数")}</th><th>{both("By type", "種類別")}</th></tr></thead><tbody>{rows}</tbody></table></div>'
         f'<h3 id="generator-gaps">{both("Blocks the generator cannot render yet", "ジェネレーターがまだ出力できないブロック")}</h3>'
-        f'<p class="small">{both(gen_en, gen_ja)} <a href="/trading/build/coverage.json">coverage.json</a></p>'
+        f'<p class="small">{both(gen_en, gen_ja)} <a href="/trading/build/coverage/">{both("Coverage by target", "出力先ごとの確認状況")}</a> · <a href="/trading/build/coverage.json">coverage.json</a></p>'
         f'<div class="bb-table-wrap"><table class="qa-table" id="rq-gen-gaps"><thead><tr><th>{both("Block type", "ブロックの種類")}</th><th>{both("Recipes using it", "使っているレシピ")}</th><th>{both("Targets that render it", "出力できる出力先")}</th></tr></thead><tbody>{grows}</tbody></table></div>'
         f'<h3>{both("Signals not collected yet", "まだ集めていないデータ")}</h3>'
         f'<p class="small">{both("No-result searches and page-view demand are not logged on this site, so they are not shown.", "結果0件の検索やページの閲覧数は記録していないため、表示していません。")}</p>'
@@ -335,7 +374,13 @@ def main():
             "catalogueGaps": {"source": ORIGIN + "/trading/catalog.json", "note": "Facts about the catalogue, not demand. Porting third-party source must follow its license.", "gaps": gaps}},
     }, ensure_ascii=False, indent=1) + "\n")
     (site / "trading/build").mkdir(parents=True, exist_ok=True)
-    (site / "trading/build/coverage.json").write_text(json.dumps(generator_coverage(), ensure_ascii=False, indent=1) + "\n")
+    cov = generator_coverage()
+    (site / "trading/build/coverage.json").write_text(json.dumps(cov, ensure_ascii=False, indent=1) + "\n")
+    (site / "trading/build/coverage").mkdir(exist_ok=True)
+    (site / "trading/build/coverage/index.html").write_text(coverage_page(site, cov))
+    smp = site / "sitemap.xml"; sm = smp.read_text(); u = ORIGIN + "/trading/build/coverage/"
+    if f"<loc>{u}</loc>" not in sm:
+        smp.write_text(sm.replace("</urlset>", f"  <url><loc>{u}</loc><lastmod>2026-10-04</lastmod></url>\n</urlset>"))
     sd = site / "schemas"; sd.mkdir(exist_ok=True)
     (sd / "demand-request-v0.1.json").write_text((REPO / "schemas/bsv-demand-request.schema.json").read_text())
     (sd / "opportunity-signal-v0.1.json").write_text((REPO / "schemas/bsv-opportunity-signal.schema.json").read_text())

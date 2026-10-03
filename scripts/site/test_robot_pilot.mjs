@@ -155,5 +155,16 @@ ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?a
   ok(sec.includes('href="/requests/?area=robot-pilot"') && sec.includes('href="/for-sellers.html"'), "tooling: request and publish links");
   ok(!/\b\d+\s*(requests?|people|users|buyers|demand)\b|projected|forecast|\$\d/i.test(sec.replace(/<[^>]+>/g, " ")) && /not a demand figure/.test(sec), "tooling: no demand numbers, says so");
 }
+// practice-log CSV (#7 tranche 8): one row per saved session, values as saved, formula cells neutralised
+{
+  const P = require(path.join(site, "robot-pilot", jsf[0]));
+  const e1 = { evidenceId: "e1", taskId: "T1", environment: "SIMULATION", runtimeVersion: "1.0", inputDevice: "=HYPERLINK(\"x\")", episodes: { attempted: 5, successful: 4, failed: 1, recoveryEpisodes: 0 }, safetyEvents: ["a, b"], review: { status: "UNREVIEWED" } };
+  const csv = P.toCsv([e1, null, { evidenceId: "e2", episodes: {} }]), rows = csv.trim().split("\r\n");
+  ok(rows.length === 3 && rows[0].split(",").length === 14 && rows[0].startsWith("evidenceId,taskId,environment"), "csv: header + one row per saved session (non-objects skipped)");
+  ok(rows[1].includes(`"'=HYPERLINK(""x"")"`) && rows[1].includes(",5,4,1,0,1,UNREVIEWED"), "csv: formula cell neutralised and quoted; counts as saved");
+  ok(P.toCsv([]) === rows[0] + "\r\n", "csv: empty log is the header only");
+  const h = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
+  ok(h.includes('id="rp-log-csv"') && /nothing uploaded/.test(h), "csv: download button on the Academy page, says nothing is uploaded");
+}
 console.log(JSON.stringify({ test: "robot-pilot", checks, failures }));
 process.exit(failures ? 1 : 0);
