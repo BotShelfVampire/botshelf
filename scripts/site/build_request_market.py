@@ -194,20 +194,22 @@ HTF_REAL = blt.HTF_REAL  # must match htfRealTargets() in render.mjs (checked by
 HTF_IDIOM = blt.HTF_IDIOM  # must match htfIdiomTargets() in render.mjs (checked by check_htf.py)
 HTF_DISCLOSURE = ("Correction (2026-10-04): before this date every BSV generator target computed indicators marked with a higher "
                   "timeframe (timeframeRef) on the chart timeframe, with no warning. This affected the recipe mtf-confirmation-panel. "
-                  "Now 3 targets compute real higher-timeframe values from closed bars (checked inside their libraries), 3 more (Pine v6, MQL5, MQL4) "
+                  "Now 3 targets compute real higher-timeframe values from closed bars (checked inside their libraries), 4 more (Pine v6, MQL5, MQL4, NinjaTrader 8) "
                   "read the last closed higher-timeframe bar with the platform's officially documented idiom (pattern checked statically; not run by BSV), "
-                  "and the other 16 leave those blocks as TODO stubs.")
+                  "and the other 15 leave those blocks as TODO stubs.")
 HTF_DISCLOSURE_JA = ("訂正（2026-10-04）：この日より前は、BSVジェネレーターのすべての出力先で、上位足を指定した指標（timeframeRef）を、注記なしで表示中の足で計算していました。"
-                     "影響したのはレシピ mtf-confirmation-panel です。現在は3つの出力先で確定した上位足から計算し（ライブラリ内で確認）、Pine v6・MQL5・MQL4の3つでは各プラットフォームの公式ドキュメントにある方法で直前に確定した上位足を読みます（形を静的に確認。BSVは実行していません）。ほかの16ではそのブロックをTODOのスタブにしています。")
+                     "影響したのはレシピ mtf-confirmation-panel です。現在は3つの出力先で確定した上位足から計算し（ライブラリ内で確認）、Pine v6・MQL5・MQL4・NinjaTrader 8の4つでは各プラットフォームの公式ドキュメントにある方法で直前に確定した上位足を読みます（形を静的に確認。BSVは実行していません）。ほかの15ではそのブロックをTODOのスタブにしています。")
 HTF_IDIOM_DOCS = {
     "pine-v6": ["https://www.tradingview.com/pine-script-docs/concepts/repainting/", "https://www.tradingview.com/pine-script-docs/concepts/other-timeframes-and-data/"],
     "mql5": ["https://www.mql5.com/en/docs/series/ibarshift", "https://www.mql5.com/en/docs/series/copybuffer", "https://www.mql5.com/en/docs/constants/chartconstants/enum_timeframes"],
     "mql4": ["https://docs.mql4.com/series/ibarshift", "https://docs.mql4.com/indicators/ima", "https://docs.mql4.com/constants/chartconstants/enum_timeframes"],
+    "ninjatrader": ["https://ninjatrader.com/support/helpGuides/nt8/multi-time_frame__instruments.htm", "https://ninjatrader.com/support/helpGuides/nt8/adddataseries.htm"],
 }
 HTF_IDIOM_NOTE = {
     "pine-v6": "request.security(syminfo.tickerid, tf, expr[1], lookahead = barmerge.lookahead_on) — the non-repainting idiom from the Pine Script v6 manual — plus a runtime.error guard when the chart timeframe is not lower. Pattern checked statically by BSV; not run by BSV (UNTESTED_RUNTIME).",
     "mql5": "Indicator handle on the higher PERIOD; value read with CopyBuffer at start_pos = iBarShift(chart bar time) + 1 = the last closed higher-timeframe bar. OnInit fails when the chart period is not lower. Pattern checked statically by BSV; not compiled or run by BSV (UNTESTED_RUNTIME). Bars follow broker server time.",
     "mql4": "iMA/iRSI/iATR on the higher PERIOD at shift = iBarShift(chart bar time) + 1 = the last closed higher-timeframe bar; standard MT4 periods only. OnInit fails when the chart period is not lower. Pattern checked statically by BSV; not compiled or run by BSV (UNTESTED_RUNTIME). Bars follow broker server time.",
+    "ninjatrader": "AddDataSeries in State.Configure with Calculate forced to OnBarClose (the manual: chart bars then only know the last closed bar of the added series; shared timestamps run the chart series first); indicator on that series, stored per chart bar in BarsInProgress 0; DataLoaded throws when the chart timeframe is not lower. Pattern checked statically by BSV; not compiled or run by BSV (UNTESTED_RUNTIME). Bars follow the trading hours template.",
 }
 PARITY_ONLY = ("PARITY_ONLY", "scripts/site/test_builder_parity.mjs", "Only checked that the browser builder output equals the CLI generator; no target-specific check.")
 
