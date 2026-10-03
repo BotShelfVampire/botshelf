@@ -109,3 +109,22 @@ Start with simulation and evidence. Do not imply that BSV grants an official pro
 Canonical strategy:
 - strategy/BSV_ROBOT_PILOT_OS.md
 - robot-pilot/curricula/isaac-teleop-so101-sim-v1.json
+
+
+## Discovery and transparency growth layer
+
+P0 growth infrastructure:
+- AI/search discoverability (SEO/AIO/AEO/ACO)
+- OAI-SearchBot accessibility for intended public pages
+- experimental llms.txt as supplementary navigation
+- truthful structured data
+- public Transparency Center
+- machine-readable trust manifest
+
+Principle:
+operator identity stays low-profile; business mechanics become unusually transparent.
+
+Canonical strategy:
+- strategy/BSV_DISCOVERY_GROWTH_OS.md
+- strategy/BSV_TRANSPARENCY_TRUST_OS.md
+- GitHub Issue #8
