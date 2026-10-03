@@ -116,7 +116,7 @@ STEP_TXT = [
       "BSVに出品するなら、オリジナルか改変か、プラットフォームとバージョン、前提条件、検証済みの範囲と未検証の範囲、制約を書きます。根拠のない成績は書きません。"),
 ]
 HTF_REAL = ("backtrader", "backtesting-py", "nautilus")  # real higher-timeframe values; must match htfRealTargets() in render.mjs
-HTF_IDIOM = ("pine-v6", "mql5", "mql4", "ninjatrader")  # documented closed-bar idiom, static check only; must match htfIdiomTargets() in render.mjs
+HTF_IDIOM = ("pine-v6", "mql5", "mql4", "ninjatrader", "ctrader")  # documented closed-bar idiom, static check only; must match htfIdiomTargets() in render.mjs
 TARGETS = [("pine-v6", "TradingView · Pine v6", ".pine"), ("mql5", "MT5 · MQL5", ".mq5"), ("ctrader", "cTrader · C#", ".cs"),
            ("mql4", "MT4 · MQL4", ".mq4"), ("ctrader-python", "cTrader · Python", ".py"), ("bookmap-python", "Bookmap · Python", ".py"),
            ("ninjatrader", "NinjaTrader 8 · NinjaScript", ".cs"), ("quantower", "Quantower · C#", ".cs"),
