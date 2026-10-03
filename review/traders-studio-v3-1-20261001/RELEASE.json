@@ -1,0 +1,39 @@
+{
+  "version": "3.1-clarity",
+  "status": "local-review-only",
+  "curatedItems": 39,
+  "curatedSourceFiles": 40,
+  "allCuratedFree": true,
+  "requiredRegistration": true,
+  "paidBilling": "monthly",
+  "currency": "USDT",
+  "network": "TRC20",
+  "platformFeeBps": 2000,
+  "sellerShareBps": 8000,
+  "visibility": [
+    "public",
+    "private"
+  ],
+  "sourceAccess": [
+    "open",
+    "protected",
+    "invite-only"
+  ],
+  "nodeTests": 66,
+  "staticChecks": 327,
+  "browserChecks": 23,
+  "productionDeployed": false,
+  "productionAdaptersConnected": false,
+  "nativeAccessChanged": false,
+  "realPayments": false,
+  "clarityChecks": 299,
+  "copyReviewedIn": [
+    "Japanese",
+    "English"
+  ],
+  "viewportWidths": [
+    320,
+    390,
+    1440
+  ]
+}
