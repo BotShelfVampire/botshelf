@@ -150,6 +150,7 @@ def trust(site: Path, today: str) -> dict:
         "tradersLibrary": {"source": ORIGIN + "/trading/catalog.json", "entries": n, "bundled": bundled,
                            "authorHosted": hosted, "compiledByBSV": comp, "runtimeTestedByBSV": rt,
                            "note": "Counted from the public catalogue at build time; matches the figures on " + ORIGIN + "/trading/"},
+        "transparencyCenter": ORIGIN + "/transparency/",
         "policies": {"buyers": page_url("for-buyers.html"), "sellers": page_url("for-sellers.html"),
                      "privacy": page_url("privacy.html")},
     }
@@ -164,6 +165,7 @@ LLMS_LINKS = [
     ("Traders Library", "trading/"),
     ("Request Market (real, reviewed requests only; JSON at /.netlify/functions/demand-request?op=public)", "requests/"),
     ("Robot Pilot Academy (simulation-first teleoperation practice; self-reported records)", "robot-pilot/"),
+    ("Transparency Center (rules quoted from production pages; figures counted from public files)", "transparency/"),
     ("Buyer guide", "for-buyers.html"),
     ("Seller guide", "for-sellers.html"),
     ("Privacy", "privacy.html"),
@@ -217,6 +219,42 @@ def org_email(site: Path) -> dict:
     return {"org_email_added": changed}
 
 
+def page_name(t: str) -> str:
+    m = re.search(r"<title[^>]*>(.*?)</title>", t, re.S | re.I)
+    name = html.unescape(m.group(1)).strip() if m else ""
+    name = re.split(r"\s+[—·|]\s+|\s+-\s+BotShelf", name)[0].strip()
+    return name[:110] or "Page"
+
+
+def breadcrumbs(site: Path) -> dict:
+    """BreadcrumbList for sitemap pages that have none: home, then each ancestor URL that is itself in the
+    sitemap, then the page. Names come from each page's own <title>. Home page excluded."""
+    locs = re.findall(r"<loc>([^<]+)</loc>", (site / "sitemap.xml").read_text())
+    inmap = set(locs)
+    added = 0
+    for u in locs:
+        f = url_to_file(site, u)
+        if u == ORIGIN + "/" or f.suffix != ".html" or not f.exists():
+            continue
+        t = f.read_text(errors="ignore")
+        if "BreadcrumbList" in t or "</head>" not in t:
+            continue
+        path = u[len(ORIGIN):]
+        segs = [x for x in path.strip("/").split("/") if x]
+        chain = [(ORIGIN + "/", "BotShelf Vampire")]
+        for i in range(1, len(segs)):
+            anc = ORIGIN + "/" + "/".join(segs[:i]) + "/"
+            if anc in inmap and anc != u:
+                af = url_to_file(site, anc)
+                chain.append((anc, page_name(af.read_text(errors="ignore")) if af.exists() else segs[i - 1]))
+        chain.append((u, page_name(t)))
+        ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": k + 1, "name": n, "item": x} for k, (x, n) in enumerate(chain)]}
+        f.write_text(t.replace("</head>", '<script type="application/ld+json">' + json.dumps(ld, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + "</script></head>", 1))
+        added += 1
+    return {"breadcrumbs_added": added}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--site", required=True)
@@ -229,6 +267,7 @@ def main():
     out.update(trust(site, today))
     out.update(llms(site, today))
     out.update(org_email(site))
+    out.update(breadcrumbs(site))
     print(json.dumps(out, ensure_ascii=False))
 
 
