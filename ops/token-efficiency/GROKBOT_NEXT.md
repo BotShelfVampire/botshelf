@@ -1,4 +1,5 @@
 # Progress 2026-10-04 00:00 JST (New Bobby) — P0 tranches
+- #4 LIVE `6ac1254bb51e1ee5f9a31119` (00:55 JST; commits b7e5aae caf4467 +2): Tradovate custom-indicator (JavaScript) target, check_tradovate.mjs 360/0 (node:vm stub of documented API, not Tradovate), listed ATAS way (19 starters / 19 tabs), parity 266/266, builder CDP 19 tabs 0 CSP, LIVE discovery 3870/0, trader 72/0, toolkit 56/81. Issue #4 comment 5970826883. Library gate -> /tmp/t4c_libgate.log. Batch email for #4 + tranche 3s: pending (send after #8/#6/#7 t3). NEXT: #8 t3 capability manifests (/capabilities/index.json, capability-manifest v0.1), #6 t3 opportunity-signal v0.1 feed, #7 t3 teleop recipe library.
 
 - Cycle 11 closed: Issue #4 comment 5970095023, report email sent (send_report11.py). Do not resend.
 - #8 tranche 1 LIVE `6ac1130a` (23:37 JST, commit c170728): robots OAI-SearchBot/GPTBot groups, sitemap/canonical cleanup, llms.txt block, /.well-known/bsv-trust.json (14 quoted facts). Issue #8 comment 5970283683.
