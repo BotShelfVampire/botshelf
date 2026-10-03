@@ -35,3 +35,8 @@ Before a frontier-model call: search exact current files; use deterministic test
 ## Owner preference
 
 Minimize back-and-forth. Execute reversible/no-spend work autonomously and surface only decisions/access gates that truly need the owner.
+
+
+## Current execution directive
+
+GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the existing Trader + AI category expansion moving through live integration, test, deploy and verification.
