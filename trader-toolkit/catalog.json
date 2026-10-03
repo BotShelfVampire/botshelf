@@ -28,7 +28,7 @@
     {
       "id": "trader-generator",
       "title": "Trader Recipe code generator",
-      "platform": "Pine/MQL5/cTrader",
+      "platform": "Pine/MQL5/MQL4/cTrader/Bookmap",
       "type": "generator",
       "status": "CI_PASS",
       "path": "trader-toolkit/generator/render.mjs",
@@ -105,6 +105,30 @@
       "type": "copy-paste-code",
       "status": "UNTESTED_RUNTIME",
       "path": "trader-toolkit/platforms/ctrader/BsvRsiRegimeMap.cs"
+    },
+    {
+      "id": "mt4-ema-atr",
+      "title": "EMA + ATR Overlay (MQL4)",
+      "platform": "MT4",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/mt4/BSV_EmaAtrOverlay.mq4"
+    },
+    {
+      "id": "ctrader-python-ema-atr",
+      "title": "EMA + ATR Overlay (Python)",
+      "platform": "cTrader",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/ctrader/python/"
+    },
+    {
+      "id": "bookmap-trade-ema",
+      "title": "Trade EMA Add-on (Python API)",
+      "platform": "Bookmap",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/bookmap/bsv_trade_ema.py"
     },
     {
       "id": "ninjatrader-ema-atr",
@@ -184,6 +208,8 @@
     "trend-pullback-composite",
     "session-statistics-panel",
     "divergence-scanner",
-    "webhook-alert-router"
+    "webhook-alert-router",
+    "golden-cross-alert",
+    "ema-cross-rsi-filter"
   ]
 }

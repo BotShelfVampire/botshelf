@@ -22,3 +22,6 @@
 - `*.bak*` backups and generator scripts are build artifacts, not site content; `gate_library_bodies.py` prunes them from every deploy tree (some held gated pages).
 - The recipe builder is gated as BSV source: page `/trading/items/bsv-builder.html`, generator port under `/trading/sources/`. Its output must stay byte-identical to `render.mjs` (parity test).
 - Logged-in QA uses the operator test account (`support@botshelfvampire.com`, name `OTP test`); its cookie jar stays on the box.
+- Library pack items (skills, kimi-*, gemini, deepseek, cursor, claude-code, dify, flowise, autogen, openrouter, agentswarm, mcp, …) use the same body gate as the 70 teams: public explanation; full text at `/library/source/item-<runtime>-<slug>.html`; free label kept. `gate_library_bodies.py --packs all`.
+- Trader generator/builder targets include MQL4, cTrader Python and Bookmap Python alongside Pine v6 / MQL5 / cTrader C#. Catalog status stays UNTESTED_RUNTIME until runtime evidence exists.
+

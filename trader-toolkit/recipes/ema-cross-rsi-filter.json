@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "0.1",
+  "name": "EMA Cross + RSI Filter Starter",
+  "description": "EMA 9 / EMA 21 cross that only alerts when RSI 14 agrees (above 50 for up-crosses, below 50 for down-crosses). Starter for a filtered momentum alert; no profitability claim.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "ema_fast",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 9
+      }
+    },
+    {
+      "id": "ema_slow",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 21
+      }
+    },
+    {
+      "id": "rsi",
+      "type": "indicator.rsi",
+      "params": {
+        "source": "close",
+        "length": 14
+      }
+    },
+    {
+      "id": "cross_up",
+      "type": "signal.cross",
+      "params": {
+        "left": "ema_fast",
+        "right": "ema_slow",
+        "direction": "above"
+      }
+    },
+    {
+      "id": "cross_down",
+      "type": "signal.cross",
+      "params": {
+        "left": "ema_fast",
+        "right": "ema_slow",
+        "direction": "below"
+      }
+    },
+    {
+      "id": "rsi_bull",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": ">",
+        "value": 50
+      }
+    },
+    {
+      "id": "rsi_bear",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": "<",
+        "value": 50
+      }
+    },
+    {
+      "id": "long_ok",
+      "type": "signal.combine",
+      "params": {
+        "mode": "all",
+        "signals": [
+          "cross_up",
+          "rsi_bull"
+        ]
+      }
+    },
+    {
+      "id": "short_ok",
+      "type": "signal.combine",
+      "params": {
+        "mode": "all",
+        "signals": [
+          "cross_down",
+          "rsi_bear"
+        ]
+      }
+    },
+    {
+      "id": "plot_fast",
+      "type": "visual.plot",
+      "params": {
+        "source": "ema_fast",
+        "title": "EMA 9"
+      }
+    },
+    {
+      "id": "plot_slow",
+      "type": "visual.plot",
+      "params": {
+        "source": "ema_slow",
+        "title": "EMA 21"
+      }
+    },
+    {
+      "id": "alert_long",
+      "type": "alert.condition",
+      "params": {
+        "when": "long_ok",
+        "message": "BSV recipe: EMA 9 crossed above EMA 21 with RSI > 50"
+      }
+    },
+    {
+      "id": "alert_short",
+      "type": "alert.condition",
+      "params": {
+        "when": "short_ok",
+        "message": "BSV recipe: EMA 9 crossed below EMA 21 with RSI < 50"
+      }
+    }
+  ]
+}

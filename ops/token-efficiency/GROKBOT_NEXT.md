@@ -12,16 +12,29 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
-# Status 2026-10-03 16:45 JST (New Bobby)
+# Status 2026-10-03 17:18 JST (New Bobby) — cycle 3 LIVE
 
-LIVE: tranches 1–4, Library body gate (70), recipe builder, AI toolkit ↔ Teams cross-links. See BSV_STATE.md and scripts/site/README.md (run order + deploy with `--prod`, never publish drafts).
-Do not rebuild these surfaces from scratch.
+LIVE deploy: `6ac0b8e61e7f01df9ceef1db` (production, email_configured:true). Prior: pack-gate batches through `6ac0b458`, then this cycle adds MT4 / Bookmap / cTrader Python + 2 recipes + 6 generator targets. Do not rebuild from scratch.
+
+Shipped this cycle:
+1. Library pack body gate generalised: 809 pack items (skills, kimi-*, gemini, deepseek, cursor, claude-code, dify, flowise, autogen, openrouter, agentswarm, mcp, …) + 70 teams = 879 gated; title/summary public; full body at `/library/source/item-*` / `team-*` behind email session. Free labels kept. `*.bak*` pruned earlier.
+2. Trader: MT4 (MQL4), Bookmap (Python API), cTrader Python — catalog → build pages → filters → recipe builder (6 targets: pine-v6, mql5, mql4, ctrader, ctrader-python, bookmap-python). +2 recipes (golden-cross-alert, ema-cross-rsi-filter). Hub = 37 assets, 13 platform filters. Honest UNTESTED_RUNTIME / STRUCTURAL labels only.
+
+LIVE URLs:
+- https://botshelfvampire.com/trading/build/ (37 assets; MT4 + Bookmap filters)
+- https://botshelfvampire.com/trading/tools/bsv-mt4-ema-atr.html
+- https://botshelfvampire.com/trading/tools/bsv-bookmap-trade-ema.html
+- https://botshelfvampire.com/trading/tools/bsv-ctrader-python-ema-atr.html
+- https://botshelfvampire.com/trading/tools/bsv-builder.html (6 targets)
+- https://botshelfvampire.com/library/toolkit/
+- Pack example (gated): /library/source/item-skills-accessibility-audit-skill.html → 302 anonymous
+
+Tests (pass): builder parity 84/84; local toolkit ok; local gate 879/0 err; LIVE toolkit public=52 gated=73; LIVE gate 879 logged-in 0 err; health email_configured:true before/after --prod.
 
 Next queue (in order):
-1. Owner decision needed, then act: the remaining ~809 Library items (skills, kimi-code, kimi-k3, gemini, deepseek, cursor, claude-code, dify, flowise, autogen, openrouter, agentswarm, mcp resources) still show full bodies publicly; same `gate_library_bodies.py` pattern can be generalised. Also the public GitHub repos and `/cross-ai/kits/research-desk-local/`.
-2. More trader platforms and recipes from ChatGPT source (MT4 renderer, Bookmap, cTrader Python), using the same pipeline; builder picks them up automatically.
-3. Builder v2: per-target TODO hints and shareable recipe JSON links (no server storage).
-4. Move `scripts/site/site-integration-check.workflow.yml` into `.github/workflows/` (needs a token with `workflow` scope).
+1. Builder v2: per-target TODO hints and shareable recipe JSON links (no server storage).
+2. Move `scripts/site/site-integration-check.workflow.yml` into `.github/workflows/` (needs token with `workflow` scope — owner).
+3. Owner-only leftovers (do not invent): public GitHub repos still hold bodies (`botshelf-ai-team-registry`, `botshelf/packs`); `/cross-ai/kits/research-desk-local/` overlaps two Open WebUI bodies (left as-is per prior owner). No SNS/Discord/external posts.
 
 ---
 
@@ -47,7 +60,9 @@ Integrate the current Trader catalog into the live site:
 - code generator
 - TradingView
 - MT5
-- cTrader
+- MT4
+- cTrader (C# + Python)
+- Bookmap
 - NinjaTrader
 - Quantower
 - Sierra Chart
