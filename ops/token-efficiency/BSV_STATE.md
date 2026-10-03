@@ -51,7 +51,7 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 
 ## #4 + P0 tranche 3 LIVE (2026-10-04 01:15 JST)
 
-- Production deploy: 6ac15512bbf57992f1162978. Chain: 6ac12003 -> 6ac1254b (#4 Tradovate) -> 6ac12969 (#8/#6/#7 tranche 3) -> 6ac12dcb (#8 t4 sitemaps/gated URLs) -> 6ac132c8 (#4 backtrader) -> 6ac13538 (#6/#7 t4) -> 6ac139e4 (#4 Backtesting.py) -> 6ac13d9a (#8/#6/#7 t5) -> 6ac1424d (#4 NautilusTrader) -> 6ac146a2 (#8/#6/#7 t6) -> 6ac14de6 (#4 visual.table) -> 6ac15512 (tranche 7 coverage/heatmap/tooling)
+- Production deploy: 6ac160f4f54ad5e5c6a4e950. Chain: 6ac12003 -> 6ac1254b (#4 Tradovate) -> 6ac12969 (#8/#6/#7 tranche 3) -> 6ac12dcb (#8 t4 sitemaps/gated URLs) -> 6ac132c8 (#4 backtrader) -> 6ac13538 (#6/#7 t4) -> 6ac139e4 (#4 Backtesting.py) -> 6ac13d9a (#8/#6/#7 t5) -> 6ac1424d (#4 NautilusTrader) -> 6ac146a2 (#8/#6/#7 t6) -> 6ac14de6 (#4 visual.table) -> 6ac15512 (tranche 7 coverage/heatmap/tooling) -> 6ac160f4 (HTF correction)
 - #4: Tradovate JavaScript custom-indicator target. Checked by check_tradovate.mjs (360/0) against a node:vm stub of the documented API; this is not a Tradovate run. Listed the ATAS way: 19 starters, 19 builder tabs.
 - #8 t3: /capabilities/index.json, capability-manifest v0.1, 90 manifests, nothing VERIFIED.
 - #6 t3: demand-request?op=signals, opportunity-signal v0.1, from approved public requests only.
