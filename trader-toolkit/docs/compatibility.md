@@ -18,7 +18,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | JForex (Dukascopy) | JForex API (Java `IStrategy`) | generator target (`jforex`: `IIndicators.ema/sma/rsi/atr` at bar shifts, closed-bar `onBar`, console values and notifications; no `IEngine`/orders) | Compiles with javac 21 against BSV stubs written from the JForex API javadoc; JForex platform compile and demo run still required |
 | TradeStation | EasyLanguage | generator target (`easylanguage`: indicator with `XAverage`/`Average`/`RSI`/`AvgTrueRange`, explicit cross comparisons, `PlotN`, `Alert` on `BarStatus(1) = 2`; no orders) | Structural check by BSV only (`check_easylanguage_output.mjs`); TradeStation Verify and chart test still required |
 | ProRealTime | ProBuilder | generator target (`prorealtime`: built-in averages/RSI/ATR, `CROSSES OVER/UNDER`, `RETURN` lines, arrow markers on overlays) + dual-EMA copy/paste indicator | Source prepared; runtime validation required |
-| ATAS | C# indicator API (`ATAS.Indicators`) | builder target (`atas`: `Indicator` with `OnCalculate`, `GetCandle`, `ValueDataSeries` lines, closed-bar `AddAlert`; EMA/SMA/RSI/ATR computed in the code; no orders) | Compiles with the .NET 8 C# compiler against BSV stubs written from the ATAS API reference; ATAS build and chart test still required |
+| ATAS | C# indicator API (`ATAS.Indicators`) | generator target (`atas`: `Indicator` with `OnCalculate`, `GetCandle`, `ValueDataSeries` lines, closed-bar `AddAlert`; EMA/SMA/RSI/ATR computed in the code; no orders) | Compiles with the .NET 8 C# compiler against BSV stubs written from the ATAS API reference; ATAS build and chart test still required |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
 
 ## Vela
@@ -174,7 +174,7 @@ Checked by BSV: `scripts/site/check_easylanguage_output.mjs` checks all 14 recip
 
 ATAS custom indicators are C# classes that derive from `ATAS.Indicators.Indicator` and override `OnCalculate(int bar, decimal value)`, which runs for every history bar and then on every tick of the last bar. `GetCandle(bar)` returns the candle (Open/High/Low/Close, `Time` = candle open time), `CurrentBar` is the bar count, lines are `ValueDataSeries` in `DataSeries`, a separate pane is `Panel = IndicatorDataProvider.NewPanel`, and `AddAlert(soundFile, message)` raises an alert.
 
-The `atas` target (builder and CLI; not yet a pre-generated starter on recipe pages) writes one `Indicator` class. EMA/SMA/RSI/ATR are computed in the generated code (EMA and Wilder RMA seeded with the simple mean, as in Pine), because the reference documents the core API but BSV could not confirm the built-in technical indicator classes there. Plots fill `ValueDataSeries`; alerts fire once per closed bar, only for bars that close after the indicator was loaded. Session filters treat the candle time as UTC and convert it to the recipe time zone (TODO in the code). It never calls order or strategy APIs.
+The `atas` target (builder, CLI and a pre-generated starter on every recipe page since cycle 10) writes one `Indicator` class. EMA/SMA/RSI/ATR are computed in the generated code (EMA and Wilder RMA seeded with the simple mean, as in Pine), because the reference documents the core API but BSV could not confirm the built-in technical indicator classes there. Plots fill `ValueDataSeries`; alerts fire once per closed bar, only for bars that close after the indicator was loaded. Session filters treat the candle time as UTC and convert it to the recipe time zone (TODO in the code). It never calls order or strategy APIs.
 
 Checked by BSV: all 14 recipe outputs compile with the .NET 8 C# compiler (nullable on, warnings as errors) against stub classes written from the public API reference (`scripts/site/check_atas_stubs.sh`, stubs in `scripts/site/atas_stubs/`). A one-off replay on the box against those stubs with 300 synthetic bars matched a JavaScript reference for EMA/RSI/ATR. Not built against the real ATAS assemblies and not loaded in ATAS.
 
@@ -183,3 +183,17 @@ Checked by BSV: all 14 recipe outputs compile with the .NET 8 C# compiler (nulla
 - https://docs.atas.net/en/classATAS_1_1Indicators_1_1ExtendedIndicator.html
 - https://docs.atas.net/en/classATAS_1_1Indicators_1_1IndicatorCandle.html
 - https://docs.atas.net/en/md_DataFeedsCore_2Docs_2en_20050__Dataseries.html
+
+## AmiBroker
+
+Builder target since cycle 10 (`amibroker`, builder and CLI; not a pre-generated starter on recipe pages and not in the platform lists until the owner approves the wording). Status: UNTESTED_RUNTIME.
+
+The target writes one AFL indicator formula, using only functions checked in the AFL function reference: `MA`, `EMA`, `RSIa`, `ATR`, `Ref`, `TimeNum`, `BarIndex`, `LastValue`, `Plot`, `AlertIf`. Crosses are explicit comparisons with `Ref(x, -1)`, the same cross rule as the other targets. Alerts follow the guide's completed-bar pattern (`BarIndex() < LastValue(BarIndex())`), with `lookback = 2` so the most recent completed bar is checked, and they go to the Alert Output window. It never assigns `Buy`/`Sell`/`Short`/`Cover` and places no orders. Session filters use `TimeNum()` in the database time zone (TODO in the code).
+
+Checked by BSV: `scripts/site/check_amibroker_afl.mjs` parses every recipe's output with a small BSV-written AFL-subset parser. It checks that only the documented functions/constants are used, that names are assigned before use, that `Ref` only looks back, and that there are no order arrays. It then evaluates the formula over 400 synthetic bars: MA/EMA/RSI/ATR match an independent JS reference once warmed up, and a bar-by-bar replay shows alerts only on completed bars, once each, with no misses. This is not AmiBroker: nothing was verified or run in AmiBroker by BSV.
+
+Sources:
+- https://www.amibroker.com/guide/afl/ma.html, ema.html, rsi.html, atr.html, ref.html, timenum.html, plot.html, alertif.html
+- https://www.amibroker.com/guide/h_alerts.html (completed-bar alerts)
+- https://www.amibroker.com/guide/a_language.html (operators, identifiers, colors)
+- https://www.amibroker.com/guide/h_indbuilder.html (Formula Editor, Apply indicator)
