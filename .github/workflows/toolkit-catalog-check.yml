@@ -1,0 +1,58 @@
+name: Toolkit catalog check
+
+on:
+  push:
+    paths:
+      - 'trader-toolkit/**'
+      - 'ai-toolkit/**'
+      - '.github/workflows/toolkit-catalog-check.yml'
+  pull_request:
+    paths:
+      - 'trader-toolkit/**'
+      - 'ai-toolkit/**'
+      - '.github/workflows/toolkit-catalog-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate catalogs and referenced paths
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          for (const catalogPath of ['trader-toolkit/catalog.json','ai-toolkit/catalog.json']) {
+            const catalog = JSON.parse(fs.readFileSync(catalogPath,'utf8'));
+            if (catalog.schemaVersion !== '0.1') throw new Error('bad schemaVersion: ' + catalogPath);
+            if (!Array.isArray(catalog.entries) || catalog.entries.length === 0) throw new Error('empty entries: ' + catalogPath);
+
+            const ids = new Set();
+            for (const entry of catalog.entries) {
+              if (!entry.id || !entry.title || !entry.platform || !entry.type || !entry.status || !entry.path) {
+                throw new Error('missing catalog field in ' + catalogPath + ': ' + JSON.stringify(entry));
+              }
+              if (ids.has(entry.id)) throw new Error('duplicate id ' + entry.id + ' in ' + catalogPath);
+              ids.add(entry.id);
+
+              const normalized = path.normalize(entry.path);
+              if (normalized.startsWith('..') || path.isAbsolute(normalized)) {
+                throw new Error('unsafe path ' + entry.path);
+              }
+              if (!fs.existsSync(normalized)) throw new Error('missing referenced path ' + entry.path);
+
+              if (/VERIFIED|PASS/i.test(entry.status) && !/CI_PASS/.test(entry.status)) {
+                throw new Error('runtime verification claim requires explicit evidence: ' + entry.id + ' => ' + entry.status);
+              }
+            }
+          }
+          NODE
+      - name: Syntax-check executable starters
+        run: |
+          node --check trader-toolkit/generator/render.mjs
+          python -m py_compile ai-toolkit/smolagents/lm-studio-local-agent.py
+          python -m py_compile ai-toolkit/openai-agents/guarded-worker.py
