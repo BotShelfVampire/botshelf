@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Session Statistics Panel",
+  "description": "Session-aware range/statistics panel starter; advanced statistics remain target TODOs.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "session",
+      "type": "filter.session",
+      "params": {
+        "session": "0800-1700",
+        "timezone": "Europe/London"
+      }
+    },
+    {
+      "id": "range",
+      "type": "structure.range",
+      "params": {
+        "during": "session",
+        "track": [
+          "high",
+          "low"
+        ]
+      }
+    },
+    {
+      "id": "panel",
+      "type": "visual.table",
+      "params": {
+        "fields": [
+          "range"
+        ],
+        "title": "Session Stats"
+      }
+    }
+  ]
+}
