@@ -69,3 +69,23 @@ Innovation rule:
 - Match market-standard basics where trust and usability require it.
 - Be radically different in the core product experience, composition model, and value creation.
 - Do not differentiate merely for appearance.
+
+
+## Highest-priority growth thesis
+
+BSV connects technical builders who can create difficult systems with operators/traders who understand monetizable pain.
+
+P0 growth primitives:
+- Request Market
+- Builder Opportunity Feed
+- Remix -> Product
+- Demand Heatmap
+- Universal Capability Manifest
+
+Frontier sector lenses:
+robotics, space, quantum, biotech/bioinformatics, BCI/neural interfaces, medical/healthcare, industrial/blue-collar/field service, data-workflow businesses.
+
+Do not create eight empty top-level marketplaces first. Build shared primitives, then expose sector views as real supply/demand appears.
+
+Canonical strategy: strategy/BSV_FRONTIER_GROWTH_OS.md
+Growth issue: GitHub Issue #6
