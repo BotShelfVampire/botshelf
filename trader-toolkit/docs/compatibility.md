@@ -15,9 +15,9 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | MT4 | MQL4 | generator target (`mql4`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | Bookmap | Python API (open beta) and Java add-ons/API | Python generator target (`bookmap-python`, time bars built from trades) + trade-EMA add-on source; order-flow blocks still planned | Source prepared; runtime test still required |
 | MotiveWave | Java SDK | generator target (`motivewave`: `Study` with `DataSeries.ema/sma/atr`, Wilder RSI via `smma`, paths, closed-bar `ctx.signal`) + EMA custom-study source | Compiles with javac 21 against BSV stubs written from the SDK javadoc; real SDK build and MotiveWave load still required |
+| JForex (Dukascopy) | JForex API (Java `IStrategy`) | generator target (`jforex`: `IIndicators.ema/sma/rsi/atr` at bar shifts, closed-bar `onBar`, console values and notifications; no `IEngine`/orders) | Compiles with javac 21 against BSV stubs written from the JForex API javadoc; JForex platform compile and demo run still required |
 | ProRealTime | ProBuilder | generator target (`prorealtime`: built-in averages/RSI/ATR, `CROSSES OVER/UNDER`, `RETURN` lines, arrow markers on overlays) + dual-EMA copy/paste indicator | Source prepared; runtime validation required |
 | ATAS | platform extensibility research | planned | Unverified |
-| JForex | Java strategy/indicator APIs | planned | Unverified |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
 
 ## Vela
@@ -140,3 +140,16 @@ Checked by BSV: all 14 recipes compile with javac 21 against stub classes writte
 - https://www.motivewave.com/sdk/javadoc/com/motivewave/platform/sdk/study/Study.html
 - https://www.motivewave.com/sdk/javadoc/com/motivewave/platform/sdk/common/DataSeries.html
 - https://www.motivewave.com/sdk/javadoc/com/motivewave/platform/sdk/common/DataContext.html
+
+## JForex (Dukascopy)
+
+JForex strategies are Java classes that implement `IStrategy` (`onStart`, `onTick`, `onBar`, `onMessage`, `onAccount`, `onStop`). Indicator values come from `IContext.getIndicators()`; `IIndicators.ema/sma/rsi(instrument, period, side, AppliedPrice, timePeriod, shift)` and `atr(instrument, period, side, timePeriod, shift)` return the value for a bar `shift` back (0 = forming bar).
+
+The `jforex` target writes one `IStrategy` class with `@Configurable` instrument (default EURUSD), period (default 1 hour) and offer side (default BID). In `onBar` it filters to that instrument/period and evaluates the recipe at shift 1 (the bar that just closed) and shift 2 (for crosses). Plots are printed to the console (`IConsole.getOut()`, switchable), alerts go to `IConsole.getNotif()`. Price sources hl2/hlc3 map to `MEDIAN_PRICE`/`TYPICAL_PRICE`; `AppliedPrice` has no OHLC/4, so indicators on ohlc4 are left as a visible TODO. Session filters read the bar start time (`IBar.getTime()`) with `java.time` in the recipe time zone. The strategy never calls `IEngine` and places no orders.
+
+Checked by BSV: all 14 recipes compile with javac 21 against stub classes written from the public JForex API javadoc (`scripts/site/check_jforex_stubs.sh`, stubs in `scripts/site/jf_stubs/`). Not compiled in the JForex platform and not run on a demo account yet.
+
+- https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/IStrategy.html
+- https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/IIndicators.html
+- https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/IHistory.html
+- https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/IConsole.html
