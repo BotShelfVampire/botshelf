@@ -25,3 +25,9 @@
 - Operator identity stays low-profile; business mechanics become unusually transparent.
 - Infrastructure may follow reliable conventions. Core product experience must contain a clearly different value structure.
 - Frontier verticals are sector views over shared capability primitives, not eight disconnected empty marketplaces.
+
+
+- Robot Pilot / teleoperation workforce is a highest-priority frontier business line.
+- Pilot training begins simulation-first; BSV practice records are evidence records, not government/manufacturer licenses.
+- Real-hardware control requires explicit partner authorization, exact runtime/hardware scope, and local safety procedures.
+- Teleoperation data collection, QA/replay, mission matching, pilot tooling, and training assets are valid BSV monetization surfaces.
