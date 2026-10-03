@@ -1,0 +1,19 @@
+{
+  "task_id": "replace-me",
+  "goal": "one concrete outcome",
+  "binding_decisions": [],
+  "current_state": [],
+  "relevant_files": [
+    {
+      "path": "path/to/file",
+      "why": "one sentence",
+      "revision": "commit-or-sha"
+    }
+  ],
+  "evidence": [],
+  "known_failures": [],
+  "constraints": [],
+  "deliverable": "exact output expected",
+  "verification": "how completion is proven",
+  "max_context_chars": 24000
+}
