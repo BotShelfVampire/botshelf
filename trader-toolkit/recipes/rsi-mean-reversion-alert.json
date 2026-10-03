@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "0.1",
+  "name": "RSI Mean Reversion Alert",
+  "description": "Simple RSI threshold alert starter with explicit no-auto-trade behavior.",
+  "overlay": false,
+  "blocks": [
+    {
+      "id": "rsi",
+      "type": "indicator.rsi",
+      "params": {
+        "source": "close",
+        "length": 14
+      }
+    },
+    {
+      "id": "oversold",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": "<=",
+        "value": 30
+      }
+    },
+    {
+      "id": "overbought",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": ">=",
+        "value": 70
+      }
+    },
+    {
+      "id": "alert_low",
+      "type": "alert.condition",
+      "params": {
+        "when": "oversold",
+        "message": "BSV recipe: RSI oversold condition"
+      }
+    },
+    {
+      "id": "alert_high",
+      "type": "alert.condition",
+      "params": {
+        "when": "overbought",
+        "message": "BSV recipe: RSI overbought condition"
+      }
+    }
+  ]
+}
