@@ -5,7 +5,7 @@ touched. Usage: --root <deploy root> [--check]"""
 import argparse, filecmp, shutil, sys
 from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
-FILES = ["compile-report.js", "demand-request.js"]
+FILES = ["compile-report.js", "demand-request.js", "pilot-record.js"]
 ap = argparse.ArgumentParser(); ap.add_argument("--root", required=True); ap.add_argument("--check", action="store_true")
 a = ap.parse_args()
 if not (Path(a.root) / "netlify/functions/_lib/session.js").exists(): sys.exit("not a deploy root (missing netlify/functions/_lib/session.js)")
