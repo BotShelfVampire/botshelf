@@ -80,9 +80,40 @@ function referencesFor(block) {
     case 'signal.combine': return Array.isArray(p.signals) ? p.signals : [];
     case 'visual.plot': return [p.source].filter(Boolean);
     case 'alert.condition': return [p.when].filter(Boolean);
+    case 'visual.table': return Array.isArray(p.fields) ? p.fields.filter(Boolean) : [];
     default: return [];
   }
 }
+
+// visual.table = a value panel: the listed fields' values on the latest bar. A field is shown only when it and every
+// block it depends on is rendered by the generator; a field that depends on a block that is not rendered yet (or on a
+// higher timeframe) gets a TODO line instead of a value that would be wrong.
+function tableValueType(t) { return /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine)|filter\.session)$/.test(t || ''); }
+function tableSpec(recipe, b) {
+  const map = blockMap(recipe), p = b.params || {};
+  const why = (ref, seen) => {
+    if (!map.has(ref)) return isPrice(ref) ? '' : `${ref} is not defined`;
+    if (seen.has(ref)) return '';
+    seen.add(ref);
+    const d = map.get(ref), q = d.params || {};
+    if (!tableValueType(d.type)) return `${ref} (${d.type}) is not rendered yet`;
+    if (q.timeframeRef) return `${ref} uses timeframe ${q.timeframeRef}, which is not rendered yet`;
+    for (const r of referencesFor(d)) { const w = why(r, seen); if (w) return w; }
+    return '';
+  };
+  const fields = [], skipped = [];
+  for (const f of (Array.isArray(p.fields) ? p.fields : [])) {
+    const w = why(String(f), new Set());
+    if (w) skipped.push({ id: String(f), reason: w }); else fields.push({ id: String(f), bool: map.has(f) && isBoolType(map.get(f).type) });
+  }
+  return { id: b.id, title: String(p.title || b.id).replace(/[\r\n]/g, ' ').trim().slice(0, 80), fields, skipped };
+}
+function tableTodos(spec, prefix) {
+  const out = spec.skipped.map(x => `${prefix} TODO ${spec.id}: visual.table field ${x.id} not shown — ${x.reason}.`);
+  if (!spec.fields.length) out.push(`${prefix} TODO ${spec.id}: visual.table has no field that can be shown yet, so the panel is left out.`);
+  return out;
+}
+function tableBlocks(recipe) { return recipe.blocks.filter(b => b.type === 'visual.table').map(b => tableSpec(recipe, b)); }
 
 function sourceName(v = 'close') {
   const allowed = new Set(['open','high','low','close','hl2','hlc3','ohlc4']);
@@ -1352,6 +1383,11 @@ function renderJForex(recipe) {
   L.push('    public OfferSide side = OfferSide.BID;');
   L.push(`    @Configurable("Print plot values on each closed bar")`);
   L.push(`    public boolean logValues = ${plots.length ? 'true' : 'false'};`);
+  const jfTables = tableBlocks(recipe);
+  if (jfTables.some(t => t.fields.length)) {
+    L.push('    @Configurable("Print value panels on each closed bar")');
+    L.push('    public boolean logPanels = true;');
+  }
   L.push('');
   L.push('    private IIndicators indicators;');
   L.push('    private IHistory history;');
@@ -1372,6 +1408,13 @@ function renderJForex(recipe) {
   L.push('            return;');
   L.push('        // shift 1 = the bar that just closed, shift 2 = the bar before it.');
   plots.forEach(p => L.push(`        if (logValues) { double v = ${val(p.params?.source, '1')}; if (!Double.isNaN(v)) console.getOut().println(${javaText(p.params?.title || p.params?.source || p.id)} + " = " + v); }`));
+  for (const t of jfTables) {
+    tableTodos(t, '        //').forEach(x => L.push(x));
+    if (!t.fields.length) continue;
+    L.push(`        // Value panel ${t.title.replace(/[\r\n]/g, ' ')} (visual.table): one console line per closed bar (shift 1).`);
+    const jl = (x) => '"' + String(x).replace(/["\\\r\n]/g, ' ') + '"';
+    L.push(`        if (logPanels) console.getOut().println(${t.fields.map((x, k) => `${jl((k ? ' | ' : '[' + t.title + '] ') + x.id + ' = ')} + ${x.bool ? `S_${x.id}(1)` : `V_${x.id}(1)`}`).join(' + ')});`);
+  }
   for (const a of alerts) L.push(`        if (${bool(a.params?.when, '1')})`, `            console.getNotif().println(${javaText(a.params?.message || a.id)} + " " + instrument + " " + period);`);
   L.push('    }');
   L.push('');
@@ -1411,7 +1454,7 @@ function renderJForex(recipe) {
       case 'signal.combine':
         L.push(`    private boolean S_${b.id}(int s) throws JFException { return ${(p.signals || []).map(x => bool(x, 's')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
         break;
-      case 'visual.plot': case 'alert.condition':
+      case 'visual.plot': case 'alert.condition': case 'visual.table':
         break;
       default:
         if (isBoolType(b.type)) L.push(`    private boolean S_${b.id}(int s) throws JFException { return false; } // TODO unsupported block ${b.type}: ${b.id}`);
@@ -1671,7 +1714,7 @@ function renderAmiBroker(recipe) {
       case 'signal.combine':
         L.push(`S_${b.id} = ${(p.signals || []).map(x => bool(x)).join(p.mode === 'any' ? ' OR ' : ' AND ') || 'False'};`);
         break;
-      case 'visual.plot': case 'alert.condition':
+      case 'visual.plot': case 'alert.condition': case 'visual.table':
         break;
       default:
         L.push(`// TODO unsupported block ${b.type}: ${b.id}`);
@@ -1680,6 +1723,15 @@ function renderAmiBroker(recipe) {
   }
   if (plots.length) L.push('');
   plots.forEach((p, k) => L.push(`Plot(${val(p.params?.source)}, ${aflText(p.params?.title || p.params?.source || p.id, 60)}, ${colors[k % colors.length]}, styleLine);`));
+  for (const t of tableBlocks(recipe)) {
+    L.push('');
+    tableTodos(t, '//').forEach(x => L.push(x));
+    if (!t.fields.length) continue;
+    L.push(`// Value panel ${t.title.replace(/[\r\n]/g, ' ')} (visual.table): printf writes to the Interpretation window. The last bar may still be forming,`,
+      '// so LastValue(Ref(x, -1)) shows the most recent completed bar. NumToStr format 1.6 = 6 decimals, no thousands separator.');
+    L.push(`printf(${aflText(t.title, 80)} + "\\n");`);
+    t.fields.forEach(x => { const n = String(x.id).replace(/[^A-Za-z0-9_]/g, '_'); L.push(x.bool ? `printf("${n}: " + WriteIf(LastValue(Ref(${val(x.id)}, -1)), "true", "false") + "\\n");` : `printf("${n}: " + NumToStr(LastValue(Ref(${val(x.id)}, -1)), 1.6, False) + "\\n");`); });
+  }
   if (alerts.length) {
     L.push('', '// Alerts go to the Alert Output window. Completed bars only (AFL guide, "Using formula-based alerts"):',
       '// the last bar is still forming, so lookback = 2 checks the most recent completed bar; flags 1+2+4+8 = text, beep, no repeats.',
@@ -1749,7 +1801,7 @@ function renderThinkScript(recipe) {
       case 'signal.combine':
         L.push(`def S_${b.id} = ${(p.signals || []).map(x => bool(x)).join(p.mode === 'any' ? ' or ' : ' and ') || 'no'};`);
         break;
-      case 'visual.plot': case 'alert.condition':
+      case 'visual.plot': case 'alert.condition': case 'visual.table':
         break;
       default:
         L.push(`# TODO unsupported block ${b.type}: ${b.id}`);
@@ -1758,6 +1810,14 @@ function renderThinkScript(recipe) {
   }
   if (plots.length) L.push('');
   plots.forEach((p, k) => L.push(`plot P${k + 1} = ${val(p.params?.source)};`, `P${k + 1}.SetDefaultColor(Color.${colors[k % colors.length]});`));
+  for (const t of tableBlocks(recipe)) {
+    L.push('');
+    tableTodos(t, '#').forEach(x => L.push(x));
+    if (!t.fields.length) continue;
+    L.push(`# Value panel ${tsNote(t.title)} (visual.table): AddLabel uses the last real bar, which is still forming, so [1] shows the bar that just closed.`);
+    L.push(`AddLabel(yes, ${tsText(t.title)}, Color.WHITE);`);
+    t.fields.forEach(x => L.push(x.bool ? `AddLabel(yes, "${String(x.id).replace(/[^A-Za-z0-9_]/g, '_')}: " + (if ${val(x.id, '[1]')} then "true" else "false"), Color.LIGHT_GRAY);` : `AddLabel(yes, "${String(x.id).replace(/[^A-Za-z0-9_]/g, '_')}: " + ${val(x.id, '[1]')}, Color.LIGHT_GRAY);`));
+  }
   if (alerts.length) {
     L.push('', '# Alerts: Alert() uses the value at the last real bar, which is still forming, so [1] checks the bar that just closed;',
       '# Alert.BAR raises it at most once per bar. Add the study to a chart for the alerts to run.');
@@ -1936,6 +1996,13 @@ function renderBacktrader(recipe) {
   L.push('NAN = float("nan")');
   L.push('');
   L.push('');
+  if (recipe.blocks.some(b => b.type === 'visual.table')) {
+    L.push('def bsv_cell(x):  # value-panel cell: n/a while the value is still warming up');
+    L.push('    x = float(x)');
+    L.push('    return "n/a" if not math.isfinite(x) else "%.6g" % x');
+    L.push('');
+    L.push('');
+  }
   const noLines = !lines.length;
   if (noLines) lines.push('idle');  // backtrader needs at least one line; this one stays NaN and is not plotted
   L.push(`class ${cls}(bt.Indicator):`);
@@ -1967,7 +2034,7 @@ function renderBacktrader(recipe) {
   for (const b of depOrder(recipe)) {
     const q = b.params || {}, k = pyText(b.id);
     switch (b.type) {
-      case 'indicator.ema': case 'indicator.sma': case 'indicator.rsi': case 'indicator.atr': case 'visual.plot': case 'alert.condition':
+      case 'indicator.ema': case 'indicator.sma': case 'indicator.rsi': case 'indicator.atr': case 'visual.plot': case 'alert.condition': case 'visual.table':
         break;
       case 'filter.session': {
         const ss = parseSession(q), n = tzs.indexOf(String(q.timezone || 'Etc/UTC'));
@@ -2015,6 +2082,19 @@ function renderBacktrader(recipe) {
     L.push('            if not math.isnan(getattr(self.ind.lines, "a%d" % (k + 1))[0]):');
     L.push('                print("ALERT", when, msg)');
   } else L.push('        pass  # this recipe has no alert blocks');
+  const tables = tableBlocks(recipe);
+  if (tables.length) {
+    L.push('');
+    L.push('    def stop(self):  # backtrader calls stop() after the last bar: print each value panel for that bar');
+    L.push('        ind, d = self.ind, self.data');
+    L.push('        s = ind._prev');
+    for (const t of tables) {
+      tableTodos(t, '        #').forEach(x => L.push(x));
+      if (!t.fields.length) continue;
+      L.push(`        print("TABLE", ${pyText(t.title)})`);
+      t.fields.forEach(f => L.push(f.bool ? `        print("  " + ${pyText(f.id)}, "true" if s.get(${pyText(f.id)}) else "false")` : `        print("  " + ${pyText(f.id)}, bsv_cell(${val(f.id).replace(/\bself\.i_/g, 'ind.i_')}))`));
+    }
+  }
   L.push('');
   L.push('');
   L.push('def main(argv):');
@@ -2132,7 +2212,7 @@ function renderBacktestingPy(recipe) {
       case 'indicator.sma': L.push(`            v[${k}] = bsv_sma(${PX[sourceName(q.source)]}, ${Number(q.length) | 0})`); break;
       case 'indicator.rsi': L.push(`            v[${k}] = bsv_rsi(${PX[sourceName(q.source)]}, ${Number(q.length) | 0})`); break;
       case 'indicator.atr': L.push(`            v[${k}] = bsv_atr(h, l, c, ${Number(q.length) | 0})`); break;
-      case 'visual.plot': case 'alert.condition': break;
+      case 'visual.plot': case 'alert.condition': case 'visual.table': break;
       case 'filter.session': {
         const ss = parseSession(q), tz = String(q.timezone || 'Etc/UTC');
         if (!/^[A-Za-z_]+(\/[A-Za-z0-9_+\-]+)*$/.test(tz)) throw new Error(`Invalid timezone in ${b.id}`);
@@ -2161,6 +2241,11 @@ function renderBacktestingPy(recipe) {
     }
   }
   L.push('        self.bsv_values, self.bsv_signals = v, s');
+  const btTables = tableBlocks(recipe);
+  if (btTables.length) {
+    for (const t of btTables) tableTodos(t, '        #').forEach(x => L.push(x));
+    L.push(`        self.bsv_tables = [${btTables.filter(t => t.fields.length).map(t => `(${pyText(t.title)}, [${t.fields.map(f => `(${pyText(f.id)}, ${f.bool ? 'True' : 'False'}, np.asarray(${f.bool ? `s[${pyText(f.id)}]` : val(f.id)}))`).join(', ')}])`).join(', ')}]  # value panels`);
+  }
   plots.forEach((b, n) => L.push(`        self.p${n + 1} = self.I(np.asarray, ${val(b.params?.source)}, name=${pyText(b.params?.title || b.params?.source || b.id, 60)}, overlay=${recipe.overlay ? 'True' : 'False'})`));
   L.push(`        self.bsv_alerts = [${alerts.map(b => `np.asarray(${bool(b.params?.when)}, bool)`).join(', ')}]`);
   alerts.forEach((b, n) => L.push(`        self.a${n + 1} = self.I(np.where, self.bsv_alerts[${n}], ${recipe.overlay ? 'c' : '1.0'}, np.nan, name=${pyText('alert ' + (n + 1))}, overlay=${recipe.overlay ? 'True' : 'False'}, scatter=True)`));
@@ -2174,6 +2259,16 @@ function renderBacktestingPy(recipe) {
   } else L.push('        pass  # this recipe has no alert blocks');
   L.push('');
   L.push('');
+  if (btTables.length) {
+    L.push('def bsv_print_tables(strategy):  # value panels for the last bar of the run');
+    L.push('    for title, cells in strategy.bsv_tables:');
+    L.push('        print("TABLE", title)');
+    L.push('        for name, is_bool, a in cells:');
+    L.push('            x = a[-1]');
+    L.push('            print("  " + name, ("true" if x else "false") if is_bool else ("n/a" if not np.isfinite(x) else "%.6g" % float(x)))');
+    L.push('');
+    L.push('');
+  }
   L.push('def main(argv):');
   L.push('    if len(argv) < 2:');
   L.push('        sys.exit("usage: python this_file.py bars.csv [--plot]  (CSV with a header row: datetime,open,high,low,close,volume; datetime as %Y-%m-%d %H:%M:%S in UTC)")');
@@ -2181,7 +2276,10 @@ function renderBacktestingPy(recipe) {
   L.push('    df.index = pd.to_datetime(df.pop("datetime"), format="%Y-%m-%d %H:%M:%S")');
   L.push('    df = df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})');
   L.push(`    bt = Backtest(df, ${cls}, cash=1_000_000, commission=0.0)`);
-  L.push('    bt.run()');
+  if (btTables.length) {
+    L.push('    stats = bt.run()');
+    L.push('    bsv_print_tables(stats._strategy)');
+  } else L.push('    bt.run()');
   L.push('    if "--plot" in argv:');
   L.push('        bt.plot(open_browser=False)  # writes an HTML chart next to this file');
   L.push('');
@@ -2339,7 +2437,7 @@ function renderNautilus(recipe) {
         L.push(`        v[${k}] = self.i_${ik}.update(v[${pyText(sourceName(q.source))}])`); break;
       case 'indicator.atr': L.push(`        v[${k}] = self.i_${ik}.update(h, l, c)`); break;
       case 'visual.plot': L.push(`        v[${pyText('plot:' + b.id)}] = ${val(q.source)}  # plot value (no chart in this starter)`); break;
-      case 'alert.condition': break;
+      case 'alert.condition': case 'visual.table': break;
       case 'filter.session': {
         const ss = parseSession(q), n = tzs.indexOf(String(q.timezone || 'Etc/UTC'));
         L.push(`        t = when.astimezone(self.tz${n})`);
@@ -2373,6 +2471,19 @@ function renderNautilus(recipe) {
     L.push('                print("ALERT", when.strftime("%Y-%m-%dT%H:%M:%S"), msg)');
   }
   L.push('        self._pv, self._ps = v, s');
+  const ntTables = tableBlocks(recipe);
+  if (ntTables.length) {
+    L.push('');
+    L.push('    def bsv_print_tables(self):  # value panels for the last bar received');
+    L.push('        v, s = self._pv, self._ps');
+    for (const t of ntTables) {
+      tableTodos(t, '        #').forEach(x => L.push(x));
+      if (!t.fields.length) continue;
+      L.push(`        print("TABLE", ${pyText(t.title)})`);
+      t.fields.forEach(f => L.push(f.bool ? `        print("  " + ${pyText(f.id)}, "true" if s.get(${pyText(f.id)}) else "false")` : `        print("  " + ${pyText(f.id)}, "n/a" if not bsv_fin(${val(f.id)}) else "%.6g" % ${val(f.id)})`));
+    }
+    if (!ntTables.some(t => t.fields.length)) L.push('        pass');
+  }
   L.push('');
   L.push('');
   L.push('def load_csv(path):');
@@ -2397,6 +2508,7 @@ function renderNautilus(recipe) {
   L.push('    engine.add_strategy(strategy)');
   L.push('    engine.run()');
   L.push('    strategy.bsv_orders = len(engine.cache.orders())  # stays 0: the strategy never submits an order');
+  if (ntTables.length) L.push('    strategy.bsv_print_tables()');
   L.push('    engine.dispose()');
   L.push('    return strategy');
   L.push('');

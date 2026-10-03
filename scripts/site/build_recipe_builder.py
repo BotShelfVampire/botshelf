@@ -106,7 +106,7 @@ var HINTS={
  'risk.atr_band':['Band = reference value plus/minus ATR x multiple. Plot it; do not place orders from an indicator.','バンドは基準値±ATR×倍率です。描画に使い、インジケーターから注文は出しません。'],
  'scanner.symbol_set':['Multi-symbol scanning needs platform APIs (Pine request.security per symbol, MQL SymbolSelect + iClose, cTrader MarketData.GetBars with a symbol).','複数銘柄のスキャンにはプラットフォームのAPIが必要です（Pineは銘柄ごとのrequest.security、MQLはSymbolSelectとiClose、cTraderは銘柄指定のMarketData.GetBars）。'],
  'visual.zone':['Draw a box/rectangle object between two levels and keep the number of objects bounded.','2つの水準の間に矩形オブジェクトを描きます。オブジェクト数が増え続けないようにします。'],
- 'visual.table':['Use the platform panel API (Pine table.new, MQL ObjectCreate with OBJ_LABEL, cTrader Chart.DrawStaticText).','プラットフォームの表示API（Pineはtable.new、MQLはOBJ_LABELのObjectCreate、cTraderはChart.DrawStaticText）を使います。']};
+ 'visual.table':['The generator renders value panels on backtrader, Backtesting.py, NautilusTrader, thinkorswim, AmiBroker and JForex. Elsewhere use the platform panel API (Pine table.new, MQL ObjectCreate with OBJ_LABEL, cTrader Chart.DrawStaticText) and show the value of the last completed bar.','ジェネレーターは backtrader・Backtesting.py・NautilusTrader・thinkorswim・AmiBroker・JForex で値パネルを出力します。それ以外ではプラットフォームの表示API（Pineはtable.new、MQLはOBJ_LABELのObjectCreate、cTraderはChart.DrawStaticText）を使い、直近の確定足の値を表示してください。']};
 var GENERIC_HINT=['Implement this block by hand on this platform, then remove the TODO.','このプラットフォーム向けにこのブロックを手で実装し、TODOを消してください。'];
 function bi(pair,tag){var f=document.createDocumentFragment();f.appendChild(el(tag||'span',{'data-lang':'en',text:pair[0]}));f.appendChild(el(tag||'span',{'data-lang':'ja',text:pair[1]}));return f}
 function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}

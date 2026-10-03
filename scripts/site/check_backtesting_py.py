@@ -18,7 +18,8 @@ import numpy as np, pandas as pd, backtesting  # noqa: E402
 from backtesting import Backtest, Strategy  # noqa: E402
 warnings.filterwarnings("ignore")
 
-checks = failures = files = alerts_seen = 0
+checks = failures = files = alerts_seen = panels_seen = 0
+import bsv_py_reference as BSVREF  # noqa: E402
 def ok(c, f, m):
     global checks, failures
     checks += 1
@@ -93,7 +94,13 @@ for f in sorted(RECIPES.glob("*.json")):
     got = [tuple(l.split(" ", 2)) for l in out.stdout.splitlines() if l.startswith("ALERT ")]
     want = [("ALERT", bars[i]["t"].strftime("%Y-%m-%dT%H:%M:%S"), a["params"].get("message", a["id"])) for i in range(start, NB) for a in alerts if boo(a["params"]["when"])[i]]
     alerts_seen += len(got)
+    if any(b["type"] == "visual.table" for b in recipe["blocks"]):  # value panels (visual.table) on the last bar
+        want_p, skipped = BSVREF.panel_expect(recipe, V, S)
+        okp, why = BSVREF.panels_match(BSVREF.parse_panels(out.stdout), want_p)
+        ok(okp, name, f"value panel on the last bar equals the reference {why}")
+        ok(len(re.findall(r"TODO [A-Za-z0-9_]+: visual\.table ", code)) == skipped and "TODO unsupported block visual.table" not in code, name, f"panel TODO lines for fields that cannot be shown ({skipped})")
+        panels_seen += len(want_p)
     ok(sorted(got) == sorted(want) and len(got) == len(set(got)), name, f"alerts printed {len(got)} expected {len(want)}")
-print(json.dumps({"target": "backtesting-py", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen,
+print(json.dumps({"target": "backtesting-py", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen,
                   "backtesting": backtesting.__version__, "note": "run inside the Backtesting.py library on synthetic bars; not a broker, live-feed or platform runtime test"}))
 sys.exit(1 if failures else 0)

@@ -11,7 +11,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-const FN = { ema: [2, 2], ma: [2, 2], rsia: [1, 2], atr: [1, 1], ref: [2, 2], timenum: [0, 0], barindex: [0, 0], lastvalue: [1, 1], plot: [2, 9], alertif: [2, 6] };
+const FN = { ema: [2, 2], ma: [2, 2], rsia: [1, 2], atr: [1, 1], ref: [2, 2], timenum: [0, 0], barindex: [0, 0], lastvalue: [1, 1], plot: [2, 9], alertif: [2, 6], printf: [1, 9], numtostr: [1, 4], writeif: [3, 3] };
 const CONST = new Set(['open', 'high', 'low', 'close', 'true', 'false', 'null', 'styleline',
   'colorblue', 'colorred', 'colorgreen', 'colororange', 'colorviolet', 'colorteal', 'colorbrown', 'colorgrey50']);
 const ORDER = new Set(['buy', 'sell', 'short', 'cover']);
@@ -78,7 +78,7 @@ function statics(f, stmts) {
   for (const s of stmts) {
     walk(s.e);
     if (s.t === 'set') { ok(!ORDER.has(s.n.toLowerCase()) && !CONST.has(s.n.toLowerCase()) && !FN[s.n.toLowerCase()], f, `assigns reserved/order name ${s.n}`); defined.add(s.n.toLowerCase()); }
-    else ok(s.e.t === 'call' && ['plot', 'alertif'].includes(s.e.f.toLowerCase()), f, 'bare expression statement');
+    else ok(s.e.t === 'call' && ['plot', 'alertif', 'printf'].includes(s.e.f.toLowerCase()), f, 'bare expression statement');
   }
 }
 
@@ -108,11 +108,14 @@ function evalAfl(stmts, bars, sink) {
         const f = e.f.toLowerCase(), A = e.args.map(ev);
         if (f === 'ma') return maA(arr(A[0]), A[1]); if (f === 'ema') return emaA(arr(A[0]), A[1]); if (f === 'rsia') return rsiA(arr(A[0]), A[1] ?? 14);
         if (f === 'atr') return wilders(tr, A[0]);
-        if (f === 'ref') { const x = arr(A[0]), k = A[1]; return x.map((_, i) => (i + k >= 0 && i + k < n) ? x[i + k] : NaN); }
+        if (f === 'ref') { const x = arr(A[0]), k = Array.isArray(A[1]) ? A[1][0] : A[1]; /* -1 parses as neg(1), which evaluates to an array */ return x.map((_, i) => (i + k >= 0 && i + k < n) ? x[i + k] : NaN); }
         if (f === 'timenum') return bars.map(b => { const d = new Date(b.time); return d.getUTCHours() * 10000 + d.getUTCMinutes() * 100 + d.getUTCSeconds(); });
         if (f === 'barindex') return bars.map((_, i) => i);
         if (f === 'lastvalue') { const x = arr(A[0]); return N(n, x[n - 1]); }
         if (f === 'plot') { sink.plots.push({ name: A[1], v: arr(A[0]) }); return 0; }
+        if (f === 'numtostr') { const d = Number(String(A[1] ?? 1.3).split('.')[1] || 0); return arr(A[0]).map(v => Number.isNaN(v) ? '{EMPTY}' : v.toFixed(d)); }
+        if (f === 'writeif') return arr(A[0]).map(v => (v && !Number.isNaN(v)) ? A[1] : A[2]);
+        if (f === 'printf') { (sink.prints || (sink.prints = [])).push(arr(A[0])[n - 1]); return 0; }
         if (f === 'alertif') { sink.alerts.push({ text: A[2], cond: arr(A[0]), lookback: A[5] ?? 1, flags: A[4] ?? 15 }); return 0; }
       }
     }
@@ -132,7 +135,7 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
-let alertsSeen = 0;
+let alertsSeen = 0, panelsSeen = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'amibroker'], { encoding: 'utf8' });
@@ -160,6 +163,24 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(v && worst < 1e-6, f, `${b.id} (${b.type}) matches reference from bar ${from}: worst ${worst}`);
   }
   // replay: bars 300..399 arrive one by one; AlertIf sees the last `lookback` bars; flag 8 = no repeat for the same bar time
+  // value panels (visual.table): printf lines for the last completed bar; expected fields decided here independently
+  const tables = recipe.blocks.filter(b => b.type === 'visual.table');
+  if (tables.length) {
+    const by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
+    const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine)|filter\.session)$/;
+    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : []; };
+    const shown = (r, seen = new Set()) => { if (!by[r]) return !!pxOf[r]; if (seen.has(r)) return true; seen.add(r); const b = by[r]; if (!OKT.test(b.type) || (b.params || {}).timeframeRef) return false; return deps(b).filter(Boolean).every(x => shown(x, seen)); };
+    const expect = []; let skipped = 0, shownPanels = 0;
+    for (const t of tables) {
+      const fs2 = (t.params?.fields || []).filter(x => shown(x)); skipped += (t.params?.fields || []).length - fs2.length + (fs2.length ? 0 : 1);
+      if (!fs2.length) continue; shownPanels++;
+      expect.push(String(t.params?.title || t.id) + '\\n');
+      for (const x of fs2) { const isB = /^(signal|filter)\./.test(by[x].type); const at = env.get(((isB ? 'S_' : 'V_') + x).toLowerCase())[bars.length - 2]; expect.push(x + ': ' + (isB ? (at ? 'true' : 'false') : (Number.isNaN(at) ? '{EMPTY}' : at.toFixed(6))) + '\\n'); }
+    }
+    ok(JSON.stringify(sink.prints || []) === JSON.stringify(expect), f, `value panel printf ${JSON.stringify(sink.prints)} expected ${JSON.stringify(expect)}`);
+    ok((code.match(/TODO [A-Za-z0-9_]+: visual\.table /g) || []).length === skipped && !/TODO unsupported block visual\.table/.test(code), f, `panel TODO lines (${skipped})`);
+    panelsSeen += shownPanels;
+  }
   sink.alerts.forEach((a, k) => {
     const fired = new Set(); let bad = 0;
     for (let n = 300; n <= 400; n++) {
@@ -173,5 +194,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify([...fired].sort((x, y) => x - y)) === JSON.stringify(expect), f, `alert ${k}: fired ${[...fired]} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
+console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
 process.exit(failures ? 1 : 0);

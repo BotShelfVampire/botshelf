@@ -12,7 +12,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-const FN = { expaverage: [2, 2], average: [2, 2], wildersaverage: [2, 2], max: [2, 2], truerange: [3, 3], secondsfromtime: [1, 1], secondstilltime: [1, 1], alert: [2, 4] };
+const FN = { expaverage: [2, 2], average: [2, 2], wildersaverage: [2, 2], max: [2, 2], truerange: [3, 3], secondsfromtime: [1, 1], secondstilltime: [1, 1], alert: [2, 4], addlabel: [2, 6] };
 const CONST = new Set(['open', 'high', 'low', 'close', 'yes', 'no']);
 const DOTTED = { color: new Set(['BLACK', 'BLUE', 'CYAN', 'DARK_GRAY', 'DARK_GREEN', 'DARK_ORANGE', 'DARK_RED', 'GRAY', 'GREEN', 'LIGHT_GRAY', 'LIGHT_GREEN', 'LIGHT_ORANGE', 'LIGHT_RED', 'LIME', 'MAGENTA', 'ORANGE', 'PINK', 'PLUM', 'RED', 'VIOLET', 'WHITE', 'YELLOW']),
   alert: new Set(['BAR', 'ONCE', 'TICK']), sound: new Set(['NoSound', 'Bell', 'Ding', 'Ring', 'Chimes']), double: new Set(['NaN']) };
@@ -93,8 +93,8 @@ function statics(f, stmts, recipe) {
     if (s.t === 'def' || s.t === 'plot') { const k = s.n.toLowerCase(); ok(!defined.has(k) && !CONST.has(k) && !FN[k], f, `redefines ${s.n}`); defined.add(k); if (s.t === 'plot') plots.add(k); }
     if (s.t === 'color') { ok(plots.has(s.n.toLowerCase()), f, `SetDefaultColor on unknown plot ${s.n}`); ok(/^Color\./.test(s.c || '') && DOTTED.color.has((s.c || '').split('.')[1]), f, `color ${s.c}`); }
     if (s.t === 'expr') {
-      ok(s.e.t === 'call' && s.e.f.toLowerCase() === 'alert', f, 'bare expression statement');
-      if (s.e.t === 'call' && s.e.args[2]) ok(s.e.args[2].t === 'id' && s.e.args[2].v === 'Alert.BAR', f, 'alerts use Alert.BAR');
+      ok(s.e.t === 'call' && ['alert', 'addlabel'].includes(s.e.f.toLowerCase()), f, 'bare expression statement');
+      if (s.e.t === 'call' && s.e.f.toLowerCase() === 'alert' && s.e.args[2]) ok(s.e.args[2].t === 'id' && s.e.args[2].v === 'Alert.BAR', f, 'alerts use Alert.BAR');
     }
   }
 }
@@ -136,6 +136,7 @@ function evalTs(stmts, bars, sink) {
         if (f === 'secondsfromtime') return bars.map(b => secOfDay(b.time) - hhmmSec(A[0]));
         if (f === 'secondstilltime') return bars.map(b => hhmmSec(A[0]) - secOfDay(b.time));
         if (f === 'alert') { sink.alerts.push({ text: A[1], cond: arr(A[0]) }); return 0; }
+        if (f === 'addlabel') { (sink.labels || (sink.labels = [])).push({ text: arr(A[1]) }); return 0; }
       }
     }
     throw new Error('cannot evaluate ' + e.t);
@@ -158,7 +159,7 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
-let alertsSeen = 0;
+let alertsSeen = 0, panelsSeen = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'thinkscript'], { encoding: 'utf8' });
@@ -185,6 +186,23 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     let worst = 0; for (let i = from; i < NB; i++) worst = Math.max(worst, Math.abs(v[i] - want[i]) / Math.max(1, Math.abs(want[i])));
     ok(v && worst < 1e-6, f, `${b.id} (${b.type}) matches reference from bar ${from}: worst ${worst}`);
   }
+  // value panels (visual.table): one title label + one label per field the generator can show; the label text on the
+  // last real bar carries the value of the bar that just closed ([1]). Expected fields are decided here independently.
+  const tables = recipe.blocks.filter(b => b.type === 'visual.table');
+  if (tables.length) {
+    const by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
+    const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine)|filter\.session)$/;
+    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : []; };
+    const shown = (r, seen = new Set()) => { if (!by[r]) return !!pxOf[r]; if (seen.has(r)) return true; seen.add(r); const b = by[r]; if (!OKT.test(b.type) || (b.params || {}).timeframeRef) return false; return deps(b).filter(Boolean).every(x => shown(x, seen)); };
+    const want = [], labels = (sink.labels || []).map(l => l.text[NB - 1]); let skipped = 0;
+    for (const t of tables) { const fs2 = (t.params?.fields || []).filter(x => shown(x)); skipped += (t.params?.fields || []).length - fs2.length + (fs2.length ? 0 : 1); if (fs2.length) want.push([t.params?.title || t.id, fs2]); }
+    const expect = [];
+    for (const [title, fs2] of want) { expect.push(String(title)); for (const x of fs2) { const isB = /^(signal|filter)\./.test(by[x]?.type || ''); const v = env.get(((isB ? 'S_' : 'V_') + x).toLowerCase()); const at = v[NB - 2]; expect.push(x + ': ' + (isB ? (at ? 'true' : 'false') : String(at))); } }
+    ok(JSON.stringify(labels) === JSON.stringify(expect), f, `value panel labels ${JSON.stringify(labels)} expected ${JSON.stringify(expect)}`);
+    for (const [, fs2] of want) for (const x of fs2) if (/^indicator\./.test(by[x].type)) { const lab = labels.find(l => l.startsWith(x + ': ')); const v = Number(lab.slice(x.length + 2)); const r = env.get(('V_' + x).toLowerCase())[NB - 2]; ok(fin(v) && Math.abs(v - r) < 1e-12 * Math.max(1, Math.abs(r)), f, `panel ${x} shows the closed bar's value`); }
+    ok((code.match(/TODO [A-Za-z0-9_]+: visual\.table /g) || []).length === skipped && !/TODO unsupported block visual\.table/.test(code), f, `panel TODO lines (${skipped})`);
+    panelsSeen += want.length;
+  }
   // replay: the last 100 bars arrive one by one; Alert() reads its condition at the last real bar (still forming); Alert.BAR = once per bar.
   sink.alerts.forEach((a, k) => {
     const fired = []; let forming = 0;
@@ -203,5 +221,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify(fired) === JSON.stringify(expect), f, `alert ${k}: fired ${fired} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'thinkscript', recipes: files, checks, failures, replay_alerts: alertsSeen, note: 'BSV thinkScript-subset parser/evaluator, not thinkorswim' }));
+console.log(JSON.stringify({ target: 'thinkscript', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, note: 'BSV thinkScript-subset parser/evaluator, not thinkorswim' }));
 process.exit(failures ? 1 : 0);
