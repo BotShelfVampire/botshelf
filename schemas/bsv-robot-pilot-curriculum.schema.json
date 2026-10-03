@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botshelfvampire.com/schemas/robot-pilot-curriculum-v0.1.json",
+  "title": "BSV Robot Pilot Curriculum",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "curriculumId",
+    "title",
+    "environment",
+    "prerequisites",
+    "modules",
+    "completion"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1"
+    },
+    "curriculumId": {
+      "type": "string",
+      "pattern": "^rpc_[a-z0-9_-]+$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "environment": {
+      "enum": [
+        "SIMULATION",
+        "SUPERVISED_HARDWARE"
+      ]
+    },
+    "runtime": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "embodiment": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "inputDevice": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "goal",
+          "evidenceRequired"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "evidenceRequired": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "passCriteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "completion": {
+      "type": "object",
+      "required": [
+        "practiceRecordStatus"
+      ],
+      "properties": {
+        "practiceRecordStatus": {
+          "enum": [
+            "SELF_REPORTED",
+            "REVIEWED"
+          ]
+        },
+        "minimumReviewedSessions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

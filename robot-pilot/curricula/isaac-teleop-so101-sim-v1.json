@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "0.1",
+  "curriculumId": "rpc_isaacteleop_so101_sim_v1",
+  "title": "Isaac Teleop SO-101 Simulation Pilot Starter",
+  "environment": "SIMULATION",
+  "runtime": "NVIDIA Isaac Lab + Isaac Teleop",
+  "embodiment": "SO-101 simulated follower",
+  "inputDevice": "XR controller or SO-101 leader, depending on task",
+  "prerequisites": [
+    "Install Isaac Lab using NVIDIA's current official instructions",
+    "Install/build the Isaac Teleop components required by the chosen input device",
+    "Use the current official task id matching the input device",
+    "Run only in simulation for this starter curriculum"
+  ],
+  "modules": [
+    {
+      "id": "preflight",
+      "title": "Simulation preflight",
+      "goal": "Launch the correct simulation task and confirm input, visualization and reset behavior before recording.",
+      "evidenceRequired": [
+        "runtime version",
+        "task id",
+        "input device",
+        "successful reset"
+      ],
+      "passCriteria": [
+        "task launches",
+        "input device controls expected follower",
+        "operator can reset without corrupting the session"
+      ]
+    },
+    {
+      "id": "control",
+      "title": "Basic control",
+      "goal": "Demonstrate bounded end-effector/gripper control without recording a scored episode.",
+      "evidenceRequired": [
+        "practice note",
+        "known control limitations"
+      ],
+      "passCriteria": [
+        "operator can engage/disengage control",
+        "operator understands gripper/control mapping",
+        "no unresolved simulator safety/reset issue"
+      ]
+    },
+    {
+      "id": "record10",
+      "title": "Record first ten demonstrations",
+      "goal": "Record ten task demonstrations using the official demonstration-recording path.",
+      "evidenceRequired": [
+        "dataset reference",
+        "attempted count",
+        "success count",
+        "failure count"
+      ],
+      "passCriteria": [
+        "10 attempted episodes",
+        "dataset artifact exists",
+        "success/failure labels are recorded"
+      ]
+    },
+    {
+      "id": "failure-review",
+      "title": "Failure and recovery review",
+      "goal": "Review failed episodes and identify repeatable failure categories instead of deleting them.",
+      "evidenceRequired": [
+        "failure taxonomy",
+        "at least one reviewed failed episode if failures occurred"
+      ],
+      "passCriteria": [
+        "failures are preserved or explicitly documented",
+        "operator can explain at least one improvement for the next session"
+      ]
+    },
+    {
+      "id": "repeatability",
+      "title": "Repeatability block",
+      "goal": "Run a second session and compare completion, failure and reset consistency.",
+      "evidenceRequired": [
+        "second session evidence id",
+        "comparison note"
+      ],
+      "passCriteria": [
+        "second session completed",
+        "difference between sessions documented"
+      ]
+    }
+  ],
+  "completion": {
+    "practiceRecordStatus": "SELF_REPORTED",
+    "minimumReviewedSessions": 0
+  }
+}

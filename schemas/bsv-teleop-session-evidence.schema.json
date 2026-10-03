@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botshelfvampire.com/schemas/teleop-session-evidence-v0.1.json",
+  "title": "BSV Teleoperation Session Evidence",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "evidenceId",
+    "pilotId",
+    "taskId",
+    "environment",
+    "runtime",
+    "startedAt",
+    "episodes",
+    "review"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1"
+    },
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^teleop_[a-z0-9_-]+$"
+    },
+    "pilotId": {
+      "type": "string"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "environment": {
+      "enum": [
+        "SIMULATION",
+        "REAL_HARDWARE"
+      ]
+    },
+    "runtime": {
+      "type": "string"
+    },
+    "runtimeVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sourceRevision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "embodiment": {
+      "type": "string"
+    },
+    "inputDevice": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "episodes": {
+      "type": "object",
+      "required": [
+        "attempted",
+        "successful",
+        "failed"
+      ],
+      "properties": {
+        "attempted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "successful": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recoveryEpisodes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "safetyEvents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dataArtifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "uriOrRef"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "uriOrRef": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "number",
+          "string",
+          "boolean",
+          "null"
+        ]
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "UNREVIEWED",
+            "REVIEWED",
+            "NEEDS_INFO",
+            "REJECTED"
+          ]
+        },
+        "reviewerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+}

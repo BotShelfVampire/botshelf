@@ -163,6 +163,7 @@ LLMS_LINKS = [
     ("Recipe builder (edit recipe blocks, generate chart-tool starters in the browser)", "trading/build/"),
     ("Traders Library", "trading/"),
     ("Request Market (real, reviewed requests only; JSON at /.netlify/functions/demand-request?op=public)", "requests/"),
+    ("Robot Pilot Academy (simulation-first teleoperation practice; self-reported records)", "robot-pilot/"),
     ("Buyer guide", "for-buyers.html"),
     ("Seller guide", "for-sellers.html"),
     ("Privacy", "privacy.html"),

@@ -40,6 +40,7 @@ CSS = """.rq-form{display:grid;gap:14px;max-width:760px}
 .rq-counts b{display:block;font-size:1.6rem;color:var(--green)}
 .rq-list{display:grid;gap:12px;padding:0;list-style:none}
 .rq-job{white-space:pre-wrap;margin:0}
+.rp-box{border:1px solid var(--line);border-left:3px solid var(--green);border-radius:8px;padding:10px 14px;background:var(--panel)}
 """
 
 JS = r"""(function(){'use strict';
@@ -80,7 +81,9 @@ function submit(ev){ev.preventDefault();var f=ev.target;var doms=[].slice.call(f
   else if(x.s===401){msg('err','Sign in with your verified email first (Register → 6-digit code), then send again.','先にメール確認済みのアカウントでログインしてください（登録→6桁のコード）。その後もう一度送ってください。');var a=el('a',{href:'/register.html?next=/requests/',text:' Register / sign in · 登録・ログイン'});$('#rq-msg').appendChild(a)}
   else if(x.s===429){msg('err','Daily limit reached (5 requests per day).','1日の上限（5件）に達しました。')}
   else{msg('err','Not sent: '+(x.j.reason||x.s),'送信できませんでした: '+(x.j.reason||x.s))}}).catch(function(){btn.disabled=false;msg('err','Not sent: network error','送信できませんでした（通信エラー）')})}
-document.addEventListener('DOMContentLoaded',function(){load();var f=$('#rq-form');if(f)f.addEventListener('submit',submit)});
+function prefill(){var q;try{q=new URL(location.href).searchParams}catch(e){return}var a=q.get('area');if(a){var c=document.querySelector('input[name=domain][value="'+a.replace(/[^a-z-]/g,'')+'"]');if(c)c.checked=true}
+ if(q.get('kind')==='mission'){var j=$('#rq-job');if(j)j.setAttribute('placeholder','Mission: task to demonstrate; robot / embodiment; teleop interface; simulation or real hardware (owner-authorised, safety rules); location or remote; data needed; episode target; quality criteria; privacy / NDA');var h=$('#rq-mission');if(h)h.hidden=false}}
+document.addEventListener('DOMContentLoaded',function(){prefill();load();var f=$('#rq-form');if(f)f.addEventListener('submit',submit)});
 })();
 """
 
@@ -114,6 +117,7 @@ def page(site: Path, css_href: str, js_href: str) -> str:
         f'<a href="{API}?op=public">JSON</a> · <a href="/schemas/demand-request-v0.1.json">schema v0.1</a></p></section>'
         f'<section class="container bb-section" id="new"><h2>{both("New request", "新しいリクエスト")}</h2>'
         f'<p class="small">{both("Sending needs a verified email (free registration with a 6-digit code). Up to 5 requests per day.", "送信にはメール確認が必要です（無料登録・6桁のコード）。1日5件まで。")}</p>'
+        f'<p class="small rp-box" id="rq-mission" hidden>{both("Robot pilot mission: include the task, robot/embodiment, teleop interface, simulation or real hardware, location or remote, data needed, episode target and quality criteria. Real hardware stays under the robot owner's authorisation and safety rules. Request only; no escrow.", "ロボット遠隔操作のミッション: タスク、ロボット、遠隔操作の方法、シミュレーションか実機か、場所またはリモート、必要なデータ、エピソード数、品質の基準を書いてください。実機はロボットの所有者の許可と安全ルールのもとで行います。リクエストのみで、エスクローはありません。")}</p>'
         '<form class="rq-form" id="rq-form" novalidate>'
         f'<div><label for="rq-job">{both("What job should it do? (20–2000 characters)", "何をしてほしいですか（20〜2000文字）")}</label><textarea id="rq-job" maxlength="2000" required></textarea></div>'
         f'<fieldset><legend>{both("Area", "分野")}</legend><div class="rq-checks">{checks}</div></fieldset>'
