@@ -21,7 +21,7 @@ for (const r of R.recipes) {
   ok(!(r.description && dec.includes(JSON.stringify(r.description).slice(1, -1))), 'starter description not shared: ' + r.name);
   const back = B.readPayload(p); const want = B.sanitize(m).recipe; delete want.description;
   ok(JSON.stringify(back) === JSON.stringify(want), 'custom roundtrip ' + r.name);
-  for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower', 'sierra-acsil', 'prorealtime', 'gocharting-lipi', 'motivewave', 'vela']) ok(R.render(JSON.parse(JSON.stringify(back)), t).length > 0, 'shared recipe renders ' + t);
+  for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower', 'sierra-acsil', 'prorealtime', 'gocharting-lipi', 'motivewave', 'vela', 'jforex']) ok(R.render(JSON.parse(JSON.stringify(back)), t).length > 0, 'shared recipe renders ' + t);
 }
 // 3) sanitizer rejects bad input
 for (const [x, why] of [[[], 'array'], [{ blocks: 'x' }, 'blocks string'], [{ blocks: [{ id: 'Bad Id', type: 'indicator.ema', params: {} }] }, 'bad id'], [{ blocks: [{ id: 'a', type: 'evil.type', params: {} }] }, 'bad type'], [{ blocks: Array.from({ length: 41 }, (_, i) => ({ id: 'b' + i, type: 'indicator.ema', params: {} })) }, 'too many']]) {
@@ -30,7 +30,7 @@ for (const [x, why] of [[[], 'array'], [{ blocks: 'x' }, 'blocks string'], [{ bl
 let big = false; try { B.sharePayload({ schemaVersion: '0.1', name: 'x', overlay: true, blocks: Array.from({ length: 40 }, (_, i) => ({ id: 'b' + i, type: 'alert.condition', params: { when: 'close', message: 'm'.repeat(200) } })) }); } catch (e) { big = true; } ok(big, 'oversized share rejected');
 ok(B.sanitize({ __proto__: { x: 1 }, blocks: [] }).recipe.x === undefined, 'proto ignored');
 // 4) TODO hints: every TODO line of every starter maps to a block id or is reported as general; counts add up
-for (const r of R.recipes) for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower', 'sierra-acsil', 'prorealtime', 'gocharting-lipi', 'motivewave', 'vela']) {
+for (const r of R.recipes) for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower', 'sierra-acsil', 'prorealtime', 'gocharting-lipi', 'motivewave', 'vela', 'jforex']) {
   const out = R.render(JSON.parse(JSON.stringify(r)), t); const tm = B.todoMap(out, r.blocks);
   const mapped = Object.values(tm.map).reduce((a, v) => a + v.length, 0);
   ok(mapped + tm.general.length === tm.total, 'todo count ' + r.name + ' ' + t);
@@ -40,7 +40,7 @@ for (const r of R.recipes) for (const t of ['pine-v6', 'mql5', 'ctrader', 'mql4'
   ok(tm.map.alert && tm.map.alert.length === 1 && tm.map.pivot.length === 1 && tm.map.session.length === 1 && !tm.map.divergence, 'todo line owner by prefix'); }
 for (const t of Object.keys(B.hints)) ok(B.hints[t].length === 2 && B.hints[t].every(s => s.length > 20), 'hint en/ja ' + t);
 // 5) recipe lint + reorder + compile checklist
-const T8 = ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower', 'sierra-acsil', 'prorealtime', 'gocharting-lipi', 'motivewave', 'vela'];
+const T8 = ['pine-v6', 'mql5', 'ctrader', 'mql4', 'ctrader-python', 'bookmap-python', 'ninjatrader', 'quantower', 'sierra-acsil', 'prorealtime', 'gocharting-lipi', 'motivewave', 'vela', 'jforex'];
 const lintSummary = {};
 for (const r of R.recipes) { const L = B.lint(JSON.parse(JSON.stringify(r))); ok(!L.some(x => x.level === 'error' || x.code === 'forward-ref'), 'starter lint clean of errors/forward refs: ' + r.name); lintSummary[r.name] = L.map(x => x.code + ':' + x.id).join(','); }
 const fwd = { schemaVersion: '0.1', name: 'fwd', overlay: true, blocks: [
