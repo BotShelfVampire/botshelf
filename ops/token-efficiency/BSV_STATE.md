@@ -49,6 +49,14 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
 
+## LIVE integration status (New Bobby, cycle 9, 2026-10-03 21:33 JST)
+
+- Production deploy: `6ac0efbe410eb1a190e44728` (ATAS + intake disclosure, email_configured:true before/after). Cycle 9 chain: `6ac0e60e` → `6ac0ee67` (intake reviewer credential) → `6ac0efbe` (ATAS). Commits `16930eb` (reviewer credential), `dda6c0a` (DECISIONS/design), `3b195ce` (ATAS, EasyLanguage dep-order fix, builder disclosure).
+- Compile-result review is no longer owner-only (owner order 20:57 JST): owner (`x-admin-secret`, sees account email), New Bobby (`x-bsv-reviewer-key` = Netlify env `COMPILE_REVIEWER_KEY`, functions/production/secret; box copy `/workspace/newbobby-mail/.reviewer_key` chmod 600, never committed), ChatGPT (hourly digest mail, new pending only). Reviewer role sees account ids only. LIVE: anon 401, wrong key 401, session-only 401, reviewer key 200. QA record `crp_a7eb9f9cf32f2dd59b6f6ec9` rejected by reviewer:new-bobby ("QA test record by New Bobby"); pending = 0.
+- Box tool: `/workspace/newbobby-mail/compile_reports_digest.py` (`digest`, `digest --email`, `get`, `reject`, `decide`); digests in `/workspace/newbobby-mail/digests/`; seen ids in `compile_reports_seen.json`; hourly step recorded in `/workspace/newbobby-mail/state.json`.
+- Trader builder targets (16): + **ATAS** (`atas`, C# `Indicator`, lines + closed-bar `AddAlert`, no order APIs; .NET 8 stub compile 14/14 via `check_atas_stubs.sh`, not an ATAS compile). Builder-only (`BUILDER_EXTRA_TARGETS`): recipe-page starters and platform-list copy unchanged. Parity 224/224, share/lint 989, builder js `bsv-builder.699c26b9.js`.
+- Catalog status unchanged: UNTESTED_RUNTIME; Runtime-tested by BSV = 0.
+
 ## LIVE integration status (New Bobby, cycle 8, 2026-10-03 20:45 JST)
 
 - Production deploy: `6ac0e60e0dc0bad36673a1d4` (EasyLanguage, email_configured:true before/after). Cycle 8 chain: `6ac0df16` → `6ac0e283` (compile-result intake) → `6ac0e4b6` (JForex) → `6ac0e60e` (TradeStation EasyLanguage). Commits `5ce2fc6` (intake), `453c0a0` (JForex), `4edf5be` (EasyLanguage) on the PR #5 branch.

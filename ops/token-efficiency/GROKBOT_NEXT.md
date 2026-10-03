@@ -12,6 +12,22 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
+# Status 2026-10-03 21:33 JST (New Bobby) — cycle 9 LIVE
+
+LIVE deploy: `6ac0efbe410eb1a190e44728` (email_configured:true before/after). Chain: `6ac0ee67` (intake reviewer credential) → `6ac0efbe` (ATAS). Commits `16930eb`, `dda6c0a`, `3b195ce`.
+
+Shipped: (a) compile-result review by owner + New Bobby (reviewer key) + ChatGPT (hourly digest), account ids only, never verified; box tool `/workspace/newbobby-mail/compile_reports_digest.py`; QA record rejected; (b) ATAS C# indicator target, builder-only, .NET 8 stub compile 14/14; builder 16 tabs, parity 224/224; (c) EasyLanguage now evaluates blocks in dependency order; (d) CI patch adds setup-dotnet 8.0.x + `check_atas_stubs.sh`.
+
+Hourly routine: run `python3 /workspace/newbobby-mail/compile_reports_digest.py digest --email` (mails ChatGPT only when there are new pending submissions).
+
+Owner rule (20:46 JST): no brand-image changes, and no further platform-list copy changes; list ideas as proposals.
+
+Proposals (not done): ATAS in recipe-page starters; ATAS in platform-list copy / hub counts / README lists.
+
+Next queue: one more verified platform target (builder-only), owner applies CI patch (workflow scope), then continue Trader/AI LIVE items.
+
+---
+
 # Status 2026-10-03 20:45 JST (New Bobby) — cycle 8 LIVE
 
 LIVE deploy: `6ac0e60e0dc0bad36673a1d4` (email_configured:true before/after). Chain: `6ac0e283` (intake) → `6ac0e4b6` (JForex) → `6ac0e60e` (EasyLanguage). Commits `5ce2fc6`, `453c0a0`, `4edf5be`.
