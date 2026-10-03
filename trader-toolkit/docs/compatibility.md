@@ -19,6 +19,8 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | TradeStation | EasyLanguage | generator target (`easylanguage`: indicator with `XAverage`/`Average`/`RSI`/`AvgTrueRange`, explicit cross comparisons, `PlotN`, `Alert` on `BarStatus(1) = 2`; no orders) | Structural check by BSV only (`check_easylanguage_output.mjs`); TradeStation Verify and chart test still required |
 | ProRealTime | ProBuilder | generator target (`prorealtime`: built-in averages/RSI/ATR, `CROSSES OVER/UNDER`, `RETURN` lines, arrow markers on overlays) + dual-EMA copy/paste indicator | Source prepared; runtime validation required |
 | ATAS | C# indicator API (`ATAS.Indicators`) | generator target (`atas`: `Indicator` with `OnCalculate`, `GetCandle`, `ValueDataSeries` lines, closed-bar `AddAlert`; EMA/SMA/RSI/ATR computed in the code; no orders) | Compiles with the .NET 8 C# compiler against BSV stubs written from the ATAS API reference; ATAS build and chart test still required |
+| AmiBroker | AFL (AmiBroker Formula Language) | generator target (`amibroker`: indicator formula with `MA`/`EMA`/`RSIa`/`ATR`, explicit cross comparisons with `Ref`, `Plot`, completed-bar `AlertIf`; no `Buy`/`Sell`/`Short`/`Cover`) | Checked by a BSV AFL-subset parser/evaluator (`check_amibroker_afl.mjs`); AmiBroker verification still required |
+| thinkorswim | thinkScript | generator target (`thinkscript`: study with `ExpAverage`/`Average`/`WildersAverage`/`TrueRange`, explicit cross comparisons, plots, `Alert(cond[1], …, Alert.BAR)`; no `AddOrder`) | Checked by a BSV thinkScript-subset parser/evaluator (`check_thinkscript.mjs`); thinkorswim verification still required |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
 
 ## Vela
@@ -186,7 +188,7 @@ Checked by BSV: all 14 recipe outputs compile with the .NET 8 C# compiler (nulla
 
 ## AmiBroker
 
-Builder target since cycle 10 (`amibroker`, builder and CLI; not a pre-generated starter on recipe pages and not in the platform lists until the owner approves the wording). Status: UNTESTED_RUNTIME.
+Generator target since cycle 10 (`amibroker`): builder and CLI, and since cycle 11 a pre-generated starter on every recipe page and in the platform lists. Status: UNTESTED_RUNTIME.
 
 The target writes one AFL indicator formula, using only functions checked in the AFL function reference: `MA`, `EMA`, `RSIa`, `ATR`, `Ref`, `TimeNum`, `BarIndex`, `LastValue`, `Plot`, `AlertIf`. Crosses are explicit comparisons with `Ref(x, -1)`, the same cross rule as the other targets. Alerts follow the guide's completed-bar pattern (`BarIndex() < LastValue(BarIndex())`), with `lookback = 2` so the most recent completed bar is checked, and they go to the Alert Output window. It never assigns `Buy`/`Sell`/`Short`/`Cover` and places no orders. Session filters use `TimeNum()` in the database time zone (TODO in the code).
 
@@ -197,3 +199,18 @@ Sources:
 - https://www.amibroker.com/guide/h_alerts.html (completed-bar alerts)
 - https://www.amibroker.com/guide/a_language.html (operators, identifiers, colors)
 - https://www.amibroker.com/guide/h_indbuilder.html (Formula Editor, Apply indicator)
+
+## thinkorswim (thinkScript)
+
+Generator target since cycle 11 (`thinkscript`): builder, CLI and a pre-generated starter on every recipe page. Status: UNTESTED_RUNTIME.
+
+The target writes one thinkScript study, using only functions and constants checked in the thinkScript reference: `ExpAverage`, `Average`, `WildersAverage`, `Max`, `TrueRange`, `SecondsFromTime`, `SecondsTillTime`, `Alert`, `Alert.BAR`, `Sound.Ding`, `Color.*`, `Double.NaN`, `yes`/`no`, `def`, `plot`, `declare lower`, `if … then … else` and `[n]` past offsets. RSI is Wilder's RSI built from `WildersAverage` of gains and losses, and ATR is `WildersAverage(TrueRange(high, close, low), n)`. Crosses are explicit comparisons with `[1]`, the same cross rule as the other targets. `Alert()` reads its condition at the last real bar, which is still forming, so the generated alerts use `condition[1]` (the bar that just closed) with `Alert.BAR` (at most once per bar). It never calls `AddOrder`, so it is a study, not a strategy. Session filters use `SecondsFromTime`/`SecondsTillTime`, which count in US Eastern time (EST in the reference) and return 0 on daily or higher charts (TODO in the code). Separate-pane recipes use `declare lower`.
+
+Checked by BSV: `scripts/site/check_thinkscript.mjs` parses every recipe's output with a small BSV-written thinkScript-subset parser. It checks that only the documented functions/constants are used, that names are defined before use, that offsets only look back, that there is no `AddOrder`, and that `declare lower` is present only for separate-pane recipes. It then evaluates the study over 1,200 synthetic bars, following the reference formulas (`ExpAverage` seeded with the first value, `WildersAverage` with the first SMA): EMA/SMA/RSI/ATR match an independent JS reference once warmed up. A bar-by-bar replay of the last 100 bars shows alerts only for closed bars (moving the forming bar's prices never changes them), once per bar, with no misses. Negative tests (an undocumented function, a forward offset, an alert on the forming bar, a wrong `declare lower`) all fail. This is not thinkorswim: nothing was verified or run in thinkorswim by BSV.
+
+Sources:
+- https://tlc.thinkorswim.com/center/reference/thinkScript/Functions/Tech-Analysis/ExpAverage (also Average, WildersAverage, TrueRange)
+- https://tlc.thinkorswim.com/center/reference/thinkScript/Functions/Others/Alert, …/Constants/Alert/Alert-BAR, …/Constants/Sound
+- https://tlc.thinkorswim.com/center/reference/thinkScript/Functions/Date---Time/SecondsFromTime (also SecondsTillTime)
+- https://tlc.thinkorswim.com/center/reference/thinkScript/Reserved-Words/plot (also def, declare, if, yes, no, crosses), …/Declarations/lower
+- https://toslc.thinkorswim.com/center/howToTos/thinkManual/charts/Using-Studies-and-Strategies (Edit studies… > Create… / Import…)
