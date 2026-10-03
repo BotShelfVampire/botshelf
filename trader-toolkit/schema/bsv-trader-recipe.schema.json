@@ -48,12 +48,23 @@
               "indicator.sma",
               "indicator.rsi",
               "indicator.atr",
+              "data.higher_timeframe",
               "filter.session",
+              "structure.pivot",
+              "structure.range",
               "signal.cross",
               "signal.threshold",
               "signal.combine",
+              "signal.breakout",
+              "signal.liquidity_sweep",
+              "signal.divergence",
+              "risk.atr_band",
+              "scanner.symbol_set",
               "visual.plot",
-              "alert.condition"
+              "visual.zone",
+              "visual.table",
+              "alert.condition",
+              "alert.webhook"
             ]
           },
           "params": {
