@@ -27,6 +27,7 @@ CHANGES = [  # material public changes, dated (JST), from this branch's LIVE dep
     ("2026-10-04", "Builder opportunity signals (opportunity-signal v0.1) counted from approved public requests only.", "/requests/#builders"),
     ("2026-10-04", "Capability manifests (capability-manifest v0.1) for every public catalogue entry and BSV recipe; nothing marked VERIFIED.", "/capabilities/index.json"),
     ("2026-10-04", "Readable capability manifest list; request permalinks and area filter; in-browser check of saved practice files.", "/capabilities/"),
+    ("2026-10-04", "Value panels (visual.table) rendered on 6 of 22 targets where a BSV check covers them; the rest stay TODO.", "/trading/build/"),
     ("2026-10-04", "NautilusTrader (Python) starters listed; 22 builder targets.", "/trading/build/"),
     ("2026-10-04", "Backtesting.py (Python) starters listed; 21 builder targets.", "/trading/build/"),
     ("2026-10-04", "Request Market Atom feed of approved public requests; robot-pilot open missions board (real approved requests only).", "/requests/"),

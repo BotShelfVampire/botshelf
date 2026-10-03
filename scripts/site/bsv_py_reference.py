@@ -92,3 +92,66 @@ def use_rounded(nd):
     PX["hl2"] = [(b["high"] + b["low"]) / 2 for b in bars]; PX["hlc3"] = [(b["high"] + b["low"] + b["close"]) / 3 for b in bars]
     PX["ohlc4"] = [(b["open"] + b["high"] + b["low"] + b["close"]) / 4 for b in bars]
     TR = [NAN] + [max(bars[i]["high"], bars[i - 1]["close"]) - min(bars[i]["low"], bars[i - 1]["close"]) for i in range(1, NB)]
+
+
+# ---- value panels (visual.table), shared by the Python target checks. Written independently of the generator:
+# a field is expected on the panel only when its whole dependency chain uses block types BSV renders and no
+# higher timeframe; the panel shows the field's value on the last bar.
+PANEL_TYPES = {"indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr", "signal.cross", "signal.threshold", "signal.combine", "filter.session"}
+PX_NAMES = {"open", "high", "low", "close", "hl2", "hlc3", "ohlc4"}
+
+
+def _deps(b):
+    p = b.get("params") or {}
+    if b["type"] == "signal.cross": return [p.get("left"), p.get("right")]
+    if b["type"] == "signal.threshold": return [p.get("left")]
+    if b["type"] == "signal.combine": return list(p.get("signals") or [])
+    return []
+
+
+def panel_expect(recipe, V, S):
+    by = {b["id"]: b for b in recipe["blocks"]}
+    def shown(ref, seen):
+        if ref not in by: return ref in PX_NAMES
+        if ref in seen: return True
+        seen.add(ref); b = by[ref]
+        if b["type"] not in PANEL_TYPES or (b.get("params") or {}).get("timeframeRef"): return False
+        return all(shown(r, seen) for r in _deps(b) if r)
+    out, skipped = [], 0
+    for b in recipe["blocks"]:
+        if b["type"] != "visual.table": continue
+        p = b.get("params") or {}
+        cells = []
+        for f in p.get("fields") or []:
+            if not shown(f, set()): skipped += 1; continue
+            if f in S: cells.append((f, "bool", bool(S[f][-1])))
+            elif f in V: cells.append((f, "num", V[f][-1]))
+            else: cells.append((f, "num", PX[f][-1] if f in PX else NAN))
+        if not cells: skipped += 1
+        else: out.append((str(p.get("title") or b["id"]).strip(), cells))
+    return out, skipped
+
+
+def parse_panels(stdout):
+    out, cur = [], None
+    for line in stdout.splitlines():
+        if line.startswith("TABLE "): cur = (line[6:].strip(), []); out.append(cur)
+        elif line.startswith("  ") and cur is not None and len(line.split()) == 2: cur[1].append(tuple(line.split()))
+        else: cur = None
+    return out
+
+
+def panels_match(got, want):
+    if [t for t, _ in got] != [t for t, _ in want]: return False, f"titles {[t for t, _ in got]} != {[t for t, _ in want]}"
+    for (t, gc), (_, wc) in zip(got, want):
+        if [n for n, _ in gc] != [n for n, _, _ in wc]: return False, f"{t}: fields {[n for n, _ in gc]} != {[n for n, _, _ in wc]}"
+        for (n, g), (_, kind, w) in zip(gc, wc):
+            if kind == "bool":
+                if g != ("true" if w else "false"): return False, f"{t}.{n}: {g} != {w}"
+            elif not fin(w):
+                if g != "n/a": return False, f"{t}.{n}: {g} != n/a"
+            else:
+                try: x = float(g)
+                except ValueError: return False, f"{t}.{n}: {g} is not a number"
+                if abs(x - w) > 1e-5 * max(abs(w), 1e-9): return False, f"{t}.{n}: {g} != {w}"
+    return True, ""
