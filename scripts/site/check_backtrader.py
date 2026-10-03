@@ -81,10 +81,11 @@ for f in sorted(RECIPES.glob("*.json")):
             got = [r.get(b["id"], NAN) for r in rec["sig"]] if (b.get("params") or {}).get("timeframeRef") else [r.get(k, NAN) for r in rec["subs"]]; want = V[b["id"]]
             worst = max((abs(g - w) / max(1, abs(w)) for g, w in zip(got, want) if fin(w)), default=0); warm = sum(1 for g, w in zip(got, want) if not fin(w) and fin(g))
             ok(worst < 1e-9 and warm == 0 and all(fin(g) for g, w in zip(got, want) if fin(w)), name, f"{b['id']} ({b['type']}) equals reference: worst {worst}, early values {warm}")
-        if re.match(r"^(signal\.(cross|threshold|combine|breakout)|filter\.session)$", b["type"]):
+        if re.match(r"^(signal\.(cross|threshold|combine|breakout|liquidity_sweep|divergence)|filter\.session)$", b["type"]):
             got = [bool(r.get(b["id"])) for r in rec["sig"]]; want = S[b["id"]]
             diff = sum(1 for g, w in zip(got, want) if g != bool(w))
             ok(diff == 0, name, f"{b['id']} ({b['type']}) equals reference ({diff} bars differ)")
+            ok(b["type"] not in ("signal.liquidity_sweep", "signal.divergence") or sum(map(bool, S[b["id"]])) > 0, name, f"{b['id']} fires on the synthetic bars (the comparison is not vacuous)")
     by = {x["id"]: x for x in recipe["blocks"]}
     for n, z in enumerate([x for x in recipe["blocks"] if x["type"] == "visual.zone" and BSVREF.zone_source(by, x)]):  # zone lines = the source's high/low
         src = BSVREF.zone_source(by, z)
@@ -114,6 +115,13 @@ for f in sorted(RECIPES.glob("*.json")):
         BSVREF.htf_mutations(recipe, code, tmp, sys.executable, ok, name)  # the same helper is emitted for all three Python targets
         htf_seen += 1
     ok(sorted(map(tuple, got)) == sorted(map(tuple, want)) and len(got) == len(set(map(tuple, got))), name, f"alerts printed {len(got)} expected {len(want)}")
+    for mname, frm, to in (("sweep without the close back inside", "and c < ph  #", "and True  #"), ("sweep without the ATR distance", "h - ph >= frac * atr", "True"),
+                           ("divergence oscillator test flipped", "and o < st[3][1]", "and o > st[3][1]"), ("divergence with the price test dropped", "p > st[3][0] and", "True and")):
+        if frm in code:  # the helpers are emitted identically for all three Python targets; the reference must tell them apart
+            mm = tmp / (mp.stem + "_mut.py"); mm.write_text(code.replace(frm, to, 1))
+            o2 = subprocess.run([sys.executable, str(mm), str(csvp)], capture_output=True, text=True, timeout=300)
+            g2 = [l.split(" ", 2) for l in o2.stdout.splitlines() if l.startswith("ALERT ")]
+            ok(o2.returncode == 0 and sorted(map(tuple, g2)) != sorted(map(tuple, want)), name, f"mutant caught: {mname}")
     if any(x["type"] == "alert.webhook" for x in recipe["blocks"]):  # webhook payloads: printed (never sent) once per completed bar
         gw = [tuple(l.split(" ", 2)) for l in out.stdout.splitlines() if l.startswith("WEBHOOK ")]; ww = BSVREF.webhook_expect(recipe, boo)
         ok(gw == ww and len(ww) > 0, name, f"webhook payloads printed {len(gw)} expected {len(ww)}")

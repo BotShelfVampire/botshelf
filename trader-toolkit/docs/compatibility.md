@@ -55,6 +55,14 @@ Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader only;
 - `alert.webhook` (`when`: a signal; `payload`: a flat JSON object): on each completed bar where `when` is true, the starter prints `WEBHOOK <time> <json>` with `{{symbol}}`, `{{timeframe}}`, `{{time}}`, `{{open}}`, `{{high}}`, `{{low}}`, `{{close}}` filled in (set `BSV_SYMBOL` / `BSV_TIMEFRAME`). It never sends anything; posting the payload is up to you. Other placeholders or nested payloads stay TODO.
 - Checks: every bar's pivot values and zone lines equal an independent reference; the printed payloads equal the expected ones bar by bar; the 700-bar runs equal the prefix of the full run (no lookahead).
 
+## Liquidity sweep and divergence (signal.liquidity_sweep, signal.divergence)
+
+Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader only; every other target keeps the TODO line. Both are candidates for you to review, not trade signals.
+
+- `signal.liquidity_sweep` (`pivot`: a structure.pivot; `atr`: an indicator.atr on the chart timeframe; `minAtrFraction`: 0–10, default 0): true on a completed bar whose high goes above the last pivot high known before this bar by at least `minAtrFraction` × this bar's ATR and whose close is back below that level, or the mirror for the last pivot low. False while the ATR or the level has no value. It can fire again on the same level.
+- `signal.divergence` (`pivot`: a structure.pivot whose `left` / `right` / `source` define the price pivots; `oscillator`: an EMA, SMA, RSI or ATR on the chart timeframe; `price`: omitted or equal to the pivot's source; `direction`: `both`, `bearish` or `bullish`): regular divergence. Bearish = a newly confirmed pivot high above the previous pivot high while the oscillator at the new pivot bar is lower than at the previous one; bullish = a lower pivot low with a higher oscillator. True only on the bar that confirms the new pivot (`right` bars after it), so it never looks ahead.
+- Checks: every bar of both signals equals an independent reference (pivots listed over the whole series, then compared pair by pair); the 700-bar runs equal the prefix of the full run; both fire on the synthetic bars; four helper mutants (no close back inside, no ATR distance, flipped oscillator test, dropped price test) are caught. Not run on a broker or live feed (UNTESTED_RUNTIME).
+
 ## Value panels (visual.table)
 
 Since 2026-10-04 the generator renders `visual.table` (a value panel: the listed fields' values on the latest completed bar) on 6 of the 22 targets. These are the targets where a BSV check covers the output:

@@ -80,6 +80,19 @@ def pivot_ok(b):
     return bool(b) and b["type"] == "structure.pivot" and n(p.get("left")) and n(p.get("right")) and p.get("source", "close") in ("close", "high_low")
 
 
+def sweep_ok(by, b):
+    p = b.get("params") or {}; a = by.get(p.get("atr")); f = p.get("minAtrFraction", 0)
+    return b["type"] == "signal.liquidity_sweep" and pivot_ok(by.get(p.get("pivot"))) and bool(a) and a["type"] == "indicator.atr" and not (a.get("params") or {}).get("timeframeRef") \
+        and isinstance(f, (int, float)) and not isinstance(f, bool) and 0 <= f <= 10
+
+
+def divergence_ok(by, b):
+    p = b.get("params") or {}; pv = by.get(p.get("pivot")); o = by.get(p.get("oscillator"))
+    return b["type"] == "signal.divergence" and pivot_ok(pv) and bool(o) and o["type"] in ("indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr") \
+        and not (o.get("params") or {}).get("timeframeRef") and p.get("price", pv["params"].get("source", "close")) == pv["params"].get("source", "close") \
+        and p.get("direction", "both") in ("both", "bullish", "bearish")
+
+
 def zone_source(by, b):
     """The range/pivot id a visual.zone draws, or None when it cannot be drawn."""
     d = by.get(((b or {}).get("params") or {}).get("source"))
@@ -174,6 +187,28 @@ def reference(recipe):
                 if i == 0 or ins[i] or not fin(hi[i]): out.append(False); continue
                 up, dn = c[i] > hi[i] and c[i - 1] <= hi[i], c[i] < lo[i] and c[i - 1] >= lo[i]
                 out.append({"either": up or dn, "above": up, "below": dn}[p.get("direction", "either")])
+            S[b["id"]] = out
+        elif t == "signal.liquidity_sweep" and sweep_ok(by, b):
+            # written separately from the generator: the pivot levels the reference published up to bar i-1, bar i's ATR
+            pid = p["pivot"]; comp(by[pid]); A = val(p["atr"]); hi, lo = V[pid + ".high"], V[pid + ".low"]; m = float(p.get("minAtrFraction", 0)); out = [False]
+            for i in range(1, NB):
+                x = bars[i]; a, z = hi[i - 1], lo[i - 1]
+                out.append(fin(A[i]) and ((fin(a) and x["high"] > a and x["high"] - a >= m * A[i] and x["close"] < a) or (fin(z) and x["low"] < z and z - x["low"] >= m * A[i] and x["close"] > z)))
+            S[b["id"]] = out
+        elif t == "signal.divergence" and divergence_ok(by, b):
+            # written separately from the generator: list every pivot bar j over the whole series, then compare each with the
+            # pivot before it and mark bar j + right (when j is first confirmed)
+            q = by[p["pivot"]]["params"]; L_, R_ = q["left"], q["right"]; O = val(p["oscillator"])
+            hv = PX["close"] if q.get("source", "close") == "close" else PX["high"]; lv = PX["close"] if q.get("source", "close") == "close" else PX["low"]
+            ph = [j for j in range(L_, NB - R_) if all(hv[j] > hv[k] for k in range(j - L_, j)) and all(hv[j] >= hv[k] for k in range(j + 1, j + R_ + 1))]
+            pl_ = [j for j in range(L_, NB - R_) if all(lv[j] < lv[k] for k in range(j - L_, j)) and all(lv[j] <= lv[k] for k in range(j + 1, j + R_ + 1))]
+            out, d = [False] * NB, p.get("direction", "both")
+            if d in ("both", "bearish"):
+                for a, j in zip(ph, ph[1:]):
+                    if hv[j] > hv[a] and fin(O[j]) and fin(O[a]) and O[j] < O[a]: out[j + R_] = True
+            if d in ("both", "bullish"):
+                for a, j in zip(pl_, pl_[1:]):
+                    if lv[j] < lv[a] and fin(O[j]) and fin(O[a]) and O[j] > O[a]: out[j + R_] = True
             S[b["id"]] = out
         elif t in ("visual.plot", "alert.condition"): pass
         elif t == "visual.zone" and zone_source(by, b): comp(by[zone_source(by, b)])
