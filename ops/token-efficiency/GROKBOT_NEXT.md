@@ -12,7 +12,7 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
-# Status 2026-10-03 18:20 JST (New Bobby) — cycle 5 LIVE
+# Status 2026-10-03 18:15 JST (New Bobby) — cycle 5 LIVE
 
 LIVE deploy: `6ac0c6e9cbb08b40513ed4c8` (production, email_configured:true before/after). Chain: `6ac0c0f4` (cycle 4) → `6ac0c579` (cycle 5) → `6ac0c6e9` (refs fix). Deploy tree `/workspace/bsv-live/deploy` (ops box). Commits `ba29ba1`, state commits after it.
 
