@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Trend Pullback Composite",
+  "description": "Fast/slow EMA trend state plus RSI pullback condition.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "ema_fast",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 21
+      }
+    },
+    {
+      "id": "ema_slow",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 89
+      }
+    },
+    {
+      "id": "rsi",
+      "type": "indicator.rsi",
+      "params": {
+        "source": "close",
+        "length": 14
+      }
+    },
+    {
+      "id": "trend_up",
+      "type": "signal.cross",
+      "params": {
+        "left": "ema_fast",
+        "right": "ema_slow",
+        "direction": "above"
+      }
+    },
+    {
+      "id": "pullback",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": "<=",
+        "value": 45
+      }
+    },
+    {
+      "id": "setup",
+      "type": "signal.combine",
+      "params": {
+        "mode": "all",
+        "signals": [
+          "trend_up",
+          "pullback"
+        ]
+      }
+    },
+    {
+      "id": "plot_fast",
+      "type": "visual.plot",
+      "params": {
+        "source": "ema_fast",
+        "title": "EMA 21"
+      }
+    },
+    {
+      "id": "plot_slow",
+      "type": "visual.plot",
+      "params": {
+        "source": "ema_slow",
+        "title": "EMA 89"
+      }
+    },
+    {
+      "id": "alert",
+      "type": "alert.condition",
+      "params": {
+        "when": "setup",
+        "message": "BSV recipe: trend pullback setup"
+      }
+    }
+  ]
+}
