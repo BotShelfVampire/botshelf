@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Higher timeframe on Pine v6, MQL5 and MQL4: the last closed higher-timeframe bar through each platform's officially documented idiom (statically checked by BSV, not run: UNTESTED_RUNTIME) instead of a TODO stub.", "/trading/build/coverage/"),
     ("2026-10-04", "Readable generator coverage page (the BSV check behind each target, TODO matrix); generator gaps name the targets that render each block; practice log downloadable as CSV.", "/trading/build/coverage/"),
     ("2026-10-04", "Ranges and breakouts (structure.range, signal.breakout) rendered on backtrader, Backtesting.py and NautilusTrader; Opening Range and Session Stats panels complete there.", "/trading/build/"),
     ("2026-10-04", "Correction: higher-timeframe blocks were computed on the chart timeframe on every target. Now real (closed bars only) on backtrader, Backtesting.py and NautilusTrader; TODO stubs on the other 19.", "/trading/build/coverage.json"),
