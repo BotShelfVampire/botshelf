@@ -1,0 +1,8 @@
+{
+  "name": "bsv-vela-custom-chart-starter",
+  "private": true,
+  "type": "module",
+  "scripts": {"dev": "vite", "build": "vite build"},
+  "dependencies": {"@luxalgo/vela": "latest"},
+  "devDependencies": {"vite": "latest"}
+}
