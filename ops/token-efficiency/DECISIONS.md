@@ -39,3 +39,7 @@
 - Sierra Chart ACSIL and ProRealTime are generator/builder targets with UNTESTED_RUNTIME status. ProRealTime overlay recipes draw arrow markers; alerts need a second 0/1 indicator (stated in a TODO).
 - n8n and OpenAI Agents SDK team runners follow the runner rule: prompts not bundled, local model, no write/send/paid steps without explicit approval (n8n workflows write/send nothing; Agents SDK runner saves only after "yes", tracing disabled).
 - "Official references" exclude non-public hosts (localhost, 127.0.0.1, 0.0.0.0, host.docker.internal, URLs with ports).
+- No gold accents in site CSS (owner rule, cycle 7): `recolor_accent.py` runs after `externalize_inline_styles.py` in the pipeline; `--check` must report `[]` before deploy. Recolored CSS gets a content-hashed name (`.g<sha8>.css`) because CSS is cached immutable for 1 year.
+- MotiveWave and Vela are generator/builder targets with UNTESTED_RUNTIME catalog status. A javac compile against BSV-written javadoc stubs and a headless smoke test with synthetic bars are recorded as what they are; they do not change "Runtime-tested by BSV".
+- The Vela target must stay free of the Pine addon (`@luxalgo/vela-pinets`/`pinets`, AGPL-3.0): it imports only `@luxalgo/vela` (Apache-2.0) and ships its own plain-JS engine.
+- Compile-result intake (if built) is owner-reviewed: no auto-promotion and no "verified" state; approved user reports show as "user-reported", never "verified by BSV".

@@ -12,6 +12,21 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
+# Status 2026-10-03 20:00 JST (New Bobby) — cycle 7 LIVE
+
+LIVE deploy: `6ac0df169b77b9322b9ef9f4` (19:55 JST, email_configured:true before/after). Chain: `6ac0d65d` (gold→green) → `6ac0dad0` (Lipi) → `6ac0dcc9` (MotiveWave) → `6ac0df16` (Vela). Commits `65f2c89`, `e5f88af`, `f11b7f8`, `d240f67`, `b46f441`.
+
+Shipped: (a) base CSS gold → green (`recolor_accent.py`, hashed CSS names, 9 files, LIVE CSP 929/0); (b) Node 24 + n8n 2.41.6 on the box, 10 workflows imported, 1 executed against a stub (not runtime evidence); (c) generator targets GoCharting Lipi, MotiveWave (javac stub compile 14/14), Vela (offline 137 checks + headless smoke 7 recipes); builder 13 tabs, parity 182/182; (d) intake design doc only.
+
+Next queue (in order):
+1. Owner: apply `qa/c6-workflow-runner-checks.patch` (needs `workflow` scope); also add `check_motivewave_stubs.sh` + `test_vela_engine.mjs` to CI in the same edit.
+2. Owner decision on `compile-result-intake-design.md` open questions before any implementation (never auto-promote).
+3. Real-platform evidence when available: Lipi editor check, MotiveWave SDK build, Vela with a real data feed — record as BSV evidence only if BSV ran it.
+4. Gold remains in raster images (hero photo lettering, logo): owner decision whether to re-export them.
+5. Next generator ideas: JForex (Java), TradeStation EasyLanguage — research APIs first.
+
+---
+
 # Status 2026-10-03 19:10 JST (New Bobby) — cycle 6 LIVE
 
 LIVE deploy: `6ac0d372e4bf16de31470b3e` (production, email_configured:true before/after). Chain: `6ac0c6e9` (cycle 5) → `6ac0ce75` (cycle 6) → `6ac0d372` (6b refs fix). Source commit `fb89023`. Single implementer: the hourly mail routine is mail-only.
