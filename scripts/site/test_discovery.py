@@ -189,6 +189,23 @@ def main():
         ok(re.findall(r'data-ask="([a-z_.]+)" href="/requests/\?area=trading&amp;block=\1#rq-form"', t) == [g["blockType"] for g in gg["gaps"]], "requests page: one ask-for-it link per generator gap (#6 tranche 9)")
         rmj = [p for p in (s / "requests").glob("request-market.*.js")]
         ok(len(rmj) == 1 and "q.get('block')" in rmj[0].read_text() and "!jb.value" in rmj[0].read_text() and 'value="trading"' in t, "requests page: block prefill fills the job box only when empty; trading area exists")
+        # tranche 11: AI toolkit "another framework" and Robot Pilot per-module mission prefills; run the real prefill() in node
+        import shutil, subprocess
+        rjs = rmj[0].read_text()
+        pf = rjs[rjs.index("function prefill(){"):rjs.index("\nfunction addPlat")]
+        if shutil.which("node"):
+            harness = ("var J={value:'',setAttribute:function(){}};var $=function(s){return s==='#rq-job'?J:(s==='#rq-mission'?{}:null)};"
+                       "var document={querySelector:function(){return null}};var location={href:''};var out=[];"
+                       + pf + ";[['?area=ai-workflows&toolkit=letta-memory',''],['?area=ai-workflows&toolkit=BAD%3Cx',''],['?area=robot-pilot&kind=mission&module=record10',''],"
+                       "['?area=robot-pilot&module=record10',''],['?area=ai-workflows&toolkit=letta-memory','mine']].forEach(function(c){J.value=c[1];location.href='https://x'+c[0];prefill();out.push(J.value)});console.log(JSON.stringify(out))")
+            got = json.loads(subprocess.run(["node", "-e", harness], capture_output=True, text=True, timeout=30).stdout)
+            ok(got[0].startswith("AI toolkit item letta-memory:") and got[1] == "" and got[2].startswith("Mission like Robot Pilot module record10:") and got[3] == "" and got[4] == "mine",
+               "requests: toolkit / mission-module prefill fills an empty job only, rejects bad ids, module needs kind=mission (node)")
+        tkp = [(e["id"], rd(f"library/toolkit/{e['id']}/index.html")) for e in json.loads((bd.Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]]
+        ok(all(f'data-tk-ask="{i}" href="/requests/?area=ai-workflows&amp;toolkit={i}#rq-form"' in h for i, h in tkp) and 'value="ai-workflows"' in t, f"AI toolkit pages: one ask-for-another-framework link each ({len(tkp)})")
+        rph = rd("robot-pilot/index.html")
+        mids = [m["id"] for m in json.loads((bd.Path(__file__).resolve().parents[2] / "robot-pilot/curricula/isaac-teleop-so101-sim-v1.json").read_text())["modules"]]
+        ok(re.findall(r'data-rp-ask="([a-z0-9-]+)" href="/requests/\?area=robot-pilot&amp;kind=mission&amp;module=\1#rq-form"', rph) == mids, f"robot pilot: one mission link per curriculum module ({len(mids)})")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
@@ -258,6 +275,10 @@ def main():
     ok(schema_errors({"schemaVersion": "0.1"}, csch) != [] and schema_errors({**cm["capabilities"][0], "x": 1}, csch) != [], "capability validator rejects bad manifests")
     catj = json.loads(rd("trading/catalog.json"))
     ok(cm["counts"]["catalogue"] == len(catj) == sum(1 for c in cm["capabilities"] if c["capabilityId"].startswith("trading.")), "capabilities: one per catalogue entry")
+    aic = json.loads((bd.Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]
+    aim = [c for c in cm["capabilities"] if c["capabilityId"].startswith("bsv.ai-toolkit.")]
+    ok(cm["counts"].get("aiToolkit") == len(aic) == len(aim) and {c["capabilityId"] for c in aim} == {"bsv.ai-toolkit." + e["id"] for e in aic}, f"capabilities: one per AI toolkit entry ({len(aim)})")
+    ok(all(c["verification"]["status"] == "UNTESTED" and any(e["status"] in x for x in c["verification"]["evidence"] for e in aic if "bsv.ai-toolkit." + e["id"] == c["capabilityId"]) and c["canonicalUrl"].startswith(ORIGIN + "/library/toolkit/") for c in aim), "capabilities: AI toolkit entries UNTESTED, catalog status quoted, public summary page")
     ok(cm["counts"]["total"] == len(cm["capabilities"]) and len({c["capabilityId"] for c in cm["capabilities"]}) == len(cm["capabilities"]), "capabilities: counts and unique ids")
     ok(not any(c["verification"]["status"] == "VERIFIED" for c in cm["capabilities"]), "capabilities: nothing VERIFIED")
     ok(sum(1 for c in cm["capabilities"] if c["verification"]["status"] == "PARTIAL") == sum(1 for i in catj if i.get("runtime_tested") is True), "capabilities: PARTIAL only where the catalogue says runtime-tested")
