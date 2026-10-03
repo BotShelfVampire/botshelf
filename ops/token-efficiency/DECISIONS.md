@@ -34,3 +34,8 @@
 - AI per-task runners (LangGraph, CrewAI) never bundle Library team prompts. The user pastes the SYSTEM block from the gated `/library/source/team-<runtime>-<team>.html` page into `prompts/<task>.txt` (git-ignored). They write output only after an explicit "yes".
 - "Official references" on toolkit pages list external docs only (no localhost or botshelfvampire.com URLs).
 - Concurrent agents share the ops box and branch: before committing, deploying or posting the Issue #4 comment, fetch origin and check the latest Issue #4 comment and LIVE deploy, so the loop stays at one comment and no deploy is overwritten.
+- No inline `<style>` or `style=""` in shipped HTML: `scripts/site/externalize_inline_styles.py` runs last in the pipeline and `--check` must report 0 before deploy. Gold accents inside moved CSS become the green accent (#bad4b7).
+- Builder compile records are self-reported, browser-only (localStorage) and always `bsv_verified:false`. They never change catalog status; "Runtime-tested by BSV" changes only with BSV's own evidence.
+- Sierra Chart ACSIL and ProRealTime are generator/builder targets with UNTESTED_RUNTIME status. ProRealTime overlay recipes draw arrow markers; alerts need a second 0/1 indicator (stated in a TODO).
+- n8n and OpenAI Agents SDK team runners follow the runner rule: prompts not bundled, local model, no write/send/paid steps without explicit approval (n8n workflows write/send nothing; Agents SDK runner saves only after "yes", tracing disabled).
+- "Official references" exclude non-public hosts (localhost, 127.0.0.1, 0.0.0.0, host.docker.internal, URLs with ports).
