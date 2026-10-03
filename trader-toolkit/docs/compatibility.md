@@ -46,6 +46,15 @@ Since 2026-10-04 these are rendered on backtrader, Backtesting.py and NautilusTr
 - `signal.breakout` (`direction`: either / above / below): true on a closed bar outside the window whose close is beyond the finished window's high (or low) while the previous close was not. It can fire again if price comes back inside and crosses again; nothing fires during the window.
 - Checks: every bar's range values and breakout signals equal an independent reference, alerts and value panels included.
 
+## Pivots, zones and webhooks (structure.pivot, visual.zone, alert.webhook)
+
+Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader only; every other target keeps the TODO line.
+
+- `structure.pivot` (`left`, `right`: 1–50; `source`: `close` or `high_low`): a pivot high is a bar whose value is strictly above the `left` bars before it and at least as high as the `right` bars after it (a flat top counts once, at its first bar); pivot lows mirror this. A pivot is published only on the bar `right` bars later (no lookahead) and the last confirmed pivot high / low is held (`<id>.high`, `<id>.low`).
+- `visual.zone` (`source`: a pivot or a high/low range): two lines with the source's high and low (NautilusTrader: values only, no chart).
+- `alert.webhook` (`when`: a signal; `payload`: a flat JSON object): on each completed bar where `when` is true, the starter prints `WEBHOOK <time> <json>` with `{{symbol}}`, `{{timeframe}}`, `{{time}}`, `{{open}}`, `{{high}}`, `{{low}}`, `{{close}}` filled in (set `BSV_SYMBOL` / `BSV_TIMEFRAME`). It never sends anything; posting the payload is up to you. Other placeholders or nested payloads stay TODO.
+- Checks: every bar's pivot values and zone lines equal an independent reference; the printed payloads equal the expected ones bar by bar; the 700-bar runs equal the prefix of the full run (no lookahead).
+
 ## Value panels (visual.table)
 
 Since 2026-10-04 the generator renders `visual.table` (a value panel: the listed fields' values on the latest completed bar) on 6 of the 22 targets. These are the targets where a BSV check covers the output:

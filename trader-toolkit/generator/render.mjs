@@ -156,6 +156,66 @@ function pyRangeLines() {
     '',
   ];
 }
+// structure.pivot (a bar whose value is strictly above / below the `left` bars before it and at least as high / low as
+// the `right` bars after it, so a flat top counts once, at its first bar; known only `right` bars later, so no lookahead; the last confirmed pivot high / low is held),
+// visual.zone (two lines: the high and low of a range or pivot) and alert.webhook (a JSON payload printed once per
+// completed bar where the condition holds; the starter never sends it). Rendered only where a BSV check runs them.
+function pivotOk(recipe, b) {
+  if (!recipe.bsvRangeReal || !b || b.type !== 'structure.pivot') return false;
+  const q = b.params || {}, n = (x) => Number.isInteger(x) && x >= 1 && x <= 50;
+  return n(q.left) && n(q.right) && ['close', 'high_low'].includes(q.source || 'close');
+}
+function zoneOk(recipe, b) {
+  if (!recipe.bsvRangeReal || !b || b.type !== 'visual.zone') return false;
+  const d = blockMap(recipe).get(b.params?.source);
+  return !!d && (pivotOk(recipe, d) || (rangeOk(recipe, d) && rangeKeys(d).length === 2));
+}
+function webhookOk(recipe, b) {
+  if (!recipe.bsvRangeReal || !b || b.type !== 'alert.webhook') return false;
+  const q = b.params || {}, w = blockMap(recipe).get(q.when), pl = q.payload;
+  if (!w || !isBoolType(w.type) || w.type === 'alert.webhook' || !pl || typeof pl !== 'object' || Array.isArray(pl) || !Object.keys(pl).length) return false;
+  return Object.values(pl).every(x => ['number', 'boolean'].includes(typeof x) || (typeof x === 'string' && [...x.matchAll(/\{\{([^}]*)\}\}/g)].every(m => ['symbol', 'timeframe', 'time', 'open', 'high', 'low', 'close'].includes(m[1]))));
+}
+function pyPivotLines() {
+  return [
+    'def bsv_pivot_step(st, h, l, left, right):  # st = [recent highs, recent lows, last pivot high, last pivot low]',
+    '    st[0].append(h)',
+    '    st[1].append(l)',
+    '    if len(st[0]) > left + right + 1:',
+    '        del st[0][0], st[1][0]',
+    '    if len(st[0]) == left + right + 1:  # the bar `right` bars ago is confirmed only now: no lookahead',
+    '        x = st[0][left]',
+    '        if all(x > y for y in st[0][:left]) and all(x >= y for y in st[0][left + 1:]):',
+    '            st[2] = x',
+    '        x = st[1][left]',
+    '        if all(x < y for y in st[1][:left]) and all(x <= y for y in st[1][left + 1:]):',
+    '            st[3] = x',
+    '    return st[2], st[3]  # NaN until the first confirmed pivot',
+    '',
+    '',
+  ];
+}
+function pyWebhookLines(recipe) {
+  const hooks = recipe.blocks.filter(b => webhookOk(recipe, b));
+  return [
+    'BSV_SYMBOL = "SYMBOL"  # set your symbol for {{symbol}}',
+    'BSV_TIMEFRAME = "TIMEFRAME"  # set your bar timeframe for {{timeframe}}',
+    `BSV_WEBHOOKS = (${hooks.map(b => `(${pyText(b.id)}, json.loads(${pyText(JSON.stringify(b.params.payload), 4000)}))`).join(', ')}${hooks.length === 1 ? ',' : ''})`,
+    '',
+    '',
+    'def bsv_webhook(payload, when, o, h, l, c):  # JSON payload with {{...}} filled in; this file prints it and never sends it',
+    '    f = {"symbol": BSV_SYMBOL, "timeframe": BSV_TIMEFRAME, "time": when, "open": "%.10g" % o, "high": "%.10g" % h, "low": "%.10g" % l, "close": "%.10g" % c}',
+    '    out = {}',
+    '    for k, x in payload.items():',
+    '        if isinstance(x, str):',
+    '            for name, val in f.items():',
+    '                x = x.replace("{{" + name + "}}", val)',
+    '        out[k] = x',
+    '    return json.dumps(out, separators=(",", ":"))',
+    '',
+    '',
+  ];
+}
 function htfNotes(recipe, prefix) {  // one line per block that uses a higher timeframe, saying how this target treats it
   return recipe.blocks.filter(b => b.params && b.params.timeframeRef).map(b => b.type === 'data.higher_timeframe'
     ? `${prefix} TODO ${b.id}: ${b.params.bsvHtfOf || 'block'} on higher timeframe ${b.params.timeframeRef} is not computed for this target (left empty), never on the chart timeframe.`
@@ -173,6 +233,8 @@ function referencesFor(block) {
     case 'visual.table': return Array.isArray(p.fields) ? p.fields.filter(Boolean) : [];
     case 'structure.range': return [p.during].filter(Boolean);
     case 'signal.breakout': return [p.range].filter(Boolean);
+    case 'visual.zone': return [p.source].filter(Boolean);
+    case 'alert.webhook': return [p.when].filter(Boolean);
     default: return [];
   }
 }
@@ -2247,7 +2309,8 @@ function renderBacktrader(recipe) {
     : isInd(ref) ? `self.i_${id(ref)}[${prev ? -1 : 0}]` : `${prev ? 'p' : 's'}.get(${pyText(ref)}, NAN)`;
   const bool = (ref, prev = false) => isBoolType(map.get(ref)?.type) ? `bool(${prev ? 'p' : 's'}.get(${pyText(ref)}))` : `(not math.isnan(${val(ref, prev)}) and ${val(ref, prev)} != 0)`;
   const cls = 'Bsv' + className(recipe);
-  const lines = [...plots.map((_, k) => `p${k + 1}`), ...alerts.map((_, k) => `a${k + 1}`)];
+  const zones = recipe.blocks.filter(b => zoneOk(recipe, b)), hooks = recipe.blocks.filter(b => webhookOk(recipe, b)), pivots = recipe.blocks.filter(b => pivotOk(recipe, b));
+  const lines = [...plots.map((_, k) => `p${k + 1}`), ...alerts.map((_, k) => `a${k + 1}`), ...zones.flatMap((_, k) => [`z${k + 1}h`, `z${k + 1}l`]), ...hooks.map((_, k) => `w${k + 1}`)];
   const tzs = [];
   const L = [];
   L.push('# ORIGINAL BSV STARTER — backtrader indicator + alert-only strategy (Python).');
@@ -2257,6 +2320,7 @@ function renderBacktrader(recipe) {
   L.push(`# ${recipe.overlay ? 'Overlay recipe: lines are drawn on the price chart.' : 'Separate-pane recipe: lines are drawn in their own subplot.'}`);
   L.push('# Alerts are printed for completed bars only (backtrader calls next() once per completed bar). The strategy places no orders.');
   L.push('');
+  if (hooks.length) L.push('import json');
   L.push('import math');
   L.push('import sys');
   if (recipe.blocks.some(b => b.type === 'filter.session')) L.push('from datetime import timezone', 'from zoneinfo import ZoneInfo');
@@ -2277,12 +2341,14 @@ function renderBacktrader(recipe) {
   if (htf.length) pyHtfLines().forEach(x => L.push(x));
   const ranges = recipe.blocks.filter(b => rangeOk(recipe, b));
   if (ranges.length) pyRangeLines().forEach(x => L.push(x));
+  if (pivots.length) pyPivotLines().forEach(x => L.push(x));
+  if (hooks.length) pyWebhookLines(recipe).forEach(x => L.push(x));
   const noLines = !lines.length;
   if (noLines) lines.push('idle');  // backtrader needs at least one line; this one stays NaN and is not plotted
   L.push(`class ${cls}(bt.Indicator):`);
   L.push(`    lines = (${lines.map(x => `"${x}"`).join(', ')}${lines.length === 1 ? ',' : ''})`);
   L.push(`    plotinfo = dict(subplot=${recipe.overlay ? 'False' : 'True'})`);
-  const pl = [...alerts.map((_, k) => `a${k + 1}=dict(marker="o", ls="", markersize=6)`), ...(noLines ? ['idle=dict(_plotskip=True)'] : [])];
+  const pl = [...alerts.map((_, k) => `a${k + 1}=dict(marker="o", ls="", markersize=6)`), ...hooks.map((_, k) => `w${k + 1}=dict(marker="^", ls="", markersize=6)`), ...(noLines ? ['idle=dict(_plotskip=True)'] : [])];
   if (pl.length) L.push(`    plotlines = dict(${pl.join(', ')})`);
   L.push('');
   L.push('    def __init__(self):');
@@ -2300,6 +2366,7 @@ function renderBacktrader(recipe) {
   }
   tzs.forEach((tz, n) => L.push(`        self.tz${n} = ZoneInfo(${pyText(tz)})`));
   ranges.forEach(b => L.push(`        self.rg_${id(b.id)} = [False, NAN, NAN]  # ${tsNote(b.id)}: window state`));
+  pivots.forEach(b => L.push(`        self.pv_${id(b.id)} = [[], [], NAN, NAN]  # ${tsNote(b.id)}: pivot state`));
   htfSrc.forEach(h => L.push(`        self.htf_${id(h)} = BsvHtf(${htfMinutes(map.get(h))})  # ${tsNote(h)}: closed higher-timeframe bars only`));
   L.push('');
   L.push('    def prenext(self):');
@@ -2323,6 +2390,18 @@ function renderBacktrader(recipe) {
       case 'structure.range':
         if (!rangeOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = NAN`); break; }
         L.push(`        s[${pyText(b.id + '.high')}], s[${pyText(b.id + '.low')}] = bsv_range_step(self.rg_${id(b.id)}, ${bool(q.during)}, d.high[0], d.low[0])`);
+        break;
+      case 'structure.pivot': {
+        if (!pivotOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = NAN`); break; }
+        const hl = (q.source || 'close') === 'high_low' ? 'd.high[0], d.low[0]' : 'd.close[0], d.close[0]';
+        L.push(`        s[${pyText(b.id + '.high')}], s[${pyText(b.id + '.low')}] = bsv_pivot_step(self.pv_${id(b.id)}, ${hl}, ${q.left}, ${q.right})`);
+        break;
+      }
+      case 'visual.zone':
+        if (!zoneOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = NAN`); }
+        break;
+      case 'alert.webhook':
+        if (!webhookOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = False`); }
         break;
       case 'signal.breakout': {
         if (!breakoutOk(recipe, b)) { L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`); L.push(`        s[${k}] = False`); break; }
@@ -2362,6 +2441,8 @@ function renderBacktrader(recipe) {
   }
   plots.forEach((b, n) => L.push(`        self.lines.p${n + 1}[0] = ${val(b.params?.source)}`));
   alerts.forEach((b, n) => L.push(`        self.lines.a${n + 1}[0] = ${recipe.overlay ? 'd.close[0]' : '1.0'} if ${bool(b.params?.when)} else NAN`));
+  zones.forEach((b, n) => { const src = b.params.source; L.push(`        self.lines.z${n + 1}h[0], self.lines.z${n + 1}l[0] = s.get(${pyText(src + '.high')}, NAN), s.get(${pyText(src + '.low')}, NAN)  # zone ${tsNote(b.params?.title || b.id)}`); });
+  hooks.forEach((b, n) => L.push(`        self.lines.w${n + 1}[0] = ${recipe.overlay ? 'd.close[0]' : '1.0'} if ${bool(b.params.when)} else NAN  # webhook ${tsNote(b.id)}`));
   L.push('        self._prev = s');
   L.push('');
   L.push('');
@@ -2380,7 +2461,13 @@ function renderBacktrader(recipe) {
     L.push('        for k, msg in enumerate(self.messages):');
     L.push('            if not math.isnan(getattr(self.ind.lines, "a%d" % (k + 1))[0]):');
     L.push('                print("ALERT", when, msg)');
-  } else L.push('        pass  # this recipe has no alert blocks');
+  } else if (!hooks.length) L.push('        pass  # this recipe has no alert blocks');
+  if (hooks.length) {
+    L.push('        d = self.data');
+    L.push('        for k, (name, payload) in enumerate(BSV_WEBHOOKS):');
+    L.push('            if not math.isnan(getattr(self.ind.lines, "w%d" % (k + 1))[0]):');
+    L.push('                print("WEBHOOK", when, bsv_webhook(payload, when, d.open[0], d.high[0], d.low[0], d.close[0]))  # printed, not sent');
+  }
   const tables = tableBlocks(recipe);
   if (tables.length) {
     L.push('');
@@ -2425,6 +2512,7 @@ function renderBacktestingPy(recipe) {
   const val = (ref) => isPx(ref) ? PX[ref] : /\./.test(ref) && map.has(ref.split('.')[0]) ? `v[${pyText(ref)}]` : !map.has(ref) ? 'NANS' : isBoolType(map.get(ref).type) ? `s[${pyText(ref)}].astype(float)` : `v[${pyText(ref)}]`;
   const bool = (ref) => map.has(ref) && isBoolType(map.get(ref).type) ? `s[${pyText(ref)}]` : `(np.isfinite(${val(ref)}) & (${val(ref)} != 0))`;
   const htf = pyHtfUses(recipe), htfSrc = [...new Set(htf.map(u => u.src.id))];
+  const zones = recipe.blocks.filter(b => zoneOk(recipe, b)), hooks = recipe.blocks.filter(b => webhookOk(recipe, b)), pivots = recipe.blocks.filter(b => pivotOk(recipe, b));
   const cls = 'Bsv' + className(recipe);
   const L = [];
   L.push('# ORIGINAL BSV STARTER — Backtesting.py alert-only strategy (Python).');
@@ -2433,8 +2521,10 @@ function renderBacktestingPy(recipe) {
   L.push('# bars.csv columns: datetime (YYYY-MM-DD HH:MM:SS, read as UTC), open, high, low, close, volume.');
   L.push('# Every value for bar i is computed from bars 0..i only. Backtesting.py calls next() once per completed bar, starting');
   L.push('# when every plotted line has a value (and never on the first bar); alerts on earlier bars are not printed.');
+  if (zones.length) L.push('# Zone lines count as plotted lines for that start.');
   L.push('# The strategy places no orders.');
   L.push('');
+  if (hooks.length) L.push('import json');
   L.push('import sys');
   L.push('');
   L.push('import numpy as np');
@@ -2508,10 +2598,10 @@ function renderBacktestingPy(recipe) {
     L.push('    return out');
   }
   const ranges = recipe.blocks.filter(b => rangeOk(recipe, b));
-  if (ranges.length) {
-    if (!htf.length) L.push('NAN = float("nan")');
-    pyRangeLines().forEach(x => L.push(x));
-  }
+  if ((ranges.length || pivots.length) && !htf.length) L.push('NAN = float("nan")');
+  if (ranges.length) pyRangeLines().forEach(x => L.push(x));
+  if (pivots.length) pyPivotLines().forEach(x => L.push(x));
+  if (hooks.length) pyWebhookLines(recipe).forEach(x => L.push(x));
   L.push(`class ${cls}(Strategy):`);
   L.push(`    messages = (${alerts.map(b => pyText(b.params?.message || b.id)).join(', ')}${alerts.length === 1 ? ',' : ''})`);
   L.push('');
@@ -2534,6 +2624,15 @@ function renderBacktestingPy(recipe) {
       L.push(`            v[${pyText(b.id + '.high')}], v[${pyText(b.id + '.low')}] = hi_, lo_`);
       continue;
     }
+    if (pivotOk(recipe, b)) {
+      const [hh, ll] = (q.source || 'close') === 'high_low' ? ['h', 'l'] : ['c', 'c'];
+      L.push(`            st, hi_, lo_ = [[], [], NAN, NAN], np.full(len(c), np.nan), np.full(len(c), np.nan)  # ${tsNote(b.id)}: bar i only uses bars 0..i`);
+      L.push(`            for i in range(len(c)):`);
+      L.push(`                hi_[i], lo_[i] = bsv_pivot_step(st, float(${hh}[i]), float(${ll}[i]), ${q.left}, ${q.right})`);
+      L.push(`            v[${pyText(b.id + '.high')}], v[${pyText(b.id + '.low')}] = hi_, lo_`);
+      continue;
+    }
+    if (zoneOk(recipe, b) || webhookOk(recipe, b)) continue;
     if (breakoutOk(recipe, b)) {
       const r = map.get(q.range);
       L.push(`            ins, pc = ${bool(r.params.during)}, bsv_prev(c)`);
@@ -2580,7 +2679,12 @@ function renderBacktestingPy(recipe) {
     L.push(`        self.bsv_tables = [${btTables.filter(t => t.fields.length).map(t => `(${pyText(t.title)}, [${t.fields.map(f => `(${pyText(f.id)}, ${f.bool ? 'True' : 'False'}, np.asarray(${f.bool ? `s[${pyText(f.id)}]` : val(f.id)}))`).join(', ')}])`).join(', ')}]  # value panels`);
   }
   plots.forEach((b, n) => L.push(`        self.p${n + 1} = self.I(np.asarray, ${val(b.params?.source)}, name=${pyText(b.params?.title || b.params?.source || b.id, 60)}, overlay=${recipe.overlay ? 'True' : 'False'})`));
+  zones.forEach((b, n) => ['high', 'low'].forEach(x => L.push(`        self.z${n + 1}${x[0]} = self.I(np.asarray, v[${pyText(b.params.source + '.' + x)}], name=${pyText((b.params?.title || b.id) + ' ' + x, 60)}, overlay=${recipe.overlay ? 'True' : 'False'})  # zone`)));
   L.push(`        self.bsv_alerts = [${alerts.map(b => `np.asarray(${bool(b.params?.when)}, bool)`).join(', ')}]`);
+  if (hooks.length) {
+    L.push(`        self.bsv_webhooks = [${hooks.map(b => `np.asarray(${bool(b.params.when)}, bool)`).join(', ')}]  # same order as BSV_WEBHOOKS`);
+    L.push('        self.bsv_px = (o, h, l, c)');
+  }
   alerts.forEach((b, n) => L.push(`        self.a${n + 1} = self.I(np.where, self.bsv_alerts[${n}], ${recipe.overlay ? 'c' : '1.0'}, np.nan, name=${pyText('alert ' + (n + 1))}, overlay=${recipe.overlay ? 'True' : 'False'}, scatter=True)`));
   L.push('');
   L.push('    def next(self):');
@@ -2589,7 +2693,13 @@ function renderBacktestingPy(recipe) {
     L.push('        for msg, a in zip(self.messages, self.bsv_alerts):');
     L.push('            if a[i]:');
     L.push('                print("ALERT", self.data.index[i].isoformat(), msg)');
-  } else L.push('        pass  # this recipe has no alert blocks');
+  } else if (!hooks.length) L.push('        pass  # this recipe has no alert blocks');
+  if (hooks.length) {
+    L.push('        when, (o, h, l, c) = self.data.index[i].isoformat(), self.bsv_px');
+    L.push('        for (name, payload), w in zip(BSV_WEBHOOKS, self.bsv_webhooks):');
+    L.push('            if w[i]:');
+    L.push('                print("WEBHOOK", when, bsv_webhook(payload, when, o[i], h[i], l[i], c[i]))  # printed, not sent');
+  }
   L.push('');
   L.push('');
   if (btTables.length) {
@@ -2655,6 +2765,7 @@ function renderNautilus(recipe) {
   L.push('# type; replace INSTRUMENT / BAR_SPEC with your own. NautilusTrader has no chart here: plot blocks are values in self._pv.');
   L.push('');
   L.push('import csv');
+  if (recipe.blocks.some(b => webhookOk(recipe, b))) L.push('import json');
   L.push('import math');
   L.push('import sys');
   L.push('from collections import deque');
@@ -2739,7 +2850,10 @@ function renderNautilus(recipe) {
   L.push('');
   if (htf.length) pyHtfLines().forEach(x => L.push(x));
   const ranges = recipe.blocks.filter(b => rangeOk(recipe, b));
+  const zones = recipe.blocks.filter(b => zoneOk(recipe, b)), hooks = recipe.blocks.filter(b => webhookOk(recipe, b)), pivots = recipe.blocks.filter(b => pivotOk(recipe, b));
   if (ranges.length) pyRangeLines().forEach(x => L.push(x));
+  if (pivots.length) pyPivotLines().forEach(x => L.push(x));
+  if (hooks.length) pyWebhookLines(recipe).forEach(x => L.push(x));
   L.push(`class ${cls}Config(StrategyConfig, frozen=True):`);
   L.push('    bar_type: str');
   L.push('');
@@ -2760,6 +2874,7 @@ function renderNautilus(recipe) {
   }
   tzs.forEach((tz, n) => L.push(`        self.tz${n} = ZoneInfo(${pyText(tz)})`));
   ranges.forEach(b => L.push(`        self.rg_${id(b.id)} = [False, NAN, NAN]  # ${tsNote(b.id)}: window state`));
+  pivots.forEach(b => L.push(`        self.pv_${id(b.id)} = [[], [], NAN, NAN]  # ${tsNote(b.id)}: pivot state`));
   htfSrc.forEach(h => L.push(`        self.htf_${id(h)} = BsvHtf(${htfMinutes(map.get(h))})  # ${tsNote(h)}: closed higher-timeframe bars only`));
   L.push('');
   L.push('    def on_start(self):');
@@ -2777,6 +2892,9 @@ function renderNautilus(recipe) {
     if (u) { L.push(`        v[${k}] = ${pyHtfCall(u, 'self.htf_' + id(u.src.id))}  # timeframe ${tsNote(u.src.params.timeframe)}, closed bars only`); continue; }
     if (b.type === 'data.higher_timeframe' && htfSrc.includes(b.id)) continue;
     if (rangeOk(recipe, b)) { L.push(`        v[${pyText(b.id + '.high')}], v[${pyText(b.id + '.low')}] = bsv_range_step(self.rg_${ik}, ${bool(q.during)}, h, l)`); continue; }
+    if (pivotOk(recipe, b)) { L.push(`        v[${pyText(b.id + '.high')}], v[${pyText(b.id + '.low')}] = bsv_pivot_step(self.pv_${ik}, ${(q.source || 'close') === 'high_low' ? 'h, l' : 'c, c'}, ${q.left}, ${q.right})`); continue; }
+    if (zoneOk(recipe, b)) { L.push(`        v[${pyText('zone:' + b.id + '.high')}], v[${pyText('zone:' + b.id + '.low')}] = v[${pyText(q.source + '.high')}], v[${pyText(q.source + '.low')}]  # zone ${tsNote(q.title || b.id)} (no chart in this starter)`); continue; }
+    if (webhookOk(recipe, b)) { L.push(`        s[${k}] = ${bool(q.when)}  # webhook`); continue; }
     if (breakoutOk(recipe, b)) { const r = map.get(q.range); L.push(`        s[${k}] = bsv_breakout(${bool(r.params.during)}, v[${pyText(r.id + '.high')}], v[${pyText(r.id + '.low')}], c, pv.get("close", NAN), ${pyText(q.direction || 'either')})`); continue; }
     switch (b.type) {
       case 'indicator.ema': case 'indicator.sma': case 'indicator.rsi':
@@ -2815,6 +2933,12 @@ function renderNautilus(recipe) {
     L.push(`        for msg, hit in zip(self.messages, (${alerts.map(b => bool(b.params?.when)).join(', ')}${alerts.length === 1 ? ',' : ''})):`);
     L.push('            if hit:');
     L.push('                print("ALERT", when.strftime("%Y-%m-%dT%H:%M:%S"), msg)');
+  }
+  if (hooks.length) {
+    L.push('        for name, payload in BSV_WEBHOOKS:');
+    L.push('            if s.get(name):');
+    L.push('                stamp = when.strftime("%Y-%m-%dT%H:%M:%S")');
+    L.push('                print("WEBHOOK", stamp, bsv_webhook(payload, stamp, o, h, l, c))  # printed, not sent');
   }
   L.push('        self._pv, self._ps = v, s');
   const ntTables = tableBlocks(recipe);
