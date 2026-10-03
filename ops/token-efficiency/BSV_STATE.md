@@ -49,6 +49,16 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
 
+## LIVE integration status (New Bobby, cycle 11, 2026-10-03 23:25 JST)
+
+- Production deploy: `6ac10b3f9b77b9322f9ef9ec` (23:03 JST, email_configured:true before/after). Chain: `6ac0f924` → `6ac10b3f`. Commits `4c4642a` (thinkScript target + check), `a9029b2` (AmiBroker + thinkorswim listed).
+- Listing rule (owner 22:45 JST): verified targets are listed on recipe pages, platform lists, hub counts, compatibility table and README the ATAS way (entry + corrected counts only), no further approval needed.
+- AmiBroker AFL and thinkorswim thinkScript are now pre-generated starters on all 14 recipe pages and zips (`.afl`, `.ts`); 18 starters per recipe; hub Platforms 18; builder 18 tabs (no builder-only targets left). Counts EN "eighteen pre-generated / all eighteen" and JA 18/18.
+- thinkScript (`thinkscript`): study only, `ExpAverage`/`Average`/`WildersAverage`/`TrueRange`, plots, `Alert(cond[1], …, Alert.BAR, Sound.Ding)`, no `AddOrder`; session via `SecondsFromTime`/`SecondsTillTime` (US Eastern). Check `check_thinkscript.mjs` = BSV thinkScript-subset parser/evaluator (643/0; negative tests fail as expected). Not thinkorswim.
+- Builder: parity 252/252, share/lint 1095/0, js `bsv-builder.196c275b.js`.
+- LIVE QA: trader gate 72/0, toolkit 56/81, library gate 879/0 local + 879 live, builder CDP 18 tabs 0 fail 0 CSP, CSP sweep 929 pages / 0 violations, reviewer endpoint anon 401 / key 200, CI on a9029b2 3/3.
+- Catalog status unchanged: UNTESTED_RUNTIME; Runtime-tested by BSV = 0.
+
 ## LIVE integration status (New Bobby, cycle 10, 2026-10-03 22:45 JST)
 
 - Production deploy: `6ac0f92445051fe09bf6fdbb` (21:46 JST, email_configured:true before/after). Chain: `6ac0efbe` → `6ac0f924`. Commits `d030472` (ATAS on recipe pages + lists/counts), `6b33e59` (AmiBroker target + check).

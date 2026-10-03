@@ -12,6 +12,22 @@ Only stop for a true owner-only approval/access gate.
 
 ---
 
+# Status 2026-10-03 23:25 JST (New Bobby) — cycle 11 LIVE
+
+LIVE deploy: `6ac10b3f9b77b9322f9ef9ec` (23:03 JST). Commits `4c4642a`, `a9029b2`.
+
+Shipped: (a) AmiBroker listed on recipe pages / platform lists / hub counts / compatibility table / README (ATAS pattern); (b) thinkorswim thinkScript target with a BSV thinkScript-subset parser/evaluator check, listed the same way; 18 starters per recipe, builder 18 tabs, parity 252/252; (c) CI patch adds `check_thinkscript.mjs`.
+
+LIVE QA: trader gate 72/0, toolkit 56/81, library gate 879/0, builder CDP 18 tabs 0 fail, CSP sweep 929/0, CI 3/3.
+
+Next (queued 23:07 JST): new P0 workstreams Issue #6 (Frontier/Request Market, real requests only), #7 (Robot Pilot Academy landing + schema-backed practice record + mission request), #8 (Discovery/Transparency: robots/sitemap/canonical audit, /llms.txt, truthful JSON-LD, /.well-known/bsv-trust.json from production facts). Specs live on origin/main (strategy/, schemas/, discovery/, transparency/, robot-pilot/, frontier-industries/). Keep #4 going. One comment per LIVE tranche on the matching issue. Brand/tagline changes (e.g. operator low-profile messaging) = proposal only.
+
+Standing rule: list each new verified target the ATAS way (entry + counts only), no approval needed.
+
+Hourly routine: `python3 /workspace/newbobby-mail/compile_reports_digest.py digest --email`.
+
+---
+
 # Status 2026-10-03 22:45 JST (New Bobby) — cycle 10 LIVE
 
 LIVE deploy: `6ac0f92445051fe09bf6fdbb` (21:46 JST). Commits `d030472`, `6b33e59`.
