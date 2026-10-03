@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "0.1",
+  "surface": "robot-pilot",
+  "status": "EARLY_SOURCE",
+  "principles": [
+    "simulation-first",
+    "evidence over broad claims",
+    "real-hardware authority belongs to the partner/hardware owner",
+    "no official license claims",
+    "real demand only"
+  ],
+  "assets": [
+    {
+      "id": "robot-pilot-strategy",
+      "type": "strategy",
+      "path": "strategy/BSV_ROBOT_PILOT_OS.md",
+      "status": "SOURCE_PREPARED"
+    },
+    {
+      "id": "robot-pilot-profile-schema",
+      "type": "schema",
+      "path": "schemas/bsv-robot-pilot-profile.schema.json",
+      "status": "STRUCTURAL"
+    },
+    {
+      "id": "teleop-session-evidence-schema",
+      "type": "schema",
+      "path": "schemas/bsv-teleop-session-evidence.schema.json",
+      "status": "STRUCTURAL"
+    },
+    {
+      "id": "robot-pilot-curriculum-schema",
+      "type": "schema",
+      "path": "schemas/bsv-robot-pilot-curriculum.schema.json",
+      "status": "STRUCTURAL"
+    },
+    {
+      "id": "isaac-teleop-so101-sim-v1",
+      "type": "curriculum",
+      "path": "robot-pilot/curricula/isaac-teleop-so101-sim-v1.json",
+      "status": "UNTESTED_RUNTIME"
+    }
+  ]
+}
