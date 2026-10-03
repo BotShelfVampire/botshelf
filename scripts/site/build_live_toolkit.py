@@ -495,7 +495,9 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
                 f'<section class="section"><p class="section-label">Test status</p><p>{esc(st[r["status"]]["en"])}. BSV has not run this on a user account or runtime; file presence and CI syntax checks are not runtime verification.</p>'
                 f'<p data-lang-show="ja" hidden>{esc(st[r["status"]]["ja"])}。BSVではユーザーのアカウントや実行環境で動かしていません。ファイルがあること、CIの構文確認は実行検証ではありません。</p></section>'
                 f'<section class="section"><p class="section-label">Files</p><ul>{names}</ul></section>'
-                + (f'<section class="section"><p class="section-label">Official references</p><ul>{refs}</ul></section>' if refs else ""))
+                + (f'<section class="section"><p class="section-label">Official references</p><ul>{refs}</ul></section>' if refs else "")
+                + f'<section class="section"><p class="section-label">Need it for another framework?</p>{lib_both(T("Ask for a version for the framework or runtime you use. The request form opens with this item named; nothing is sent until you press send with a verified email.", "使っているフレームワークや実行環境向けの版をリクエストできます。フォームにはこの項目名が入った状態で開きます。メール確認済みで送信ボタンを押すまで何も送られません。"), "p", "muted")}'
+                  f'<p><a class="btn-fat" data-tk-ask="{esc(r["id"])}" href="/requests/?area=ai-workflows&amp;toolkit={esc(r["id"])}#rq-form">Ask for another framework →</a></p></section>')
         write(site / f"library/toolkit/{r['id']}/index.html", lib_shell(site, f"{r['title']} — {r['framework']} | AI toolkits | BotShelf Vampire", r["summary"]["en"], f"/library/toolkit/{r['id']}/", body))
 
     def card(r):
