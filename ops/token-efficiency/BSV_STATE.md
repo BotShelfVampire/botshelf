@@ -48,3 +48,24 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 - New Bobby is the operational successor and should continue the same BSV production role without restarting the project from scratch.
 - Primary coordination source: this repository's compact state/decision files plus GitHub Issue #4.
 - Gmail coordination continues through the existing BotShelf Vampire support mailbox; New Bobby must treat the latest owner/ChatGPT handoff email as authoritative for private BSV/dagram-IB context.
+
+
+## Core product thesis
+
+BSV connects two strengths that rarely meet cleanly:
+
+- AI engineers/builders are often strong at creating capable systems but weak at packaging and monetizing them.
+- Traders often include people who are unusually strong at turning tools, edge, distribution, subscriptions, communities, and access models into revenue.
+
+BSV should connect these worlds.
+
+Trader must not be merely a shelf of indicators. It should become a place where users compose reusable blocks into their own analysis environment: chart, indicator, dashboard, scanner, alert, data layer, workflow, and eventually a personalized trading workspace.
+
+AI must not be merely a directory of tools. It should become a giant composable parts shelf where users can combine AI models, agents, local models, workflows, memory, tools, runtimes, and handoffs into their own systems.
+
+The strategic bridge is monetization: make it easier for technical builders to turn useful components into sellable products, and easier for traders/operators with commercial instincts to combine, package, distribute, and monetize those components.
+
+Innovation rule:
+- Match market-standard basics where trust and usability require it.
+- Be radically different in the core product experience, composition model, and value creation.
+- Do not differentiate merely for appearance.
