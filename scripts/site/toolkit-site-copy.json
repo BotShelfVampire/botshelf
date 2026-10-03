@@ -367,6 +367,10 @@
   "context": {
    "en": "Context compression",
    "ja": "文脈の圧縮"
+  },
+  "handoff": {
+   "en": "Handoff between workers",
+   "ja": "作業の引き継ぎ"
   }
  },
  "ai_frameworks": {
@@ -442,6 +446,12 @@
     "https://docs.n8n.io/workflows/export-import/",
     "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
    ]
+  },
+  "Any framework": {
+   "slug": "any-framework",
+   "en": "Framework-neutral plain text: paste it into any agent framework, chat or ticket, or hand it to a human reviewer.",
+   "ja": "フレームワークに依存しないプレーンテキストです。どのエージェントフレームワーク・チャット・チケットにも貼れて、人のレビュー担当にも渡せます。",
+   "refs": []
   }
  },
  "ai": {
@@ -555,6 +565,13 @@
    "summary": {
     "en": "Runs any of the 10 Library AI Team tasks with the OpenAI Agents SDK on a local model (LM Studio or Ollama), tracing disabled and no tools: produce, check the required sections, then save only after your approval. You paste the team prompt from its Library page.",
     "ja": "Library AI Teamの10種類の仕事を、OpenAI Agents SDKとローカルモデル（LM StudioまたはOllama）で動かします。トレースは無効、ツールはなしです。作成→必要な項目の確認→あなたが承認したときだけ保存、の順です。Teamのプロンプトは各Libraryページから貼り付けます。"
+   }
+  },
+  "ai-team-handoff": {
+   "job": "handoff",
+   "summary": {
+    "en": "Plain-text packet for handing a job between AI workers, frameworks or human reviewers without repeating finished work: scope and approval boundaries, current state, completed work, evidence, one next action and a do-not-repeat list.",
+    "ja": "AIの作業役・フレームワーク・人のレビュー担当のあいだで、終わった作業を繰り返さずに仕事を引き継ぐためのテキストです。範囲と承認の境界、現在の状態、終わった作業、根拠、次の一手（1つ）、繰り返さないことの一覧をまとめます。"
    }
   }
  },

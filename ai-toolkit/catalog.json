@@ -138,6 +138,14 @@
       "type": "copy-paste-code",
       "status": "UNTESTED_RUNTIME",
       "path": "ai-toolkit/openai-agents/team-runner/"
+    },
+    {
+      "id": "ai-team-handoff",
+      "title": "AI Team Handoff Packet",
+      "platform": "Any framework",
+      "type": "copy-paste-template",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/common/ai-team-handoff-packet.md"
     }
   ]
 }
