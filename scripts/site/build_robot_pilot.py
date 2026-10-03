@@ -20,6 +20,33 @@ SCHEMAS = {"bsv-teleop-session-evidence.schema.json": "teleop-session-evidence-v
            "bsv-robot-pilot-profile.schema.json": "robot-pilot-profile-v0.1.json",
            "bsv-robot-pilot-curriculum.schema.json": "robot-pilot-curriculum-v0.1.json"}
 CUR = "robot-pilot/curricula/isaac-teleop-so101-sim-v1.json"
+TELEOP_RECIPES = ["robot-pilot/teleop-recipes/so101-sim-practice-session-v1.json"]
+
+
+def recipes_section():
+    """Teleop Recipe Library (#7 tranche 3): original BSV operating procedures, simulation only, status as labelled."""
+    items = []
+    for rel in TELEOP_RECIPES:
+        r = json.loads((REPO / rel).read_text())
+        li = lambda xs: "".join(f"<li>{esc(x)}</li>" for x in xs)
+        tax = "".join(f"<tr><td><code>{esc(t['id'])}</code></td><td>{esc(t['label'])}</td></tr>" for t in r["failureTaxonomy"])
+        items.append(
+            f'<article class="rp-recipe" id="{esc(r["recipeId"])}"><h3>{esc(r["title"])}</h3>'
+            f'<p class="small"><b>{esc(r["status"])}</b> · {esc(r["environment"])} · {esc(r["license"])} · <a href="/{esc(rel)}">JSON</a></p>'
+            f'<p class="small muted">{esc(r["statusNote"])}</p>'
+            f'<details><summary>{both("Standard procedure (before / during / after)", "標準手順（前・中・後）")}</summary>'
+            f'<h4>{both("Before", "開始前")}</h4><ol>{li(r["sop"]["before"])}</ol><h4>{both("During", "セッション中")}</h4><ol>{li(r["sop"]["during"])}</ol>'
+            f'<h4>{both("After", "終了後")}</h4><ol>{li(r["sop"]["after"])}</ol></details>'
+            f'<details><summary>{both("Reset and recovery", "リセットと復旧")}</summary><ol>{li(r["resetProcedure"])}</ol><ol>{li(r["recoveryProcedure"])}</ol></details>'
+            f'<details><summary>{both("Failure taxonomy and labels", "失敗の分類とラベル")}</summary><p class="small">{" · ".join(esc(x) for x in r["annotationLabels"])}</p>'
+            f'<table class="rp-tax"><thead><tr><th>id</th><th>{both("Meaning", "意味")}</th></tr></thead><tbody>{tax}</tbody></table></details>'
+            f'<details><summary>{both("Episode acceptance and replay checklist", "採用条件とリプレイ確認")}</summary><ul>{li(r["episodeAcceptance"])}</ul><ul>{li(r["replayChecklist"])}</ul></details>'
+            f'<details><summary>{both("Export map and what is not included", "出力の対応表と含まないもの")}</summary>'
+            f'<p class="small">{esc(r["dataExport"]["format"])} · <a href="{esc(r["dataExport"]["schema"])}">schema</a></p>'
+            f'<ul>{"".join(f"<li>{esc(k)} → <code>{esc(v)}</code></li>" for k, v in r["dataExport"]["fieldMap"].items())}</ul><ul>{li(r["notIncluded"])}</ul></details></article>')
+    return (f'<section class="container bb-section" id="recipes"><h2>{both("Teleop recipe library", "テレオペ手順ライブラリ")}</h2>'
+            f'<p>{both("Reusable operating procedures for practice sessions: SOP, reset, failure taxonomy, acceptance criteria, export map and replay checklist. Original BSV material, simulation only, not run by BSV. Item text is in English.", "練習セッションで使い回せる運用手順です（標準手順・リセット・失敗の分類・採用条件・出力の対応表・リプレイ確認）。BSVオリジナルの資料で、シミュレーション専用です。BSVはまだ実行していません。各項目の本文は英語です。")}</p>'
+            + "".join(items) + '</section>')
 LINKS = [("Isaac Teleop documentation (NVIDIA; now published as Isaac Capture)", "https://nvidia.github.io/IsaacCapture/"),
          ("Quick start", "https://nvidia.github.io/IsaacCapture/main/getting_started/quick_start.html"),
          ("SO-101 data collection in simulation", "https://nvidia.github.io/IsaacCapture/main/getting_started/lerobot/data_collection_sim.html"),
@@ -27,7 +54,10 @@ LINKS = [("Isaac Teleop documentation (NVIDIA; now published as Isaac Capture)",
          ("Source repository (NVIDIA/IsaacCapture, Apache-2.0)", "https://github.com/NVIDIA/IsaacCapture")]
 # Task ids as listed on the official SO-101 simulation page (checked 2026-10-03).
 TASK_IDS = ["IsaacContrib-Stack-Cube-SO101-IK-Abs-v0", "IsaacContrib-Stack-Cube-SO101-Joint-Teleop-v0"]
-CSS = """.rp-mod{display:grid;gap:10px;padding:0;list-style:none;counter-reset:m}
+CSS = """.rp-recipe{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:10px 0}
+.rp-recipe details{margin:6px 0}.rp-recipe summary{cursor:pointer}
+.rp-tax{border-collapse:collapse;font-size:13px}.rp-tax td,.rp-tax th{border-top:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+.rp-mod{display:grid;gap:10px;padding:0;list-style:none;counter-reset:m}
 .rp-mod>li{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
 .rp-mod h3{margin:.1rem 0 .4rem;font-size:1.05rem}
 .rp-mod ul{margin:.3rem 0 .2rem 1.1rem;padding:0}
@@ -103,6 +133,7 @@ def page(site, cur, css_hrefs, js_href):
         '<p class="rq-msg" id="rp-msg" role="status"></p><p class="small muted" id="rp-saved"></p>'
         '<pre class="rp-preview" id="rp-preview" aria-label="JSON preview"></pre></form>'
         f'<p class="small"><a href="/schemas/teleop-session-evidence-v0.1.json">teleop-session-evidence v0.1</a> · <a href="/schemas/robot-pilot-profile-v0.1.json">robot-pilot-profile v0.1</a></p></section>'
+        + recipes_section() +
         f'<section class="container bb-section" id="mission"><h2>{both("Need a pilot or a dataset? Request a mission", "パイロットやデータが必要なら: ミッションをリクエスト")}</h2>'
         f'<p>{both("Missions go through the Request Market (request only, no escrow). Describe the task, robot, teleop interface, environment, data and episode target. Real-hardware missions stay under the robot owner's authorisation and safety rules.", "ミッションはRequest Market（リクエストのみ・エスクローなし）から送ります。タスク・ロボット・遠隔操作の方法・環境・必要なデータ・エピソード数を書いてください。実機のミッションは、ロボットの所有者の許可と安全ルールのもとで行います。")}</p>'
         f'<p><a class="btn primary" href="/requests/?area=robot-pilot&amp;kind=mission">{both("Request a mission", "ミッションをリクエスト")}</a></p></section>'
@@ -138,6 +169,9 @@ def main():
     (d / "index.html").write_text(page(site, cur, [f"/requests/{rq_css[0]}", f"/robot-pilot/{css_n}"], f"/robot-pilot/{js_n}"))
     (d / "curricula").mkdir(exist_ok=True)
     (site / CUR).write_text((REPO / CUR).read_text())
+    (d / "teleop-recipes").mkdir(exist_ok=True)
+    for rel in TELEOP_RECIPES:
+        (site / rel).write_text((REPO / rel).read_text())
     sd = site / "schemas"; sd.mkdir(exist_ok=True)
     for src, dst in SCHEMAS.items():
         t = (REPO / "schemas" / src).read_text()

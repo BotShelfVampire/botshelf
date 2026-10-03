@@ -122,6 +122,26 @@ def build(site: Path) -> dict:
     for stem in tk["recipes"]:
         r = json.loads((REPO / f"trader-toolkit/recipes/{stem}.json").read_text())
         caps.append(recipe_manifest(site, stem, r, targets, CHECKS))
+    teleop = 0
+    for rel in sorted((site / "robot-pilot/teleop-recipes").glob("*.json")) if (site / "robot-pilot/teleop-recipes").exists() else []:
+        r = json.loads(rel.read_text())
+        caps.append({
+            "schemaVersion": "0.1", "capabilityId": "bsv.teleop-recipe." + r["recipeId"].removeprefix("bsv-teleop-"),
+            "title": r["title"][:120], "job": "Run and document a simulation teleoperation practice session: SOP, reset, failure taxonomy, acceptance criteria, export map and replay checklist.",
+            "domains": ["robotics", "teleoperation"],
+            "inputs": [{"name": "simulation session", "type": "operator practice"}],
+            "outputs": [{"name": "labelled episodes and session evidence", "type": "teleop-session-evidence v0.1"}],
+            "runtime": {"platform": "NVIDIA Isaac Lab + Isaac Teleop (simulation)", "version": None, "requirements": ["Follow NVIDIA's current official install instructions", "Simulation only"]},
+            "permissions": [], "dataSensitivity": "public", "sideEffects": [],
+            "approvalBoundary": ["Simulation only; any real-hardware use needs the hardware owner's own authorization."],
+            "verification": {"status": "UNTESTED", "evidence": [r["statusNote"]]},
+            "license": {"label": r["license"], "url": SPDX.format(r["license"])},
+            "seller": {"id": "bsv", "displayName": "BotShelf Vampire (original BSV source)"},
+            "dependencies": [ORIGIN + "/robot-pilot/curricula/isaac-teleop-so101-sim-v1.json"],
+            "monetization": {"mode": "FREE", "price": None, "currency": None},
+            "canonicalUrl": canonical(site, "robot-pilot/index.html"),
+        })
+        teleop += 1
     ids = [c["capabilityId"] for c in caps]
     if len(set(ids)) != len(ids):
         raise SystemExit("capabilities: duplicate ids")
@@ -131,9 +151,9 @@ def build(site: Path) -> dict:
     out = {
         "schemaVersion": "0.1",
         "manifestSchema": SCHEMA_URL,
-        "sources": [ORIGIN + "/trading/catalog.json", "trader-toolkit/catalog.json (recipes) in the BSV repository"],
+        "sources": [ORIGIN + "/trading/catalog.json", "trader-toolkit/catalog.json (recipes) in the BSV repository", ORIGIN + "/robot-pilot/#recipes"],
         "method": "Generated at build time from the public catalogue and the BSV recipes. Verification follows the catalogue flags; nothing here is VERIFIED because BSV has not run these on their platforms. Gated source is not included.",
-        "counts": {"total": len(caps), "catalogue": len(cat), "bsvRecipes": len(tk["recipes"]), "byVerificationStatus": dict(sorted(status.items()))},
+        "counts": {"total": len(caps), "catalogue": len(cat), "bsvRecipes": len(tk["recipes"]), "teleopRecipes": teleop, "byVerificationStatus": dict(sorted(status.items()))},
         "capabilities": caps,
     }
     d = site / "capabilities"
