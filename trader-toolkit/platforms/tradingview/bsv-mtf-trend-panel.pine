@@ -1,0 +1,34 @@
+//@version=6
+indicator("BSV MTF Trend Panel", overlay=true)
+
+higherTf = input.timeframe("60", "Higher timeframe")
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(89, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI length", minval=1)
+
+htfClose = request.security(syminfo.tickerid, higherTf, close, lookahead=barmerge.lookahead_off)
+htfFast = request.security(syminfo.tickerid, higherTf, ta.ema(close, fastLength), lookahead=barmerge.lookahead_off)
+htfSlow = request.security(syminfo.tickerid, higherTf, ta.ema(close, slowLength), lookahead=barmerge.lookahead_off)
+htfRsi = request.security(syminfo.tickerid, higherTf, ta.rsi(close, rsiLength), lookahead=barmerge.lookahead_off)
+
+trendState = htfFast > htfSlow ? "UP" : htfFast < htfSlow ? "DOWN" : "FLAT"
+momentumState = htfRsi >= 50 ? ">= 50" : "< 50"
+
+plot(htfFast, "HTF Fast EMA", color=color.new(color.yellow, 0))
+plot(htfSlow, "HTF Slow EMA", color=color.new(color.blue, 0))
+
+var table panel = table.new(position.top_right, 2, 4, border_width=1)
+if barstate.islast
+    table.cell(panel, 0, 0, "HTF")
+    table.cell(panel, 1, 0, higherTf)
+    table.cell(panel, 0, 1, "Trend")
+    table.cell(panel, 1, 1, trendState)
+    table.cell(panel, 0, 2, "RSI")
+    table.cell(panel, 1, 2, str.tostring(htfRsi, "#.0"))
+    table.cell(panel, 0, 3, "Momentum")
+    table.cell(panel, 1, 3, momentumState)
+
+alertcondition(htfFast > htfSlow and htfRsi >= 50, "HTF trend + momentum", "BSV: higher-timeframe trend and RSI condition are aligned")
+
+// request.security uses lookahead_off. Higher-timeframe values can still evolve until that HTF bar closes.
+// ORIGINAL BSV starter.
