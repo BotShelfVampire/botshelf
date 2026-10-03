@@ -186,6 +186,14 @@ def main():
         prow = re.findall(r'<tr id="gap-([a-z_.]+)"><td><code>[^<]*</code></td><td>(\d+) ', t)
         ok(prow == [(g["blockType"], str(g["recipeCount"])) for g in gg["gaps"]], f"requests page: generator-gap table equals opportunities.json ({len(prow)} rows)")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
+        # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
+        cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
+        ok(len(cv["targets"]) == 22 and len({x["id"] for x in cv["targets"]}) == 22 and all((repo / x["check"]["script"]).exists() and x["runtimeTestedByBSV"] is False for x in cv["targets"]) and cv["counts"]["runtimeTestedByBSV"] == 0, "coverage.json: 22 targets, check scripts exist, runtimeTestedByBSV 0")
+        ok(sum(cv["counts"]["byCheckKind"].values()) == 22 and cv["counts"]["byCheckKind"].get("PARITY_ONLY") == 22 - sum(1 for x in cv["targets"] if x["check"]["kind"] != "PARITY_ONLY"), "coverage.json: check-kind counts add up")
+        ok(len(cv["recipes"]) == gg["recipes"] and all(set(r["todoLines"]) == {x["id"] for x in cv["targets"]} for r in cv["recipes"]) and {b for r in cv["recipes"] for b in r["unsupportedBlocks"]} == {g["blockType"] for g in gg["gaps"]}, "coverage.json: recipes x targets complete; unsupported blocks equal generator gaps")
+        ok(cv["counts"]["recipeTargetPairsWithoutTodo"] == sum(1 for r in cv["recipes"] for v in r["todoLines"].values() if v == 0), "coverage.json: pairs-without-TODO count matches rows")
+        ok(f"{ORIGIN}/trading/build/coverage.json" in (s / "llms.txt").read_text() and json.loads((s / ".well-known/bsv-trust.json").read_text())["generatorCoverage"]["url"].endswith("/trading/build/coverage.json"), "coverage.json: linked from llms.txt and trust manifest")
+        ok('id="heatmap"' in t and 'id="rq-heat"' in t and not re.search(r'id="rq-heat"[^>]*>[^<]', t), "requests: demand heatmap present, no seeded cells")
         ok('id="builders"' in t and 'id="rq-areas"' in t and not re.search(r"projected|forecast|potential revenue|\$\d", bd.visible_text(rq), re.I), "opportunities: section present, no revenue projections")
         sc = json.loads((s / "schemas/demand-request-v0.1.json").read_text())
         ok(sc.get("$id") == ORIGIN + "/schemas/demand-request-v0.1.json", "requests: schema published at its $id")
@@ -313,6 +321,8 @@ def main():
                 ok(False, f"live Atom feed {st5}: {e}")
             st2, ob, _ = get(f"{L}/requests/opportunities.json")
             ok(st2 == 200 and json.loads(ob)["signals"]["noResultSearches"]["collected"] is False, f"live opportunities.json {st2}")
+            st3, cb, _ = get(f"{L}/trading/build/coverage.json")
+            ok(st3 == 200 and json.loads(cb)["counts"]["runtimeTestedByBSV"] == 0, f"live coverage.json {st3}")
         else:
             ok(False, f"live requests API {st}")
         st, _, _ = get(f"{L}/.netlify/functions/demand-request?op=queue")

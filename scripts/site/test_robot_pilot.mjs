@@ -143,5 +143,17 @@ ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?a
   const N = P.summarize([mk("n", "T", -3, "2", 1.9, 0)]); ok(N.attempted === 0 && N.successful === 0 && N.failed === 1, "practice log: negative or non-number counts are not counted");
   ok(html.includes('id="rp-log"') && html.includes('id="rp-log-clear"') && /not reviewed|nothing is uploaded, estimated or reviewed/.test(html), "practice log section on the Academy page");
 }
+// tooling opportunities (#7 tranche 7): all seven kinds, counts equal the recipe file, no demand numbers, request + publish links
+{
+  const h = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
+  const r = JSON.parse(fs.readFileSync(path.join(site, "robot-pilot/teleop-recipes/so101-sim-practice-session-v1.json"), "utf8"));
+  const sec = (h.match(/<section[^>]*id="tooling"[\s\S]*?<\/section>/) || [""])[0];
+  const kinds = ["controller-mapping", "retargeting", "dashboards", "annotation-qa", "replay", "simulation-scenes", "data-conversion"];
+  ok(sec && kinds.every(k => sec.includes(`id="tool-${k}"`)) && (sec.match(/<tr id="tool-/g) || []).length === kinds.length, "tooling: seven kinds listed once each");
+  ok(sec.includes(`${r.failureTaxonomy.length} failure ids`) && sec.includes(`${r.annotationLabels.length} annotation labels`) && sec.includes(`${r.episodeAcceptance.length} episode-acceptance`) && sec.includes(`(${r.replayChecklist.length} items)`) && sec.includes(`(${Object.keys(r.dataExport.fieldMap).length} fields)`), "tooling: counts equal the teleop recipe file");
+  ok(r.notIncluded.some(x => /controller mapping/i.test(x)) && /Not included/.test(sec), "tooling: controller mapping shown as not included, as the recipe says");
+  ok(sec.includes('href="/requests/?area=robot-pilot"') && sec.includes('href="/for-sellers.html"'), "tooling: request and publish links");
+  ok(!/\b\d+\s*(requests?|people|users|buyers|demand)\b|projected|forecast|\$\d/i.test(sec.replace(/<[^>]+>/g, " ")) && /not a demand figure/.test(sec), "tooling: no demand numbers, says so");
+}
 console.log(JSON.stringify({ test: "robot-pilot", checks, failures }));
 process.exit(failures ? 1 : 0);

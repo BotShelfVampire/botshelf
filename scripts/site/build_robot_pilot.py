@@ -47,6 +47,45 @@ def recipes_section():
     return (f'<section class="container bb-section" id="recipes"><h2>{both("Teleop recipe library", "テレオペ手順ライブラリ")}</h2>'
             f'<p>{both("Reusable operating procedures for practice sessions: SOP, reset, failure taxonomy, acceptance criteria, export map and replay checklist. Original BSV material, simulation only, not run by BSV. Item text is in English.", "練習セッションで使い回せる運用手順です（標準手順・リセット・失敗の分類・採用条件・出力の対応表・リプレイ確認）。BSVオリジナルの資料で、シミュレーション専用です。BSVはまだ実行していません。各項目の本文は英語です。")}</p>'
             + "".join(items) + '</section>')
+def tooling_section():
+    """Tooling opportunities for engineers (#7 tranche 7): per tooling kind, what BSV material covers today (counted
+    from the teleop recipe files and the curriculum) and what it does not. No demand figures."""
+    rs = [json.loads((REPO / rel).read_text()) for rel in TELEOP_RECIPES]
+    n = lambda k: sum(len(r[k]) for r in rs)
+    ni = [x for r in rs for x in r["notIncluded"]]
+    mapping_ni = next(x for x in ni if re.search(r"controller mapping", x, re.I))
+    nf = sum(len(r["dataExport"]["fieldMap"]) for r in rs)
+    rows = [
+        ("controller-mapping", "Controller mapping", "コントローラーの割り当て",
+         f"Not included. Recipe text: “{mapping_ni}” The evidence file only records the device used (field inputDevice).",
+         "含みません（レシピに「入力機器と公式タスクIDに依存するため、プリセットを写さず使った設定を記録する」とあります）。証跡ファイルには使った機器（inputDevice）だけを記録します。"),
+        ("retargeting", "Retargeting configs", "リターゲティング設定",
+         "Not included (same recipe line as above). No BSV retargeting preset exists.",
+         "含みません（上と同じ記載）。BSVのリターゲティング用プリセットはありません。"),
+        ("dashboards", "Dashboards", "ダッシュボード",
+         "Practice log on this page (#log): totals from evidence files saved in this browser only. No shared or hosted dashboard.",
+         "このページの練習ログ（#log）: このブラウザに保存した証跡ファイルからの合計だけです。共有・ホスト型のダッシュボードはありません。"),
+        ("annotation-qa", "Annotation and QA tooling", "アノテーション・QAのツール",
+         f"Written lists only: {n('failureTaxonomy')} failure ids, {n('annotationLabels')} annotation labels, {n('episodeAcceptance')} episode-acceptance criteria; “Check a saved file” (#check) checks a JSON file against the schema. No labelling tool.",
+         f"文書のリストだけです: 失敗ID {n('failureTaxonomy')}件、アノテーションラベル {n('annotationLabels')}件、採用条件 {n('episodeAcceptance')}件。「ファイルを確認」（#check）でJSONをスキーマと照合できます。ラベル付けツールはありません。"),
+        ("replay", "Replay tools", "リプレイツール",
+         f"A replay checklist ({n('replayChecklist')} items). No replay tool.",
+         f"リプレイの確認リスト（{n('replayChecklist')}項目）だけです。リプレイツールはありません。"),
+        ("simulation-scenes", "Simulation scenes", "シミュレーションのシーン",
+         f"None from BSV. The curriculum points at {len(TASK_IDS)} official SO-101 task ids published by NVIDIA.",
+         f"BSVのシーンはありません。カリキュラムはNVIDIAが公開しているSO-101の公式タスクID {len(TASK_IDS)}件を案内します。"),
+        ("data-conversion", "Data conversion", "データ変換",
+         f"An export map ({nf} fields) from a session to teleop-session-evidence v0.1. No converter to or from other dataset formats.",
+         f"セッションからteleop-session-evidence v0.1への対応表（{nf}項目）だけです。他のデータ形式との変換ツールはありません。"),
+    ]
+    body = "".join(f'<tr id="tool-{k}"><th>{both(en, ja)}</th><td>{both(fe, fj)}</td></tr>' for k, en, ja, fe, fj in rows)
+    return (f'<section class="container bb-section" id="tooling"><h2>{both("Tooling opportunities for engineers", "エンジニア向け: ツールの空き")}</h2>'
+            f'<p>{both("What the BSV teleop material covers today, per tooling kind, and what it leaves out. Counted from the recipe and curriculum files on this site. This is not a demand figure: BSV has no count of people asking for these.", "ツールの種類ごとに、BSVの遠隔操作の資料で今カバーしていることと、していないことです。このサイトのレシピとカリキュラムのファイルから数えています。需要の数字ではありません（求めている人数をBSVは数えていません）。")}</p>'
+            f'<div class="bb-table-wrap"><table class="rp-tax" id="rp-tooling"><thead><tr><th>{both("Kind", "種類")}</th><th>{both("BSV today", "BSVの現状")}</th></tr></thead><tbody>{body}</tbody></table></div>'
+            f'<p class="rp-btns"><a class="chip" href="/requests/?area=robot-pilot">{both("Ask for a tool (Request Market)", "ツールをリクエスト（Request Market）")}</a> '
+            f'<a class="chip" href="/for-sellers.html">{both("Publish a tool you built (seller guide)", "作ったツールを公開（出品ガイド）")}</a></p></section>')
+
+
 LINKS = [("Isaac Teleop documentation (NVIDIA; now published as Isaac Capture)", "https://nvidia.github.io/IsaacCapture/"),
          ("Quick start", "https://nvidia.github.io/IsaacCapture/main/getting_started/quick_start.html"),
          ("SO-101 data collection in simulation", "https://nvidia.github.io/IsaacCapture/main/getting_started/lerobot/data_collection_sim.html"),
@@ -97,7 +136,7 @@ def page(site, cur, css_hrefs, js_href):
         f'<div>{both("Looked at by a BSV reviewer", "BSVの確認担当が確認")}<b id="rp-c-reviewed">–</b></div>'
         '</div></aside></section>'
         '<div class="container subnav"><a class="chip" href="#boundary">' + both("What a record is not", "記録の範囲") + '</a><a class="chip" href="#curriculum">' + both("SO-101 simulation curriculum", "SO-101 シミュレーション教材") + '</a>'
-        '<a class="chip" href="#record">' + both("Practice record", "練習記録") + '</a><a class="chip" href="#check">' + both("Check a saved file", "ファイルを確認") + '</a><a class="chip" href="#recipes">' + both("Teleop recipes", "遠隔操作レシピ") + '</a><a class="chip" href="#missions">' + both("Open missions", "公開中のミッション") + '</a><a class="chip" href="/requests/?area=robot-pilot&amp;kind=mission">' + both("Request a mission", "ミッションをリクエスト") + '</a></div>'
+        '<a class="chip" href="#record">' + both("Practice record", "練習記録") + '</a><a class="chip" href="#check">' + both("Check a saved file", "ファイルを確認") + '</a><a class="chip" href="#recipes">' + both("Teleop recipes", "遠隔操作レシピ") + '</a><a class="chip" href="#tooling">' + both("Tooling gaps", "ツールの空き") + '</a><a class="chip" href="#missions">' + both("Open missions", "公開中のミッション") + '</a><a class="chip" href="/requests/?area=robot-pilot&amp;kind=mission">' + both("Request a mission", "ミッションをリクエスト") + '</a></div>'
         f'<section class="container bb-section" id="boundary"><h2>{both("What a BSV practice record is not", "BSVの練習記録ではないもの")}</h2><div class="rp-box"><ul>'
         f'<li>{both("Not a government licence or a manufacturer certification.", "国の免許やメーカーの認定ではありません。")}</li>'
         f'<li>{both("Not permission to operate real hardware. Real-hardware control needs the robot owner's authorisation and their local safety rules (supervisor and emergency stop where required).", "実機を操作してよいという許可ではありません。実機の操作には、ロボットの所有者の許可と、その場の安全ルール（必要に応じて監督者・非常停止）が必要です。")}</li>'
@@ -142,7 +181,7 @@ def page(site, cur, css_hrefs, js_href):
         f'<div class="bb-table-wrap"><table class="qa-table" id="rp-log"><thead><tr><th>{both("Task", "タスク")}</th><th>{both("Sessions", "セッション")}</th><th>{both("Attempted", "試行")}</th><th>{both("Successful", "成功")}</th><th>{both("Failed", "失敗")}</th><th>{both("Recovery", "リカバリー")}</th><th>{both("Success rate", "成功率")}</th></tr></thead><tbody id="rp-log-rows"></tbody></table></div>'
         '<p class="small" id="rp-log-sum" role="status"></p>'
         f'<p><button type="button" class="btn" id="rp-log-clear">{both("Clear saved sessions", "保存したセッションを消す")}</button></p></section>'
-        + recipes_section() +
+        + recipes_section() + tooling_section() +
         f'<section class="container bb-section" id="missions"><h2>{both("Open robot-pilot missions", "公開中のロボットパイロットのミッション")} <span class="small muted">(<b id="rp-c-missions">–</b>)</span></h2>'
         f'<p class="small">{both("Approved public requests from the Request Market in the robot-pilot area, read live from the request store. Nothing is seeded or estimated. A mission is a request: no escrow, no contract and no permission to operate real hardware.", "Request Marketのロボットパイロット分野で承認・公開されたリクエストを、リクエストの保存先からそのまま読み込みます。見本や推計は入れていません。ミッションはリクエストであり、エスクロー・契約・実機を操作する許可ではありません。")}</p>'
         '<ul class="rq-list" id="rp-missions"><li class="empty">' + both("Loading…", "読み込み中…") + '</li></ul>'
