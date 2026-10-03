@@ -31,3 +31,9 @@
 - Pilot training begins simulation-first; BSV practice records are evidence records, not government/manufacturer licenses.
 - Real-hardware control requires explicit partner authorization, exact runtime/hardware scope, and local safety procedures.
 - Teleoperation data collection, QA/replay, mission matching, pilot tooling, and training assets are valid BSV monetization surfaces.
+
+
+- Public BSV utility pages should be discoverable by OAI-SearchBot unless a newer explicit policy conflicts.
+- GPTBot training crawl can be independently disallowed while preserving ChatGPT search discoverability; do not confuse the two controls.
+- llms.txt is supplementary and experimental; never treat it as a replacement for robots.txt, sitemap, canonical URLs, structured data or public crawlability.
+- The operator individual remains low-profile; trust should come from transparent commercial/verification mechanics rather than a founder persona.
