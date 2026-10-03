@@ -70,7 +70,7 @@ owner review page (/ops, owner session only) ◀──────┘   list pen
 | Who may send | Email-verified accounts only (`requireUser`, `botshelf_sid` session). Anonymous → 401, foreign `Origin` → 403. |
 | Where stored | Server-side in the existing Netlify Blobs setup, store `compile_reports`, key `rep:<id>`, record keyed to the account id. |
 | PII | None beyond the existing account email. The report holds `user_id` only; the review queue looks up the email from the account at read time. No IP, no user agent, no name. |
-| Who reviews | Owner only: `GET /.netlify/functions/compile-report?op=queue[&state=pending]` and `POST ...?op=review` with header `x-admin-secret` (`LICENSE_ADMIN_SECRET`). No public UI, no list endpoint for users. |
+| Who reviews | ~~Owner only~~ superseded 2026-10-03 20:57 JST (cycle 9): owner, New Bobby and ChatGPT. See "Reviewers (cycle 9)" below. |
 | Auto-promotion | Never. States: `pending` → `approved-user-reported` / `rejected` / `needs-info`. There is no `verified` state, and every stored report has `self_reported:true, bsv_verified:false, public:false`. No code path reads reports into a page, catalog or count. |
 | Public display (Q1) | None. Approved reports stay internal. |
 | Failed compiles public (Q2) | No. Not shown anywhere. |
@@ -89,3 +89,29 @@ curl -s -H "x-admin-secret: $LICENSE_ADMIN_SECRET" 'https://botshelfvampire.com/
 curl -s -X POST -H "x-admin-secret: $LICENSE_ADMIN_SECRET" -H 'Content-Type: application/json' \
   -d '{"id":"crp_...","decision":"rejected","note":"QA"}' 'https://botshelfvampire.com/.netlify/functions/compile-report?op=review'
 ```
+
+## Reviewers (cycle 9, owner order 2026-10-03 20:57 JST)
+
+Review is no longer owner-only. Three reviewers:
+
+| Reviewer | How | Sees |
+|---|---|---|
+| Owner | header `x-admin-secret` (`LICENSE_ADMIN_SECRET`) | report + account id + account email (looked up at read time) |
+| New Bobby (BSV ops, on the box) | header `x-bsv-reviewer-key` = Netlify env `COMPILE_REVIEWER_KEY` (functions scope, production, secret). Box copy: `/workspace/newbobby-mail/.reviewer_key`, chmod 600, never committed | report + account id only |
+| ChatGPT | hourly digest email from support@ (New Bobby's Gmail routine), new pending submissions only | report + account id only; email-like strings in free text redacted |
+
+Endpoints (both roles): `GET ?op=queue[&state=pending]`, `GET ?op=get&id=crp_...`, `POST ?op=review` with `{"id","decision","note"}`.
+Decisions: `approved-user-reported`, `rejected`, `needs-info`. There is no `verified` decision; every response carries `bsv_verified:false, public:false`.
+A missing or wrong key returns 401 (key compared as sha256 with a constant-time check; keys under 32 characters are refused).
+
+Box tool (not in the repo, because it sits next to the SMTP scripts): `/workspace/newbobby-mail/compile_reports_digest.py`
+
+```
+python3 compile_reports_digest.py digest                 # write digests/compile-reports-<ts>.md (pending)
+python3 compile_reports_digest.py digest --email         # hourly: mail NEW pending ones to ChatGPT, none if nothing new
+python3 compile_reports_digest.py get crp_...
+python3 compile_reports_digest.py reject crp_... --note "spam/test"
+python3 compile_reports_digest.py decide crp_... needs-info --note "..."
+```
+
+Reviewers may reject spam/test records, fix issues a report reveals, and turn useful reports into improvements. Public status text still changes only through a reviewed commit, and "Runtime-tested by BSV" only with BSV's own run.
