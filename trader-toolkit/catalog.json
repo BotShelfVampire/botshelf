@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "0.1",
+  "generatedFor": "BSV existing Trader category",
+  "policy": {
+    "category": "trader",
+    "sourceLabel": "ORIGINAL",
+    "runtimeVerificationRule": "Source prepared is not runtime Verified."
+  },
+  "entries": [
+    {
+      "id": "trader-build-own-chart",
+      "title": "Build your own chart tool",
+      "platform": "BSV",
+      "type": "guide",
+      "status": "STRUCTURAL",
+      "path": "trader-toolkit/docs/build-your-own-chart-tool.md",
+      "featured": true
+    },
+    {
+      "id": "trader-recipe-schema",
+      "title": "BSV Trader Recipe schema",
+      "platform": "BSV",
+      "type": "schema",
+      "status": "STRUCTURAL",
+      "path": "trader-toolkit/schema/bsv-trader-recipe.schema.json",
+      "featured": true
+    },
+    {
+      "id": "trader-generator",
+      "title": "Trader Recipe code generator",
+      "platform": "Pine/MQL5/cTrader",
+      "type": "generator",
+      "status": "CI_PASS",
+      "path": "trader-toolkit/generator/render.mjs",
+      "featured": true
+    },
+    {
+      "id": "tv-session-range",
+      "title": "Session Range Dashboard",
+      "platform": "TradingView",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/tradingview/bsv-session-range-dashboard.pine"
+    },
+    {
+      "id": "tv-liquidity-sweep",
+      "title": "Liquidity Sweep Candidate Alert",
+      "platform": "TradingView",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/tradingview/bsv-liquidity-sweep-alert.pine"
+    },
+    {
+      "id": "tv-vol-regime",
+      "title": "Volatility Regime Map",
+      "platform": "TradingView",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/tradingview/bsv-volatility-regime-map.pine"
+    },
+    {
+      "id": "tv-atr-risk",
+      "title": "ATR Risk Overlay",
+      "platform": "TradingView",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/tradingview/bsv-atr-risk-overlay.pine"
+    },
+    {
+      "id": "tv-mtf-panel",
+      "title": "MTF Trend Panel",
+      "platform": "TradingView",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/tradingview/bsv-mtf-trend-panel.pine"
+    },
+    {
+      "id": "tv-webhook-router",
+      "title": "Webhook Alert Router",
+      "platform": "TradingView",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/tradingview/bsv-webhook-alert-router.pine"
+    },
+    {
+      "id": "mt5-ema-atr",
+      "title": "EMA + ATR Overlay",
+      "platform": "MT5",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/mt5/BSV_EmaAtrOverlay.mq5"
+    },
+    {
+      "id": "ctrader-ema-atr",
+      "title": "EMA + ATR Overlay",
+      "platform": "cTrader",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/ctrader/BsvEmaAtrOverlay.cs"
+    },
+    {
+      "id": "ctrader-rsi",
+      "title": "RSI Regime Starter",
+      "platform": "cTrader",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/ctrader/BsvRsiRegimeMap.cs"
+    },
+    {
+      "id": "ninjatrader-ema-atr",
+      "title": "EMA + ATR Overlay",
+      "platform": "NinjaTrader",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/ninjatrader/BsvEmaAtrOverlay.cs"
+    },
+    {
+      "id": "quantower-sma",
+      "title": "Simple SMA Starter",
+      "platform": "Quantower",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/quantower/BsvSimpleSma.cs"
+    },
+    {
+      "id": "sierra-ema",
+      "title": "EMA ACSIL Study",
+      "platform": "Sierra Chart",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/sierra-chart/BsvEmaOverlay.cpp"
+    },
+    {
+      "id": "gocharting-dual-ema",
+      "title": "Dual EMA Lipi Starter",
+      "platform": "GoCharting",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/gocharting/bsv-dual-ema.lipi"
+    },
+    {
+      "id": "prorealtime-dual-ema",
+      "title": "Dual EMA ProBuilder Starter",
+      "platform": "ProRealTime",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/prorealtime/bsv-dual-ema.itf.txt"
+    },
+    {
+      "id": "motivewave-ema",
+      "title": "EMA Java SDK Study",
+      "platform": "MotiveWave",
+      "type": "copy-paste-code",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/motivewave/BsvEmaStarter.java"
+    },
+    {
+      "id": "vela-custom-chart",
+      "title": "Custom Web Chart Starter",
+      "platform": "Vela",
+      "type": "starter-app",
+      "status": "UNTESTED_RUNTIME",
+      "path": "trader-toolkit/platforms/vela/",
+      "featured": true
+    },
+    {
+      "id": "openmarkets-data",
+      "title": "Market Data / Agent Integration",
+      "platform": "OpenMarkets",
+      "type": "integration-guide",
+      "status": "SOURCE_PREPARED",
+      "path": "trader-toolkit/platforms/openmarkets/README.md"
+    }
+  ],
+  "recipes": [
+    "mtf-trend-panel",
+    "session-breakout-alert",
+    "atr-risk-overlay",
+    "liquidity-sweep-alert",
+    "volatility-regime-map",
+    "opening-range-dashboard",
+    "mtf-confirmation-panel",
+    "rsi-mean-reversion-alert",
+    "trend-pullback-composite",
+    "session-statistics-panel",
+    "divergence-scanner",
+    "webhook-alert-router"
+  ]
+}
