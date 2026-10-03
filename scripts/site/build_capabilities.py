@@ -117,6 +117,36 @@ def recipe_manifest(site: Path, stem: str, r: dict, targets: list, checks: list)
     }
 
 
+def ai_manifest(site: Path, e: dict, copy: dict) -> dict:
+    """An AI toolkit entry (ai-toolkit/catalog.json) as a capability manifest (#8 tranche 11). Its status is the catalog's
+    SOURCE_PREPARED / UNTESTED_RUNTIME, which both map to UNTESTED: BSV has not run any of them on a runtime."""
+    c = copy["ai"].get(e["id"]) or {}
+    summ = (c.get("summary") or {}).get("en") or e["title"]
+    code = e["type"] in ("copy-paste-code", "starter-config")
+    st = copy["status"][e["status"]]["en"]
+    plat = e["platform"]
+    return {
+        "schemaVersion": "0.1",
+        "capabilityId": "bsv.ai-toolkit." + e["id"],
+        "title": e["title"][:120],
+        "job": summ[:500],
+        "domains": ["ai-workflows", c.get("job") or "agents"],
+        "inputs": [{"name": "the user's own task, project context or files", "type": "text", "sensitive": True}],
+        "outputs": [{"name": copy["ai_types"][e["type"]]["en"].lower(), "type": e["type"]}],
+        "runtime": {"platform": plat, "version": None, "requirements": (["Any agent framework, chat, ticket or human reviewer"] if plat == "Any framework" else [f"{plat}, installed or opened by the user with their own account and model access"])},
+        "permissions": [],
+        "dataSensitivity": "unknown",
+        "sideEffects": (["Starter code: it does something only when the user runs it in their own environment; read it first."] if code else []),
+        "approvalBoundary": ["The user reviews it and decides where to use or run it; BSV does not host or control external runtimes."],
+        "verification": {"status": "UNTESTED", "evidence": [f"AI toolkit catalog status {e['status']}: {st}.", "BSV has not run this on a user account or runtime; file presence and CI syntax checks are not runtime verification."]},
+        "license": {"label": "MIT", "url": SPDX.format("MIT")},
+        "seller": {"id": "bsv", "displayName": "BotShelf Vampire (original BSV source)"},
+        "dependencies": [],
+        "monetization": {"mode": "FREE", "price": None, "currency": None},
+        "canonicalUrl": canonical(site, f"library/toolkit/{e['id']}/index.html"),
+    }
+
+
 CHECKS = ["BSV parity test: builder output equals the CLI generator for every recipe and target.",
           "BSV target checks (stub compiles, subset parsers/evaluators, node:vm stubs) — BSV's own checks, not runs on the platforms."]
 
@@ -129,6 +159,9 @@ def build(site: Path) -> dict:
     for stem in tk["recipes"]:
         r = json.loads((REPO / f"trader-toolkit/recipes/{stem}.json").read_text())
         caps.append(recipe_manifest(site, stem, r, targets, CHECKS))
+    ai = json.loads((REPO / "ai-toolkit/catalog.json").read_text())["entries"]
+    acopy = json.loads((REPO / "scripts/site/toolkit-site-copy.json").read_text())
+    caps += [ai_manifest(site, e, acopy) for e in ai]
     teleop = 0
     for rel in sorted((site / "robot-pilot/teleop-recipes").glob("*.json")) if (site / "robot-pilot/teleop-recipes").exists() else []:
         r = json.loads(rel.read_text())
@@ -158,9 +191,9 @@ def build(site: Path) -> dict:
     out = {
         "schemaVersion": "0.1",
         "manifestSchema": SCHEMA_URL,
-        "sources": [ORIGIN + "/trading/catalog.json", "trader-toolkit/catalog.json (recipes) in the BSV repository", ORIGIN + "/robot-pilot/#recipes"],
-        "method": "Generated at build time from the public catalogue and the BSV recipes. Verification follows the catalogue flags; nothing here is VERIFIED because BSV has not run these on their platforms. Gated source is not included.",
-        "counts": {"total": len(caps), "catalogue": len(cat), "bsvRecipes": len(tk["recipes"]), "teleopRecipes": teleop, "byVerificationStatus": dict(sorted(status.items()))},
+        "sources": [ORIGIN + "/trading/catalog.json", "trader-toolkit/catalog.json (recipes) in the BSV repository", ORIGIN + "/library/toolkit/toolkit.v1.json", ORIGIN + "/robot-pilot/#recipes"],
+        "method": "Generated at build time from the public catalogue, the BSV recipes and the AI toolkit catalog. Verification follows the catalogue flags; nothing here is VERIFIED because BSV has not run these on their platforms. Gated source is not included.",
+        "counts": {"total": len(caps), "catalogue": len(cat), "bsvRecipes": len(tk["recipes"]), "aiToolkit": len(ai), "teleopRecipes": teleop, "byVerificationStatus": dict(sorted(status.items()))},
         "capabilities": caps,
     }
     d = site / "capabilities"
@@ -188,6 +221,7 @@ def page(site: Path, out: dict) -> str:
     rt = sum(1 for i in cj if isinstance(i, dict) and i.get("runtime_tested") is True)  # counted, not typed in
     groups = [("catalogue", "Traders Library catalogue", "Traders Library カタログ", lambda x: x["capabilityId"].startswith("trading.")),
               ("recipes", "BSV recipes (generator)", "BSVレシピ（ジェネレーター）", lambda x: x["capabilityId"].startswith("bsv.recipe.")),
+              ("ai", "AI toolkits", "AIツールキット", lambda x: x["capabilityId"].startswith("bsv.ai-toolkit.")),
               ("teleop", "Teleop recipes", "遠隔操作レシピ", lambda x: x["capabilityId"].startswith("bsv.teleop-recipe."))]
     def row(x):
         url = x.get("canonicalUrl") or ""
@@ -222,7 +256,7 @@ def page(site: Path, out: dict) -> str:
         f'<p class="small muted">{both("Gated source is not included. Links go to public pages only.", "メール確認が必要なソースは含めていません。リンク先は公開ページだけです。")}</p></section>'
         + secs
     )
-    desc = f"{c['total']} capability manifests: job, inputs, runtime, license and verification status for every public catalogue entry and BSV recipe." + (" Nothing is labelled VERIFIED." if not c["byVerificationStatus"].get("VERIFIED") else "")
+    desc = f"{c['total']} capability manifests: job, inputs, runtime, license and verification status for every public catalogue entry, BSV recipe and AI toolkit entry." + (" Nothing is labelled VERIFIED." if not c["byVerificationStatus"].get("VERIFIED") else "")
     # Dataset JSON-LD (Issue #8 tranche 6): this page is the readable view of a genuine downloadable dataset
     # (/capabilities/index.json). Only facts read from `out`; no license is claimed for the dataset itself.
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": "BSV capability manifests",

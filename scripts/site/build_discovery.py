@@ -195,7 +195,7 @@ def llms(site: Path, today: str) -> dict:
         lines.append(f"- {label}: {u}")
     block = [LL_BEGIN, "", f"## Start here, rules and trust facts ({today})", *lines,
              f"- Trust facts (machine-readable; each fact quotes its production page): {ORIGIN}/.well-known/bsv-trust.json",
-             *([f"- Capability manifests (capability-manifest v0.1; every public catalogue entry and BSV recipe, verification as labelled): {ORIGIN}/capabilities/index.json"] if (site / "capabilities/index.json").exists() else []),
+             *([f"- Capability manifests (capability-manifest v0.1; every public catalogue entry, BSV recipe and AI toolkit entry, verification as labelled): {ORIGIN}/capabilities/index.json"] if (site / "capabilities/index.json").exists() else []),
              *([f"- Generator coverage (per target: which BSV check covers it; per recipe x target: TODO lines; none runtime-tested by BSV): {ORIGIN}/trading/build/coverage.json"] if (site / "trading/build/coverage.json").exists() else []),
              *([f"- Recent material changes (the dated list in the Transparency Center; JSON, also an Atom feed at {ORIGIN}/transparency/changes.atom): {ORIGIN}/transparency/changes.json"] if (site / "transparency/changes.json").exists() else []),
              f"- Sitemap: {ORIGIN}/sitemap.xml",
