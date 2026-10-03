@@ -28,8 +28,8 @@ The goal is practical: choose a platform, copy a starter, edit one recipe, and t
 ## Platforms
 
 - TradingView / Pine Script v6 — generator target
-- MT5 / MQL5 — generator starter target
-- cTrader / C# — generator starter target
+- MT5 / MQL5 — generator target (indicator handles + CopyBuffer, signals, plots, closed-bar alerts; not runtime tested)
+- cTrader / C# — generator target (built-in indicators, signals, plots, closed-bar alerts; not runtime tested)
 - MT4 / MQL4 — generator target + EMA/ATR starter (not runtime tested)
 - cTrader / Python — generator target + two-file EMA/ATR starter (not runtime tested)
 - Bookmap / Python API (open beta) — generator target (time bars built from trades) + trade-EMA add-on (not runtime tested)

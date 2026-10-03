@@ -5,8 +5,8 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | Platform | Extensibility path | Current BSV asset | Status |
 | --- | --- | --- | --- |
 | TradingView | Pine Script | generator target + 6 copy/paste Pine starters | Source prepared; runtime compile still required |
-| MT5 | MQL5 | generator starter + EMA/ATR overlay source | Source prepared; runtime compile still required |
-| cTrader | C# or Python custom indicators in cTrader Algo | C# and Python generator targets + EMA/ATR (C# and Python) + RSI source | Source prepared; runtime build still required |
+| MT5 | MQL5 | generator target (`mql5`: computes EMA/SMA/RSI/ATR, cross/threshold/combine, plots, closed-bar alerts) + EMA/ATR overlay source | Source prepared; runtime compile still required |
+| cTrader | C# or Python custom indicators in cTrader Algo | C# and Python generator targets (both compute indicators, signals, plots and closed-bar alerts) + EMA/ATR (C# and Python) + RSI source | Source prepared; runtime build still required |
 | Vela | JavaScript/TypeScript chart library + optional scripting engines | runnable custom web-chart starter | Source prepared; runtime test required |
 | NinjaTrader | NinjaScript/C# | EMA/ATR overlay source | Source prepared; runtime compile still required |
 | Quantower | C# Quantower Algo | simple SMA source | Source prepared; runtime compile still required |
