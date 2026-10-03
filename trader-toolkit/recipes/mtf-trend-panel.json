@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "0.1",
+  "name": "EMA Trend Panel Starter",
+  "description": "Fast/slow EMA trend state with RSI confirmation and alert.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "ema_fast",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 21
+      }
+    },
+    {
+      "id": "ema_slow",
+      "type": "indicator.ema",
+      "params": {
+        "source": "close",
+        "length": 89
+      }
+    },
+    {
+      "id": "rsi",
+      "type": "indicator.rsi",
+      "params": {
+        "source": "close",
+        "length": 14
+      }
+    },
+    {
+      "id": "trend_up",
+      "type": "signal.cross",
+      "params": {
+        "left": "ema_fast",
+        "right": "ema_slow",
+        "direction": "above"
+      }
+    },
+    {
+      "id": "rsi_ok",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": ">=",
+        "value": 52
+      }
+    },
+    {
+      "id": "long_setup",
+      "type": "signal.combine",
+      "params": {
+        "mode": "all",
+        "signals": [
+          "trend_up",
+          "rsi_ok"
+        ]
+      }
+    },
+    {
+      "id": "plot_fast",
+      "type": "visual.plot",
+      "params": {
+        "source": "ema_fast",
+        "title": "EMA 21"
+      }
+    },
+    {
+      "id": "plot_slow",
+      "type": "visual.plot",
+      "params": {
+        "source": "ema_slow",
+        "title": "EMA 89"
+      }
+    },
+    {
+      "id": "alert_long",
+      "type": "alert.condition",
+      "params": {
+        "when": "long_setup",
+        "message": "BSV recipe: trend + RSI setup"
+      }
+    }
+  ]
+}
