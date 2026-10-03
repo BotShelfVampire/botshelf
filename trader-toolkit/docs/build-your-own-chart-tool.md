@@ -53,6 +53,7 @@ Other current targets:
 --target motivewave      # MotiveWave SDK custom study (Java)
 --target vela            # Vela web chart + small BSV recipe engine (JavaScript)
 --target jforex          # Dukascopy JForex strategy (Java IStrategy, console output, no orders)
+--target easylanguage    # TradeStation EasyLanguage indicator (plots + closed-bar alerts)
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.

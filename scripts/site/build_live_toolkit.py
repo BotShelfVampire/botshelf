@@ -94,7 +94,7 @@ def replace_block(text: str, marker: str, block: str, anchor: str, before: bool 
 # ---------------------------------------------------------------------------
 # Trader
 # ---------------------------------------------------------------------------
-PLATFORM_OF = {"Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower/Sierra Chart/ProRealTime/GoCharting/MotiveWave/Vela/JForex": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower", "Sierra Chart", "ProRealTime", "GoCharting", "MotiveWave", "Vela", "JForex"]}
+PLATFORM_OF = {"Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower/Sierra Chart/ProRealTime/GoCharting/MotiveWave/Vela/JForex/TradeStation": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower", "Sierra Chart", "ProRealTime", "GoCharting", "MotiveWave", "Vela", "JForex", "TradeStation"]}
 STEPS = [
     T("Pick one job", "目的を1つ決める"), T("Pick blocks", "ブロックを選ぶ"), T("Generate a starter", "ひな形を生成"),
     T("Paste / import", "貼り付け・取り込み"), T("Verify", "検証する"), T("Customize", "改造する"), T("Publish honestly", "正直に公開"),
@@ -105,7 +105,7 @@ STEP_TXT = [
     T("A recipe is JSON: each block has an id, a type (for example indicator.ema, signal.cross, visual.table, alert.condition) and params. Later blocks refer to earlier ids.",
       "レシピはJSONです。各ブロックにid・type（indicator.ema、signal.cross、visual.table、alert.conditionなど）・paramsがあり、後のブロックが前のidを参照します。"),
     T("Run the generator for Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8 or Quantower — or take the pre-generated starters on each recipe page. Unsupported blocks remain as visible TODO comments.",
-      "ジェネレーターでPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTime・GoCharting（Lipi）・MotiveWave（Java）・Vela（JavaScript）・JForex（Java）向けに出力します。各レシピのページにある生成済みのひな形も使えます。未対応のブロックはTODOコメントとして残ります。"),
+      "ジェネレーターでPine v6・MQL5・MQL4・cTrader（C#／Python）・Bookmap（Python）・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTime・GoCharting（Lipi）・MotiveWave（Java）・Vela（JavaScript）・JForex（Java）・TradeStation（EasyLanguage）向けに出力します。各レシピのページにある生成済みのひな形も使えます。未対応のブロックはTODOコメントとして残ります。"),
     T("TradingView: new Pine indicator → paste → save → add to chart. MT5 / MT4: MetaEditor custom indicator → compile. cTrader: Algo custom indicator (C# or Python) → build. Bookmap: load the Python add-on. Vela: your own browser chart.",
       "TradingView：新規Pineインジケーターに貼り付けて保存しチャートに追加。MT5・MT4：MetaEditorでカスタムインジケーターとしてコンパイル。cTrader：Algoでカスタムインジケーター（C#またはPython）としてビルド。Bookmap：Pythonアドオンとして読み込み。Vela：自分のブラウザーチャート。"),
     T("Check source/version, enough history, symbol and timezone assumptions, repainting/lookahead, session handling, alert frequency and edge-case parameters. A compile pass is not proof of trading value.",
@@ -119,7 +119,7 @@ TARGETS = [("pine-v6", "TradingView · Pine v6", ".pine"), ("mql5", "MT5 · MQL5
            ("mql4", "MT4 · MQL4", ".mq4"), ("ctrader-python", "cTrader · Python", ".py"), ("bookmap-python", "Bookmap · Python", ".py"),
            ("ninjatrader", "NinjaTrader 8 · NinjaScript", ".cs"), ("quantower", "Quantower · C#", ".cs"),
            ("sierra-acsil", "Sierra Chart · ACSIL C++", ".cpp"), ("prorealtime", "ProRealTime · ProBuilder", ".txt"),
-           ("gocharting-lipi", "GoCharting · Lipi", ".lipi"), ("motivewave", "MotiveWave · Java", ".java"), ("vela", "Vela · JavaScript", ".js"), ("jforex", "JForex · Java", ".java")]
+           ("gocharting-lipi", "GoCharting · Lipi", ".lipi"), ("motivewave", "MotiveWave · Java", ".java"), ("vela", "Vela · JavaScript", ".js"), ("jforex", "JForex · Java", ".java"), ("easylanguage", "TradeStation · EasyLanguage", ".txt")]
 
 
 def trader_records(repo: Path, copy: dict) -> list[dict]:
@@ -168,7 +168,7 @@ def recipe_records(repo: Path, copy: dict) -> list[dict]:
         ja = copy["recipes"].get(name, {}).get("ja", r.get("description", ""))
         out.append({
             "id": "recipe-" + name, "slug": "bsv-recipe-" + name, "recipe": name, "title": r["name"],
-            "platforms": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower", "Sierra Chart", "ProRealTime", "GoCharting", "MotiveWave", "Vela", "JForex"], "platform_label": "Recipe → Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower/Sierra Chart/ProRealTime/GoCharting/MotiveWave/Vela/JForex",
+            "platforms": ["TradingView", "MT5", "MT4", "cTrader", "Bookmap", "NinjaTrader", "Quantower", "Sierra Chart", "ProRealTime", "GoCharting", "MotiveWave", "Vela", "JForex", "TradeStation"], "platform_label": "Recipe → Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower/Sierra Chart/ProRealTime/GoCharting/MotiveWave/Vela/JForex/TradeStation",
             "type": "recipe", "status": "STRUCTURAL", "featured": False, "repo_path": f"trader-toolkit/recipes/{name}.json",
             "summary": T(r.get("description", r["name"]), ja), "overlay": r.get("overlay"),
             "blocks": [(b["id"], b["type"]) for b in r["blocks"]], "outputs": outputs, "json": p.read_text(),
@@ -279,8 +279,8 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
             use = {"en": ["Create a Vite project and install Vela from its official package (npm install @luxalgo/vela); review its license.", "Copy the BSV starter files (index.html, starter.js, package.json).", "Replace the sample bars with your own OHLCV data: { time (epoch ms), open, high, low, close, volume }.", "Run npm run dev, then add indicators, drawings or a reviewed scripting engine one at a time."],
                    "ja": ["Viteのプロジェクトを作り、Velaを公式パッケージから入れます（npm install @luxalgo/vela）。ライセンスも確認します。", "BSVのスターター（index.html・starter.js・package.json）をコピーします。", "サンプルのローソク足を自分のOHLCVデータ（time〔エポックミリ秒〕・open・high・low・close・volume）に置き換えます。", "npm run devで起動し、指標・描画・確認済みのスクリプトエンジンを1つずつ足します。"]}
         if not use and r["type"] == "recipe":
-            use = {"en": ["Open code (free email verification) to get the recipe JSON and fourteen pre-generated starters (Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart ACSIL, ProRealTime, GoCharting Lipi, MotiveWave Java, Vela JavaScript, JForex Java).", "Paste the starter for your platform, compile it there and resolve every TODO marker.", "Or edit the recipe JSON and re-run the generator yourself."],
-                   "ja": ["メール確認（無料）でレシピJSONと生成済みのひな形14種類（Pine v6・MQL5・MQL4・cTrader C#・cTrader Python・Bookmap Python・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTime・GoCharting（Lipi）・MotiveWave（Java）・Vela（JavaScript）・JForex（Java））を開きます。", "使うプラットフォーム用のひな形を貼り付けてコンパイルし、TODOをすべて解消します。", "レシピJSONを編集してジェネレーターを自分で実行し直すこともできます。"]}
+            use = {"en": ["Open code (free email verification) to get the recipe JSON and fifteen pre-generated starters (Pine v6, MQL5, MQL4, cTrader C#, cTrader Python, Bookmap Python, NinjaTrader 8, Quantower, Sierra Chart ACSIL, ProRealTime, GoCharting Lipi, MotiveWave Java, Vela JavaScript, JForex Java, TradeStation EasyLanguage).", "Paste the starter for your platform, compile it there and resolve every TODO marker.", "Or edit the recipe JSON and re-run the generator yourself."],
+                   "ja": ["メール確認（無料）でレシピJSONと生成済みのひな形15種類（Pine v6・MQL5・MQL4・cTrader C#・cTrader Python・Bookmap Python・NinjaTrader 8・Quantower・Sierra Chart（ACSIL）・ProRealTime・GoCharting（Lipi）・MotiveWave（Java）・Vela（JavaScript）・JForex（Java）・TradeStation（EasyLanguage））を開きます。", "使うプラットフォーム用のひな形を貼り付けてコンパイルし、TODOをすべて解消します。", "レシピJSONを編集してジェネレーターを自分で実行し直すこともできます。"]}
         sections = []
         if r["type"] == "recipe":
             rows = "".join(f'<tr><td><code>{esc(i)}</code></td><td><code>{esc(t)}</code></td></tr>' for i, t in r["blocks"])
@@ -373,7 +373,7 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
     jsonld = json.dumps({"@context": "https://schema.org", "@type": "CollectionPage", "name": "Build your own chart tool — BotShelf Vampire Traders Library", "url": ORIGIN + "/trading/build/",
                          "isPartOf": {"@type": "CollectionPage", "name": "Traders Library", "url": ORIGIN + "/trading/"}}, ensure_ascii=False)
     write(site / "trading/build/index.html", trader_shell(site, "Build your own chart tool — Traders Library · BotShelf Vampire",
-          "Original recipes, blocks and a code generator for TradingView, MT5, MT4, cTrader (C# / Python), Bookmap, NinjaTrader, Quantower, Sierra Chart, GoCharting, ProRealTime, MotiveWave, Vela and JForex. Honest test status.",
+          "Original recipes, blocks and a code generator for TradingView, MT5, MT4, cTrader (C# / Python), Bookmap, NinjaTrader, Quantower, Sierra Chart, GoCharting, ProRealTime, MotiveWave, Vela, JForex and TradeStation. Honest test status.",
           "/trading/build/", hub, extra_head=f'<script type="application/ld+json">{jsonld}</script>'))
     meta = [{k: r[k] for k in ("id", "slug", "title", "platforms", "type", "status", "featured", "summary")} | {"url": ("/trading/build/#path" if r["id"] == "trader-build-own-chart" else f"/trading/tools/{r['slug']}.html"), "source_gated": r["gated"]} for r in allr]
     write(site / "trading/build/toolkit.v1.json", json.dumps({"schema": "bsv-trader-build/v1", "source": "BotShelfVampire/botshelf trader-toolkit/catalog.json", "entries": meta}, ensure_ascii=False, indent=1) + "\n")
@@ -385,7 +385,7 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
     idx = replace_block(idx, "trader-chip", chip, '<a href="guides/choose.html" class="chip" data-guide="choose">')
     strip = (f'<section class="container bb-entry" aria-label="Build your own chart tool"><div><div class="eyebrow">{both(T("NEW · BUILD", "新着・作る"))}</div>'
              f'<h2>{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</h2>'
-             f'{both(T(f"{len(recipes)} recipes, a Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower/Sierra Chart/ProRealTime/GoCharting/MotiveWave/Vela/JForex generator and starters for {len(platforms)} platforms — including Vela for your own web chart and OpenMarkets as a data/agent input. Original BSV source; nothing runtime-tested yet.", f"レシピ{len(recipes)}本、Pine・MQL5・MQL4・cTrader・Bookmap・NinjaTrader・Quantower向けのコード生成、{len(platforms)}のプラットフォーム向けスターター。自作Webチャート用のVela、データ・エージェント連携のOpenMarketsも。BSVオリジナルのソースで、実行検証はまだです。"), "p")}</div>'
+             f'{both(T(f"{len(recipes)} recipes, a Pine/MQL5/MQL4/cTrader/Bookmap/NinjaTrader/Quantower/Sierra Chart/ProRealTime/GoCharting/MotiveWave/Vela/JForex/TradeStation generator and starters for {len(platforms)} platforms — including Vela for your own web chart and OpenMarkets as a data/agent input. Original BSV source; nothing runtime-tested yet.", f"レシピ{len(recipes)}本、Pine・MQL5・MQL4・cTrader・Bookmap・NinjaTrader・Quantower向けのコード生成、{len(platforms)}のプラットフォーム向けスターター。自作Webチャート用のVela、データ・エージェント連携のOpenMarketsも。BSVオリジナルのソースで、実行検証はまだです。"), "p")}</div>'
              f'<a class="btn primary" href="/trading/build/">{both(T("Start building →", "作り始める →"))}</a></section>')
     idx = replace_block(idx, "trader-strip", strip, '<div class="container main-layout" id="collection">')
     idx = re.sub(r'<link rel="stylesheet" href="/trading/assets/build\.[^"]+\.css">', "", idx)

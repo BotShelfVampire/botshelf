@@ -16,6 +16,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | Bookmap | Python API (open beta) and Java add-ons/API | Python generator target (`bookmap-python`, time bars built from trades) + trade-EMA add-on source; order-flow blocks still planned | Source prepared; runtime test still required |
 | MotiveWave | Java SDK | generator target (`motivewave`: `Study` with `DataSeries.ema/sma/atr`, Wilder RSI via `smma`, paths, closed-bar `ctx.signal`) + EMA custom-study source | Compiles with javac 21 against BSV stubs written from the SDK javadoc; real SDK build and MotiveWave load still required |
 | JForex (Dukascopy) | JForex API (Java `IStrategy`) | generator target (`jforex`: `IIndicators.ema/sma/rsi/atr` at bar shifts, closed-bar `onBar`, console values and notifications; no `IEngine`/orders) | Compiles with javac 21 against BSV stubs written from the JForex API javadoc; JForex platform compile and demo run still required |
+| TradeStation | EasyLanguage | generator target (`easylanguage`: indicator with `XAverage`/`Average`/`RSI`/`AvgTrueRange`, explicit cross comparisons, `PlotN`, `Alert` on `BarStatus(1) = 2`; no orders) | Structural check by BSV only (`check_easylanguage_output.mjs`); TradeStation Verify and chart test still required |
 | ProRealTime | ProBuilder | generator target (`prorealtime`: built-in averages/RSI/ATR, `CROSSES OVER/UNDER`, `RETURN` lines, arrow markers on overlays) + dual-EMA copy/paste indicator | Source prepared; runtime validation required |
 | ATAS | platform extensibility research | planned | Unverified |
 | OpenMarkets | REST/WebSocket/MCP data APIs, not a chart-script replacement | data/agent integration notes | API surface confirmed; no BSV runtime adapter yet |
@@ -153,3 +154,18 @@ Checked by BSV: all 14 recipes compile with javac 21 against stub classes writte
 - https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/IIndicators.html
 - https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/IHistory.html
 - https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/IConsole.html
+
+## TradeStation (EasyLanguage)
+
+EasyLanguage indicators are plain text documents created in the TradeStation Development Environment (New > Indicator) and checked with Verify. Each statement runs once per bar (and per tick on the last bar); `Vars:` declares series variables, `XAverage(Price, Length)`, `Average(Price, Length)`, `RSI(Price, Length)` and `AvgTrueRange(Length)` are built-in functions, `PlotN(Value, "Name")` draws plots 1–99, and `Alert("text")` raises an alert when alerts are enabled in the indicator properties (only on the last bar).
+
+The `easylanguage` target writes one indicator: one typed variable per block (`double V_<id>`, `bool S_<id>`), the four built-in functions for indicators (hl2/hlc3/ohlc4 written as price formulas), crosses as explicit comparisons with the previous bar (`a > b and a[1] <= b[1]`, the same rule as the other targets; EasyLanguage's `Crosses Over` treats flat stretches differently), thresholds/combines as boolean expressions, one `PlotN` per plot and one `if BarStatus(1) = 2 and ... then Alert(...)` per alert, so alerts fire on the closing tick. Session filters compare `Time` (bar close time, HHMM, chart time zone) and keep a TODO to convert the recipe time zone. Unsupported blocks stay as visible TODO comments. It is an indicator: no strategy order words are generated.
+
+Checked by BSV: `scripts/site/check_easylanguage_output.mjs` checks all 14 recipe outputs for balanced comments/parentheses, statement terminators, declared variables, documented function names, plot numbers and alert length. That is a structural check, not a TradeStation Verify; the code has not been verified or run in TradeStation.
+
+- https://help.tradestation.com/10_00/eng/tsdevhelp/elword/function/XAverage_function_.htm
+- https://help.tradestation.com/10_00/eng/tsdevhelp/elword/function/RSI_Function_.htm
+- https://help.tradestation.com/10_00/eng/tsdevhelp/elword/function/AvgTrueRange_Function_.htm
+- https://help.tradestation.com/10_00/eng/tsdevhelp/elword/word/plot_reserved_word_.htm
+- https://help.tradestation.com/10_00/eng/tsdevhelp/elword/word/alert_reserved_word_.htm
+- https://help.tradestation.com/10_00/eng/tsdevhelp/elword/word/barstatus_reserved_word_.htm
