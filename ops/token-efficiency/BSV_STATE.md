@@ -51,7 +51,7 @@ GrokBot must execute `ops/token-efficiency/GROKBOT_NEXT.md` now and keep the exi
 
 ## #4 + P0 tranche 3 LIVE (2026-10-04 01:15 JST)
 
-- Production deploy: 6ac12969543384071db67c7b. Chain: 6ac12003 -> 6ac1254b (#4 Tradovate) -> 6ac12969 (#8/#6/#7 tranche 3).
+- Production deploy: 6ac12dcb8a52872ee2f91a5d. Chain: 6ac12003 -> 6ac1254b (#4 Tradovate) -> 6ac12969 (#8/#6/#7 tranche 3) -> 6ac12dcb (#8 t4 sitemaps/gated URLs).
 - #4: Tradovate JavaScript custom-indicator target. Checked by check_tradovate.mjs (360/0) against a node:vm stub of the documented API; this is not a Tradovate run. Listed the ATAS way: 19 starters, 19 builder tabs.
 - #8 t3: /capabilities/index.json, capability-manifest v0.1, 90 manifests, nothing VERIFIED.
 - #6 t3: demand-request?op=signals, opportunity-signal v0.1, from approved public requests only.
