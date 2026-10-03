@@ -6,14 +6,21 @@
 // documented functions and constants are used, names are assigned before use, Ref only looks back, no Buy/Sell/Short/Cover,
 // indicator values match an independent JS reference once warmed up, and replayed alerts fire only on
 // completed bars, once per bar, with no misses.
+// Higher timeframe (TimeFrameSet / Ref(x, -1) / TimeFrameRestore / TimeFrameExpand(..., expandFirst), AFL guide
+// https://www.amibroker.com/guide/h_timeframe.html): statically, every assignment inside a TimeFrameSet block is
+// Ref(<expr>, -k) (k >= 1), compressed names are used only through TimeFrameExpand with the same interval and expandFirst,
+// and every TimeFrameSet is restored; dynamically, on 15-minute bars the expanded values equal an independent hourly
+// reference of the previous closed hour, evaluating any prefix of the bars gives the same value at its last bar (no
+// lookahead), and on hourly bars (chart not shorter) the values stay Null.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-const FN = { ema: [2, 2], ma: [2, 2], rsia: [1, 2], atr: [1, 1], ref: [2, 2], timenum: [0, 0], barindex: [0, 0], lastvalue: [1, 1], plot: [2, 9], alertif: [2, 6], printf: [1, 9], numtostr: [1, 4], writeif: [3, 3] };
+const FN = { ema: [2, 2], ma: [2, 2], rsia: [1, 2], atr: [1, 1], ref: [2, 2], timenum: [0, 0], barindex: [0, 0], lastvalue: [1, 1], plot: [2, 9], alertif: [2, 6], printf: [1, 9], numtostr: [1, 4], writeif: [3, 3],
+  timeframeset: [1, 1], timeframerestore: [0, 0], timeframeexpand: [3, 3], interval: [0, 0], iif: [3, 3], isnull: [1, 1] };
 const CONST = new Set(['open', 'high', 'low', 'close', 'true', 'false', 'null', 'styleline',
-  'colorblue', 'colorred', 'colorgreen', 'colororange', 'colorviolet', 'colorteal', 'colorbrown', 'colorgrey50']);
+  'expandfirst', 'indaily', 'colorblue', 'colorred', 'colorgreen', 'colororange', 'colorviolet', 'colorteal', 'colorbrown', 'colorgrey50']);
 const ORDER = new Set(['buy', 'sell', 'short', 'cover']);
 let checks = 0, failures = 0, files = 0;
 const fail = (f, m) => { failures++; console.error('FAIL', f, m); };
@@ -66,20 +73,37 @@ function parse(tokens) {
   return stmts;
 }
 
+const ivKey = (e) => e && (e.t === 'num' ? String(e.v) : e.t === 'id' ? e.v.toLowerCase() : null);
 function statics(f, stmts) {
-  const defined = new Set();
+  const defined = new Set(), compressed = new Map(); let tf = null;
   const walk = (e) => {
     if (!e) return;
-    if (e.t === 'id') ok(defined.has(e.v.toLowerCase()) || CONST.has(e.v.toLowerCase()), f, `undefined name ${e.v}`);
+    if (e.t === 'call' && e.f.toLowerCase() === 'timeframeexpand') {
+      const [x, iv, mode] = e.args;
+      ok(x && x.t === 'id' && compressed.has(x.v.toLowerCase()) && compressed.get(x.v.toLowerCase()) === ivKey(iv), f, 'TimeFrameExpand must expand a name computed in the same TimeFrameSet interval');
+      ok(mode && mode.t === 'id' && mode.v.toLowerCase() === 'expandfirst', f, 'TimeFrameExpand must use expandFirst on a Ref(x, -1) value');
+      ok(tf === null, f, 'TimeFrameExpand inside a TimeFrameSet block');
+      return;
+    }
+    if (e.t === 'id') { ok(!compressed.has(e.v.toLowerCase()), f, `compressed name ${e.v} used without TimeFrameExpand`); ok(defined.has(e.v.toLowerCase()) || CONST.has(e.v.toLowerCase()), f, `undefined name ${e.v}`); }
     if (e.t === 'call') { const s = FN[e.f.toLowerCase()]; ok(!!s, f, `undocumented function ${e.f}`); if (s) ok(e.args.length >= s[0] && e.args.length <= s[1], f, `${e.f} arg count ${e.args.length}`); if (e.f.toLowerCase() === 'ref') ok(e.args[1] && e.args[1].t === 'neg' && e.args[1].e.t === 'num' && e.args[1].e.v > 0, f, 'Ref must look back (negative constant), never ahead'); e.args.forEach(walk); }
     if (e.t === 'bin') { walk(e.l); walk(e.r); }
     if (e.t === 'not' || e.t === 'neg') walk(e.e);
   };
   for (const s of stmts) {
+    const c = s.t === 'expr' && s.e.t === 'call' ? s.e.f.toLowerCase() : '';
+    if (c === 'timeframeset') { ok(tf === null && ivKey(s.e.args[0]) !== null, f, 'TimeFrameSet without TimeFrameRestore first / interval not a constant'); tf = ivKey(s.e.args[0]); continue; }
+    if (c === 'timeframerestore') { ok(tf !== null, f, 'TimeFrameRestore without TimeFrameSet'); tf = null; continue; }
+    if (tf !== null) {
+      ok(s.t === 'set' && s.e.t === 'call' && s.e.f.toLowerCase() === 'ref' && s.e.args[1] && s.e.args[1].t === 'neg' && s.e.args[1].e.t === 'num' && s.e.args[1].e.v >= 1, f, 'inside TimeFrameSet only Ref(<indicator>, -k) assignments (closed higher bars)');
+      if (s.t === 'set') { s.e.args.forEach(walk); compressed.set(s.n.toLowerCase(), tf); defined.add(s.n.toLowerCase()); }
+      continue;
+    }
     walk(s.e);
     if (s.t === 'set') { ok(!ORDER.has(s.n.toLowerCase()) && !CONST.has(s.n.toLowerCase()) && !FN[s.n.toLowerCase()], f, `assigns reserved/order name ${s.n}`); defined.add(s.n.toLowerCase()); }
     else ok(s.e.t === 'call' && ['plot', 'alertif', 'printf'].includes(s.e.f.toLowerCase()), f, 'bare expression statement');
   }
+  ok(tf === null, f, 'TimeFrameSet never restored');
 }
 
 // --- evaluator (arrays; Null = NaN) ---
@@ -88,11 +112,21 @@ function maA(x, p) { const o = N(x.length, NaN); let s = 0; for (let i = 0; i < 
 function emaA(x, p) { const o = N(x.length, NaN), a = 2 / (p + 1); for (let i = p - 1; i < x.length; i++) o[i] = i === p - 1 ? x.slice(0, p).reduce((s, v) => s + v, 0) / p : a * x[i] + (1 - a) * o[i - 1]; return o; }
 function rsiA(x, p) { const o = N(x.length, NaN); let P = 0, M = 0; for (let i = 1; i < x.length; i++) { const d = x[i] - x[i - 1], W = d > 0 ? d : 0, S = d < 0 ? -d : 0; P = ((p - 1) * P + W) / p; M = ((p - 1) * M + S) / p; if (i >= p) o[i] = 100 * P / (P + M); } return o; } // AFL guide: built-in RSI equivalent
 function wilders(x, p) { const o = N(x.length, NaN); for (let i = 0; i < x.length; i++) o[i] = i === 0 ? x[0] : (o[i - 1] * (p - 1) + x[i]) / p; return o; }
+function ctxOf(bs) {
+  return { n: bs.length, price: { open: bs.map(b => b.open), high: bs.map(b => b.high), low: bs.map(b => b.low), close: bs.map(b => b.close) },
+    tr: bs.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bs[i - 1].close) - Math.min(b.low, bs[i - 1].close)) };
+}
+function compress(bars, sec) {  // UTC-aligned periods of `sec` seconds: first open, max high, min low, last close
+  const out = [], gidx = []; let key = null;
+  bars.forEach((b, i) => { const k = Math.floor(b.time / (sec * 1000)); if (k !== key) { key = k; out.push({ time: k * sec * 1000, open: b.open, high: b.high, low: b.low, close: b.close }); } else { const o = out[out.length - 1]; o.high = Math.max(o.high, b.high); o.low = Math.min(o.low, b.low); o.close = b.close; } gidx.push(out.length - 1); });
+  return { bars: out, gidx };
+}
 function evalAfl(stmts, bars, sink) {
-  const n = bars.length, env = new Map(), arr = (v) => Array.isArray(v) ? v : N(n, v);
-  const price = { open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low), close: bars.map(b => b.close) };
-  const tr = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
+  const base = ctxOf(bars), env = new Map(); let cur = base;
+  const arr = (v) => Array.isArray(v) ? v : N(cur.n, v), secOf = (v) => v === 'indaily' ? 86400 : Number(v), comps = new Map();
+  const comp = (sec) => { if (!comps.has(sec)) comps.set(sec, compress(bars, sec)); return comps.get(sec); };
   const ev = (e) => {
+    const n = cur.n, price = cur.price, tr = cur.tr;
     switch (e.t) {
       case 'num': return e.v; case 'str': return e.v;
       case 'id': { const k = e.v.toLowerCase(); if (env.has(k)) return env.get(k); if (price[k]) return price[k]; if (k === 'true') return 1; if (k === 'false') return 0; if (k === 'null') return NaN; return k; }
@@ -116,6 +150,12 @@ function evalAfl(stmts, bars, sink) {
         if (f === 'numtostr') { const d = Number(String(A[1] ?? 1.3).split('.')[1] || 0); return arr(A[0]).map(v => Number.isNaN(v) ? '{EMPTY}' : v.toFixed(d)); }
         if (f === 'writeif') return arr(A[0]).map(v => (v && !Number.isNaN(v)) ? A[1] : A[2]);
         if (f === 'printf') { (sink.prints || (sink.prints = [])).push(arr(A[0])[n - 1]); return 0; }
+        if (f === 'timeframeset') { cur = ctxOf(comp(secOf(A[0])).bars); return 0; }
+        if (f === 'timeframerestore') { cur = base; return 0; }
+        if (f === 'timeframeexpand') { const c = comp(secOf(A[1])), x = A[0]; if (!Array.isArray(x) || x.length !== c.bars.length || A[2] !== 'expandfirst') throw new Error('TimeFrameExpand of a non-compressed array'); return c.gidx.map(g => x[g]); }
+        if (f === 'interval') return bars.length > 1 ? (bars[1].time - bars[0].time) / 1000 : NaN;
+        if (f === 'iif') { const c = arr(A[0]), a = arr(A[1]), b = arr(A[2]); return c.map((v, i) => (v && !Number.isNaN(v)) ? a[i] : b[i]); }
+        if (f === 'isnull') return arr(A[0]).map(v => +Number.isNaN(v));
         if (f === 'alertif') { sink.alerts.push({ text: A[2], cond: arr(A[0]), lookback: A[5] ?? 1, flags: A[4] ?? 15 }); return 0; }
       }
     }
@@ -135,9 +175,25 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
-let alertsSeen = 0, panelsSeen = 0;
+let alertsSeen = 0, panelsSeen = 0, htfChecked = 0;
+const byId = (recipe) => Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
+let CUR_RECIPE = null;
+function htfReadable(b) {  // indicator on a data.higher_timeframe of whole minutes < 1 day, or 1 day (what the generator renders for AFL)
+  const d = byId(CUR_RECIPE)[(b.params || {}).timeframeRef], t = String(d?.params?.timeframe ?? '').toUpperCase();
+  return !!d && d.type === 'data.higher_timeframe' && /^indicator\.(ema|sma|rsi|atr)$/.test(b.type) && (/^\d+$/.test(t) ? Number(t) >= 1 && Number(t) <= 1440 : /^1?D$/.test(t));
+}
+// 15-minute bars for the higher-timeframe check (1000 hours, aligned to the hour) and an independent hourly reference
+const bars15 = []; { let q = 100; const t1 = Date.UTC(2026, 0, 5); for (let i = 0; i < 4000; i++) { const o = q; q = 100 + 10 * Math.sin(i / 37) + 2 * Math.sin(i * 1.3); bars15.push({ time: t1 + i * 900e3, open: o, high: Math.max(o, q) + 0.2 + 0.1 * Math.abs(Math.sin(i)), low: Math.min(o, q) - 0.2, close: q }); } }
+const hourly = []; for (let h = 0; h < bars15.length / 4; h++) { const g = bars15.slice(4 * h, 4 * h + 4); hourly.push({ open: g[0].open, high: Math.max(...g.map(b => b.high)), low: Math.min(...g.map(b => b.low)), close: g[3].close }); }
+function hourlyRef(b) {
+  const p = b.params || {}, src = p.source || 'close', x = hourly.map(h => src === 'hl2' ? (h.high + h.low) / 2 : src === 'hlc3' ? (h.high + h.low + h.close) / 3 : src === 'ohlc4' ? (h.open + h.high + h.low + h.close) / 4 : h[src]);
+  if (b.type === 'indicator.sma') return x.map((_, i) => refSma(x, p.length, i));
+  if (b.type === 'indicator.ema') return refEma(x, p.length);
+  if (b.type === 'indicator.rsi') { const g = x.map((w, i) => i ? Math.max(w - x[i - 1], 0) : 0), l = x.map((w, i) => i ? Math.max(x[i - 1] - w, 0) : 0), G = refRma(g.slice(1), p.length), Lo = refRma(l.slice(1), p.length); return [NaN, ...G.map((u, i) => 100 * u / (u + Lo[i]))]; }
+  const tr = hourly.map((h, i) => i === 0 ? h.high - h.low : Math.max(h.high, hourly[i - 1].close) - Math.min(h.low, hourly[i - 1].close)); return [NaN, ...refRma(tr.slice(1), p.length)];
+}
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
-  const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+  const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); CUR_RECIPE = recipe;
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'amibroker'], { encoding: 'utf8' });
   files++;
   let stmts;
@@ -152,7 +208,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   ok(sink.alerts.length === recipe.blocks.filter(b => b.type === 'alert.condition').length, f, 'one AlertIf per alert.condition');
   for (const b of recipe.blocks) {
     const v = env.get(('V_' + b.id).toLowerCase()), p = b.params || {};
-    if (p.timeframeRef) { const arr = Array.isArray(v) ? v : [v]; ok(v !== undefined && arr.every(x => !Number.isFinite(x)), f, `${b.id}: higher-timeframe block left empty, not computed on the chart timeframe`); continue; }
+    if (p.timeframeRef) { const arr = Array.isArray(v) ? v : [v]; ok(v !== undefined && arr.every(x => !Number.isFinite(x)), f, `${b.id}: higher-timeframe value stays Null when the chart (hourly here) is not shorter than the higher timeframe`); continue; }
     let want = null;
     if (b.type === 'indicator.sma') want = pxOf[p.source || 'close'].map((_, i) => refSma(pxOf[p.source || 'close'], p.length, i));
     if (b.type === 'indicator.ema') want = refEma(pxOf[p.source || 'close'], p.length);
@@ -163,6 +219,24 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     let worst = 0; for (let i = from; i < 400; i++) worst = Math.max(worst, Math.abs(v[i] - want[i]) / Math.max(1, Math.abs(want[i])));
     ok(v && worst < 1e-6, f, `${b.id} (${b.type}) matches reference from bar ${from}: worst ${worst}`);
   }
+  // higher timeframe on 15-minute bars: previous closed hour, equal to the independent reference; prefix runs agree (no lookahead)
+  const htfB = recipe.blocks.filter(b => (b.params || {}).timeframeRef && htfReadable(b) && String(byId(recipe)[b.params.timeframeRef].params.timeframe) === '60');
+  if (htfB.length) {
+    const e15 = evalAfl(stmts, bars15, { plots: [], alerts: [] });
+    for (const b of htfB) {
+      const v = e15.get(('V_' + b.id).toLowerCase()), R = hourlyRef(b), from = 4 * (15 * b.params.length + 2);
+      let worst = 0, bad = 0; for (let i = 0; i < bars15.length; i++) { const h = Math.floor(i / 4), want = h >= 1 ? R[h - 1] : NaN; if (i >= from) worst = Math.max(worst, Math.abs(v[i] - want) / Math.max(1, Math.abs(want))); if (i < 4) bad += Number.isFinite(v[i]) ? 1 : 0; }
+      ok(worst < 1e-6 && bad === 0, f, `${b.id}: 15-minute chart value = previous closed hour of the reference (worst ${worst}, first hour non-empty ${bad})`);
+      let diff = 0; for (let n = 3000; n <= 4000; n += 37) { const ep = evalAfl(stmts, bars15.slice(0, n), { plots: [], alerts: [] }).get(('V_' + b.id).toLowerCase()); const a = ep[n - 1], c = v[n - 1]; if (!(a === c || (Number.isNaN(a) && Number.isNaN(c)))) diff++; }
+      ok(diff === 0, f, `${b.id}: prefix runs give the same last-bar value (no lookahead; ${diff} differ)`);
+      htfChecked++;
+    }
+    // the prefix test must catch the shift-0 (forming bar) variant; run without the static check on purpose
+    const m = code.replace(/^(H_\w+) = Ref\((.*), -1\);$/gm, '$1 = $2;');
+    if (m !== code) { const ms = parse(tokenize(m)), full = evalAfl(ms, bars15, { plots: [], alerts: [] }); let caught = 0;
+      for (const b of htfB) for (let n = 3001; n <= 3400; n += 1) { const a = evalAfl(ms, bars15.slice(0, n), { plots: [], alerts: [] }).get(('V_' + b.id).toLowerCase())[n - 1], c = full.get(('V_' + b.id).toLowerCase())[n - 1]; if (a !== c) { caught++; break; } }
+      ok(caught === htfB.length, f, 'prefix test catches the shift-0 (forming higher bar) mutant'); }
+  }
   // replay: bars 300..399 arrive one by one; AlertIf sees the last `lookback` bars; flag 8 = no repeat for the same bar time
   // value panels (visual.table): printf lines for the last completed bar; expected fields decided here independently
   const tables = recipe.blocks.filter(b => b.type === 'visual.table');
@@ -170,7 +244,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     const by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
     const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine)|filter\.session)$/;
     const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : []; };
-    const shown = (r, seen = new Set()) => { if (!by[r]) return !!pxOf[r]; if (seen.has(r)) return true; seen.add(r); const b = by[r]; if (!OKT.test(b.type) || (b.params || {}).timeframeRef) return false; return deps(b).filter(Boolean).every(x => shown(x, seen)); };
+    const shown = (r, seen = new Set()) => { if (!by[r]) return !!pxOf[r]; if (seen.has(r)) return true; seen.add(r); const b = by[r]; if (!OKT.test(b.type) || ((b.params || {}).timeframeRef && !htfReadable(b))) return false; return deps(b).filter(Boolean).every(x => shown(x, seen)); };
     const expect = []; let skipped = 0, shownPanels = 0;
     for (const t of tables) {
       const fs2 = (t.params?.fields || []).filter(x => shown(x)); skipped += (t.params?.fields || []).length - fs2.length + (fs2.length ? 0 : 1);
@@ -195,5 +269,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify([...fired].sort((x, y) => x - y)) === JSON.stringify(expect), f, `alert ${k}: fired ${[...fired]} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
+console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
 process.exit(failures ? 1 : 0);

@@ -18,6 +18,15 @@
            state GetIndexByTime's rounding, so the step-back makes index - 1 a closed bar under any rounding (worst case one
            extra bar of lag). Indicators take the higher-timeframe series; the chart TimeFrame must be in the generated
            list of strictly lower time frames (https://help.ctrader.com/ctrader-algo/references/Collections/DataSeries/TimeSeries/).
+    AmiBroker: TimeFrameSet(sec); H_x = Ref(<indicator>, -1); TimeFrameRestore(); V_x = IIf(Interval() < sec,
+           TimeFrameExpand(H_x, sec, expandFirst), Null) — the guide's negative-shift construction
+           (https://www.amibroker.com/guide/h_timeframe.html); signals require NOT IsNull. check_amibroker_afl.mjs also
+           evaluates it against an hourly reference with a prefix (no-lookahead) test.
+    thinkScript: C_x = close(period = AggregationPeriod.X) (only that aggregation), E_x = indicator of it, H_x = E_x[1]
+           (previous secondary bar, as High(period = AggregationPeriod.DAY)[1] in the manual), V_x = if bsvHtfOk_X then H_x else
+           Double.NaN with bsvHtfOk_X = GetAggregationPeriod() < AggregationPeriod.X; nothing chart-period mixed in
+           (https://toslc.thinkorswim.com/center/reference/thinkScript/tutorials/Advanced/Chapter-11---Referencing-Secondary-Aggregation).
+           check_thinkscript.mjs models secondary contexts and runs the reference + prefix tests.
   A timeframe the target cannot name (e.g. 45 minutes on MT4/MT5) stays a TODO stub there.
 - every other target: each block that uses a higher timeframe is an unsupported stub with a TODO line, so nothing is
   computed on the chart timeframe. A timeframe the generator cannot read (e.g. weekly "W") is unsupported everywhere."""
@@ -28,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_live_toolkit as blt  # noqa: E402
 import build_request_market as brm  # noqa: E402
 REAL = {"backtrader", "backtesting-py", "nautilus"}
-IDIOM = {"pine-v6", "mql5", "mql4", "ninjatrader", "ctrader"}
+IDIOM = {"pine-v6", "mql5", "mql4", "ninjatrader", "ctrader", "amibroker", "thinkscript"}
 src = (ROOT / "trader-toolkit/generator/render.mjs").read_text()
 checks = failures = 0
 def ok(c, m):
@@ -125,7 +134,48 @@ def ct_problems(out, ids):
         if re.search(rf"_{re.escape(i)}\.Result\[(?!j\])", out) or re.search(rf"_{re.escape(i)}\.Result\.Last", out): p.append(f"{i}: higher-timeframe result read at a chart index or the newest bar")
     return p
 
-PROBLEMS = {"pine-v6": pine_problems, "mql5": mql5_problems, "mql4": mql4_problems, "ninjatrader": nt_problems, "ctrader": ct_problems}
+def afl_problems(out, ids):
+    """AmiBroker: Ref(x, -1) inside TimeFrameSet/Restore, expanded with expandFirst on the same interval, Null unless the chart is shorter."""
+    p = []
+    code = "\n".join(l for l in out.splitlines() if not l.lstrip().startswith("//"))
+    if re.search(r"expandLast|expandPoint|TimeFrameGetPrice|TimeFrameCompress", code): p.append("other expand/compress mode used")
+    blocks = re.findall(r"^TimeFrameSet\((\w+)\);\n((?:H_\w+ = .*\n)*)TimeFrameRestore\(\);$", code, re.M)
+    inblock = {m: iv for iv, body in blocks for m in re.findall(r"^H_(\w+) = ", body, re.M)}
+    for iv, body in blocks:
+        for line in body.splitlines():
+            SRC = r"(?:Open|High|Low|Close|\(High \+ Low\) / 2|\(High \+ Low \+ Close\) / 3|\(Open \+ High \+ Low \+ Close\) / 4)"
+            if not (re.fullmatch(rf"H_\w+ = Ref\((?:EMA|MA|RSIa)\({SRC}, \d+\), -1\);", line) or re.fullmatch(r"H_\w+ = Ref\(ATR\(\d+\), -1\);", line)):
+                p.append(f"not Ref(<indicator>, -1) in the higher time frame: {line}")
+    if len(re.findall(r"^TimeFrameSet\(", code, re.M)) != len(blocks) or len(re.findall(r"^TimeFrameRestore\(", code, re.M)) != len(blocks): p.append("TimeFrameSet/Restore not paired around Ref assignments only")
+    for i in ids:
+        iv = inblock.get(i)
+        if not iv: p.append(f"{i}: not computed as Ref(x, -1) inside TimeFrameSet"); continue
+        sec = "86400" if iv == "inDaily" else iv
+        if not re.search(rf"^V_{re.escape(i)} = IIf\(Interval\(\) < {sec}, TimeFrameExpand\(H_{re.escape(i)}, {iv}, expandFirst\), Null\);$", code, re.M): p.append(f"{i}: not expanded with expandFirst behind the shorter-chart guard")
+        for line in re.findall(rf"^S_\w+ = .*\bV_{re.escape(i)}\b.*$", code, re.M):
+            if f"NOT IsNull(V_{i})" not in line: p.append(f"{i}: signal without NOT IsNull guard: {line}")
+    return p
+
+def ts_problems(out, ids):
+    """thinkScript: secondary-only chain C_/E_ -> H_x = E_x[1] -> guarded V_x; no chart-period price in the chain; V_x not offset again."""
+    p = []
+    code = "\n".join(l.split("#")[0].rstrip() for l in out.splitlines())
+    for i in ids:
+        e = re.escape(i)
+        m = re.search(rf"^def V_{e} = if bsvHtfOk_(\w+) then H_{e} else Double\.NaN;$", code, re.M)
+        if not m: p.append(f"{i}: V_ is not the guarded closed value"); continue
+        g = m[1]
+        if not re.search(rf"^def bsvHtfOk_{g} = GetAggregationPeriod\(\) < AggregationPeriod\.{g};$", code, re.M): p.append(f"{i}: no shorter-chart guard for {g}")
+        if not re.search(rf"^def H_{e} = E_{e}\[1\];$", code, re.M): p.append(f"{i}: H_ is not E_[1] (previous secondary bar)")
+        chain = [l for l in code.splitlines() if re.match(rf"def (?:C|U|D|E)_{e} = ", l)]
+        if not chain: p.append(f"{i}: no secondary chain"); continue
+        for l in chain:
+            rhs = l.split(" = ", 1)[1]
+            if re.search(r"\b(?:open|high|low|close)\b(?!\(period = AggregationPeriod\.)", rhs) or set(re.findall(r"AggregationPeriod\.(\w+)", rhs)) - {g}: p.append(f"{i}: chart-period price or another aggregation in the secondary chain: {l}")
+            if re.search(r"\bV_|\bH_", rhs): p.append(f"{i}: secondary chain reads a shown value: {l}")
+    return p
+
+PROBLEMS = {"thinkscript": ts_problems, "pine-v6": pine_problems, "mql5": mql5_problems, "mql4": mql4_problems, "ninjatrader": nt_problems, "ctrader": ct_problems, "amibroker": afl_problems}
 # Each mutant breaks the closed-bar rule; the static check must catch every one (otherwise it proves nothing).
 MUTANTS = {
     "pine-v6": [("drop [1]", lambda o: o.replace(")[1], lookahead", "), lookahead")), ("lookahead off", lambda o: o.replace("lookahead_on", "lookahead_off")),
@@ -149,6 +199,17 @@ MUTANTS = {
                 ("chart-series input", lambda o: re.sub(r"(Indicators\.\w+\()_htfBars_\w+\.ClosePrices", r"\1Bars.ClosePrices", o)),
                 ("guard allows the same timeframe", lambda o: o.replace("TimeFrame.Minute45 }", "TimeFrame.Minute45, TimeFrame.Hour }")),
                 ("guard not used", lambda o: re.sub(r"\(!_htfOk_\w+ \|\| ", "(", o))],
+    "thinkscript": [("no [1]", lambda o: re.sub(r"^def (H_\w+) = (E_\w+)\[1\];", r"def \1 = \2;", o, flags=re.M)),
+                    ("chart-period close", lambda o: re.sub(r"^(def C_\w+ = )close\(period = AggregationPeriod\.\w+\)", r"\1close", o, count=1, flags=re.M)),
+                    ("no guard", lambda o: re.sub(r"if bsvHtfOk_\w+ then (H_\w+) else Double\.NaN", r"\1", o)),
+                    ("guard <=", lambda o: o.replace("GetAggregationPeriod() < ", "GetAggregationPeriod() <= ")),
+                    ("mixed aggregation", lambda o: o.replace("ExpAverage(C_ema, 50)", "ExpAverage(C_ema + close(period = AggregationPeriod.DAY) * 0, 50)"))],
+    "amibroker": [("shift 0", lambda o: re.sub(r"^(H_\w+) = Ref\((.*), -1\);$", r"\1 = \2;", o, flags=re.M)),
+                  ("expandLast", lambda o: o.replace(", expandFirst)", ", expandLast)")),
+                  ("no shorter-chart guard", lambda o: re.sub(r"IIf\(Interval\(\) < \w+, (TimeFrameExpand\([^)]*\)), Null\)", r"\1", o)),
+                  ("guard <=", lambda o: o.replace("IIf(Interval() < ", "IIf(Interval() <= ")),
+                  ("no IsNull on signals", lambda o: re.sub(r"NOT IsNull\(\w+\) AND ", "", o)),
+                  ("TimeFrameGetPrice shift 0", lambda o: re.sub(r"TimeFrameExpand\(H_\w+, (\w+), expandFirst\)", r'TimeFrameGetPrice("C", \1, 0)', o))],
 }
 def render(path, t):
     return subprocess.run(["node", str(ROOT / "trader-toolkit/generator/render.mjs"), str(path), "--target", t], capture_output=True, text=True, check=True).stdout
@@ -178,9 +239,9 @@ for p in recipes:
                 mo = mut(out)
                 ok(mo != out and PROBLEMS[t](mo, refs), f"{p.stem} {t}: static check catches mutant '{name}'")
             dout = render(daily, t)
-            ok(not any(re.search(stubre(i), dout) for i in refs) and not PROBLEMS[t](dout, refs) and ({"pine-v6": '"1D"', "ninjatrader": "AddDataSeries(BarsPeriodType.Day, 1)", "ctrader": "MarketData.GetBars(TimeFrame.Daily)"}.get(t, "PERIOD_D1") in dout), f"{p.stem} {t}: daily timeframe uses the closed-bar idiom")
+            ok(not any(re.search(stubre(i), dout) for i in refs) and not PROBLEMS[t](dout, refs) and ({"pine-v6": '"1D"', "ninjatrader": "AddDataSeries(BarsPeriodType.Day, 1)", "ctrader": "MarketData.GetBars(TimeFrame.Daily)", "amibroker": "TimeFrameSet(inDaily);", "thinkscript": "AggregationPeriod.DAY"}.get(t, "PERIOD_D1") in dout), f"{p.stem} {t}: daily timeframe uses the closed-bar idiom")
             m45out = render(m45, t)
-            if t in ("pine-v6", "ninjatrader", "ctrader"): ok(not any(re.search(stubre(i), m45out) for i in refs) and {"pine-v6": '"45"', "ninjatrader": "BarsPeriodType.Minute, 45", "ctrader": "TimeFrame.Minute45)"}[t] in m45out and not PROBLEMS[t](m45out, refs), f"{p.stem} {t}: 45 minutes readable on {t}")
+            if t in ("pine-v6", "ninjatrader", "ctrader", "amibroker"): ok(not any(re.search(stubre(i), m45out) for i in refs) and {"pine-v6": '"45"', "ninjatrader": "BarsPeriodType.Minute, 45", "ctrader": "TimeFrame.Minute45)", "amibroker": "TimeFrameSet(2700);"}[t] in m45out and not PROBLEMS[t](m45out, refs), f"{p.stem} {t}: 45 minutes readable on {t}")
             else: ok(all(re.search(stubre(i), m45out) for i in refs) and "BsvHtf" not in m45out, f"{p.stem} {t}: 45 minutes has no MT period, stays a TODO stub")
         else:
             ok(len(stub) == len(refs), f"{p.stem} {t}: every higher-timeframe block is an unsupported stub with a TODO line ({set(refs) - set(stub)} missing)")

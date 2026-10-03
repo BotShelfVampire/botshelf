@@ -95,7 +95,7 @@ function htfSource(recipe, b) {  // the data.higher_timeframe block an indicator
 // OpenTimes indexer to a bar opened at or before that time, minus 1 = a closed bar under any GetIndexByTime rounding).
 // BSV cannot run these platforms: the pattern is enforced by scripts/site/check_htf.py
 // and the output stays UNTESTED_RUNTIME. Doc URLs: DECISIONS.md "Higher timeframe on Pine v6 / MQL5 / MQL4".
-function htfIdiomTargets() { return ['pine-v6', 'mql5', 'mql4', 'ninjatrader', 'ctrader']; }
+function htfIdiomTargets() { return ['pine-v6', 'mql5', 'mql4', 'ninjatrader', 'ctrader', 'amibroker', 'thinkscript']; }
 // cTrader TimeFrame fields (https://help.ctrader.com/ctrader-algo/references/Period/TimeFrame/) by minutes; Monthly has no fixed length.
 function htfCTraderTfs() { return { 1: 'Minute', 2: 'Minute2', 3: 'Minute3', 4: 'Minute4', 5: 'Minute5', 6: 'Minute6', 7: 'Minute7', 8: 'Minute8', 9: 'Minute9', 10: 'Minute10',
   15: 'Minute15', 20: 'Minute20', 30: 'Minute30', 45: 'Minute45', 60: 'Hour', 120: 'Hour2', 180: 'Hour3', 240: 'Hour4', 360: 'Hour6', 480: 'Hour8', 720: 'Hour12',
@@ -108,6 +108,9 @@ function htfTf(t, minutes) {  // the target's own timeframe name, or null when t
   if (t === 'mql5') return HTF_MQL_PERIOD[minutes] ? 'PERIOD_' + HTF_MQL_PERIOD[minutes] : null;
   if (t === 'mql4') return [1, 5, 15, 30, 60, 240, 1440, 10080].includes(minutes) ? 'PERIOD_' + HTF_MQL_PERIOD[minutes] : null;  // MT4 standard periods only
   if (t === 'ctrader') return htfCTraderTfs()[minutes] || null;
+  if (t === 'thinkscript') return ({ 1: 'MIN', 2: 'TWO_MIN', 3: 'THREE_MIN', 4: 'FOUR_MIN', 5: 'FIVE_MIN', 10: 'TEN_MIN', 15: 'FIFTEEN_MIN', 20: 'TWENTY_MIN', 30: 'THIRTY_MIN',
+    60: 'HOUR', 120: 'TWO_HOURS', 240: 'FOUR_HOURS', 1440: 'DAY', 2880: 'TWO_DAYS', 4320: 'THREE_DAYS', 5760: 'FOUR_DAYS' })[minutes] || null;  // AggregationPeriod constants
+  if (t === 'amibroker') return minutes === 1440 ? 'inDaily' : (minutes < 1440 ? String(minutes * 60) : null);  // TimeFrameSet interval in seconds
   if (t === 'ninjatrader') return minutes === 10080 ? 'BarsPeriodType.Week, 1' : (minutes % 1440 === 0 ? `BarsPeriodType.Day, ${minutes / 1440}` : `BarsPeriodType.Minute, ${minutes}`);
   return String(minutes);
 }
@@ -1980,6 +1983,8 @@ function renderAmiBroker(recipe) {
   const val = (ref) => isPrice(ref) ? px[ref] : (isBoolType(map.get(ref)?.type) ? `S_${ref}` : `V_${ref}`);
   const prev = (ref) => `Ref(${val(ref)}, -1)`;
   const bool = (ref) => isBoolType(map.get(ref)?.type) ? `S_${ref}` : `(${val(ref)} != 0)`;
+  const htfOk = (list) => list.filter(r => htfTfOf(recipe, map.get(r))).map(r => `NOT IsNull(${val(r)}) AND `).join('');
+  const htfInds = recipe.blocks.filter(b => htfTfOf(recipe, b));
   const colors = ['colorBlue', 'colorRed', 'colorGreen', 'colorOrange', 'colorViolet', 'colorTeal', 'colorBrown', 'colorGrey50'];
   const L = [];
   L.push('// ORIGINAL BSV STARTER — AmiBroker Formula Language (AFL) indicator.');
@@ -1988,8 +1993,29 @@ function renderAmiBroker(recipe) {
   L.push(`// ${recipe.overlay ? 'Overlay recipe: drag the formula from the Charts list onto the price pane to overlay it.' : 'Separate-pane recipe: keep it in its own pane below the price.'}`);
   L.push('// Indicator only: it plots and raises alerts on completed bars. No Buy/Sell/Short/Cover arrays, no orders.');
   L.push('');
+  const ivs = [...new Set(htfInds.map(b => htfTfOf(recipe, b)))];
+  if (ivs.length) {
+    L.push('// Higher timeframe, last CLOSED bar only (AFL guide "Multiple Time Frame Support", https://www.amibroker.com/guide/h_timeframe.html):',
+      '// compute in the higher time frame, take Ref(x, -1) there (the previous, completed higher bar), then TimeFrameExpand with',
+      '// expandFirst. This is the guide\'s TimeFrameGetPrice construction with a negative shift, which the guide says to use for',
+      '// trading rules (shift 0 can look into the future). Values are Null unless the chart interval is shorter. Higher bars follow',
+      '// your database time stamps/session settings. Not run in AmiBroker by BSV (UNTESTED_RUNTIME).');
+    for (const iv of ivs) {
+      L.push(`TimeFrameSet(${iv});`);
+      for (const b of htfInds.filter(x => htfTfOf(recipe, x) === iv)) {
+        const p = b.params || {}, src = px[sourceName(p.source)];
+        const f = { 'indicator.ema': `EMA(${src}, ${p.length})`, 'indicator.sma': `MA(${src}, ${p.length})`, 'indicator.rsi': `RSIa(${src}, ${p.length})`, 'indicator.atr': `ATR(${p.length})` }[b.type];
+        L.push(`H_${b.id} = Ref(${f}, -1);`);
+      }
+      L.push('TimeFrameRestore();');
+      for (const b of htfInds.filter(x => htfTfOf(recipe, x) === iv)) L.push(`V_${b.id} = IIf(Interval() < ${iv === 'inDaily' ? 86400 : iv}, TimeFrameExpand(H_${b.id}, ${iv}, expandFirst), Null);`);
+    }
+    L.push('');
+  }
   for (const b of depOrder(recipe)) {
     const p = b.params || {};
+    if (htfTfOf(recipe, b)) continue;
+    if (htfDataUsed(recipe, b)) { L.push(`// ${b.id}: higher timeframe ${aflNote(String(b.params.timeframe))} (TimeFrameSet + Ref(x, -1) + TimeFrameExpand expandFirst above, closed bars only)`); continue; }
     switch (b.type) {
       case 'indicator.ema': L.push(`V_${b.id} = EMA(${px[sourceName(p.source)]}, ${p.length});`); break;
       case 'indicator.sma': L.push(`V_${b.id} = MA(${px[sourceName(p.source)]}, ${p.length});`); break;
@@ -2003,12 +2029,12 @@ function renderAmiBroker(recipe) {
       }
       case 'signal.cross': {
         const [gt, le] = p.direction === 'below' ? ['<', '>='] : ['>', '<='];
-        L.push(`S_${b.id} = ${val(p.left)} ${gt} ${val(p.right)} AND ${prev(p.left)} ${le} ${prev(p.right)};`);
+        L.push(`S_${b.id} = ${htfOk([p.left, p.right])}${htfOk([p.left, p.right]).replace(/IsNull\((\w+)\)/g, 'IsNull(Ref($1, -1))')}${val(p.left)} ${gt} ${val(p.right)} AND ${prev(p.left)} ${le} ${prev(p.right)};`);
         break;
       }
       case 'signal.threshold':
         if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`S_${b.id} = ${val(p.left)} ${thresholdOp(p)} ${Number(p.value)};`);
+        L.push(`S_${b.id} = ${htfOk([p.left])}${val(p.left)} ${thresholdOp(p)} ${Number(p.value)};`);
         break;
       case 'signal.combine':
         L.push(`S_${b.id} = ${(p.signals || []).map(x => bool(x)).join(p.mode === 'any' ? ' OR ' : ' AND ') || 'False'};`);
@@ -2069,8 +2095,34 @@ function renderThinkScript(recipe) {
   L.push('# Study only: it plots and raises alerts for closed bars. No AddOrder, no orders.');
   L.push('');
   if (!recipe.overlay) L.push('declare lower;', '');
+  const aggs = [...new Set(recipe.blocks.map(b => htfTfOf(recipe, b)).filter(Boolean))];
+  if (aggs.length) {
+    L.push('# Higher timeframe, last CLOSED bar only (thinkScript manual, "Referencing Secondary Aggregation",',
+      '# https://toslc.thinkorswim.com/center/reference/thinkScript/tutorials/Advanced/Chapter-11---Referencing-Secondary-Aggregation):',
+      '# values come from close(period = AggregationPeriod.X) etc.; expressions that use only those variables and constants keep the',
+      '# secondary aggregation, so H_x = E_x[1] is the previous secondary bar (as High(period = AggregationPeriod.DAY)[1] is the',
+      '# previous day in the manual). Never mixed with chart-period prices. Empty unless the chart aggregation is shorter (time charts).',
+      '# Not run in thinkorswim by BSV (UNTESTED_RUNTIME).');
+    for (const g of aggs) L.push(`def bsvHtfOk_${g} = GetAggregationPeriod() < AggregationPeriod.${g};`);
+  }
+  const hp = (g, ref, at = '') => { const k = px[ref]; const one = x => `${x}(period = AggregationPeriod.${g})`; return k.length === 1 ? one(k[0]) : `((${k.map(one).join(' + ')}) / ${k.length})`; };
   for (const b of depOrder(recipe)) {
     const p = b.params || {};
+    const g = htfTfOf(recipe, b);
+    if (g) {
+      const src = sourceName(p.source);
+      if (b.type === 'indicator.atr') L.push(`def E_${b.id} = WildersAverage(TrueRange(high(period = AggregationPeriod.${g}), close(period = AggregationPeriod.${g}), low(period = AggregationPeriod.${g})), ${p.length});`);
+      else {
+        L.push(`def C_${b.id} = ${hp(g, src)};`);
+        if (b.type === 'indicator.ema') L.push(`def E_${b.id} = ExpAverage(C_${b.id}, ${p.length});`);
+        if (b.type === 'indicator.sma') L.push(`def E_${b.id} = Average(C_${b.id}, ${p.length});`);
+        if (b.type === 'indicator.rsi') L.push(`def U_${b.id} = WildersAverage(Max(C_${b.id} - C_${b.id}[1], 0), ${p.length});`, `def D_${b.id} = WildersAverage(Max(C_${b.id}[1] - C_${b.id}, 0), ${p.length});`,
+          `def E_${b.id} = if U_${b.id} + D_${b.id} == 0 then 50 else 100 * U_${b.id} / (U_${b.id} + D_${b.id});`);
+      }
+      L.push(`def H_${b.id} = E_${b.id}[1]; # previous (closed) ${g} bar`, `def V_${b.id} = if bsvHtfOk_${g} then H_${b.id} else Double.NaN;`);
+      continue;
+    }
+    if (htfDataUsed(recipe, b)) { L.push(`# ${b.id}: higher timeframe ${tsNote(String(b.params.timeframe))} (secondary aggregation above, closed bars only)`); continue; }
     switch (b.type) {
       case 'indicator.ema': L.push(`def V_${b.id} = ExpAverage(${price(sourceName(p.source))}, ${p.length});`); break;
       case 'indicator.sma': L.push(`def V_${b.id} = Average(${price(sourceName(p.source))}, ${p.length});`); break;
@@ -2113,9 +2165,13 @@ function renderThinkScript(recipe) {
     L.push('');
     tableTodos(t, '#').forEach(x => L.push(x));
     if (!t.fields.length) continue;
-    L.push(`# Value panel ${tsNote(t.title)} (visual.table): AddLabel uses the last real bar, which is still forming, so [1] shows the bar that just closed.`);
+    L.push(`# Value panel ${tsNote(t.title)} (visual.table): AddLabel uses the last real bar, which is still forming, so [1] shows the bar that just closed${tableBlocks(recipe).some(() => recipe.blocks.some(b => htfTfOf(recipe, b))) ? ' (higher-timeframe-only fields are already the previous closed higher bar and are shown as they are)' : ''}.`);
     L.push(`AddLabel(yes, ${tsText(t.title)}, Color.WHITE);`);
-    t.fields.forEach(x => L.push(x.bool ? `AddLabel(yes, "${String(x.id).replace(/[^A-Za-z0-9_]/g, '_')}: " + (if ${val(x.id, '[1]')} then "true" else "false"), Color.LIGHT_GRAY);` : `AddLabel(yes, "${String(x.id).replace(/[^A-Za-z0-9_]/g, '_')}: " + ${val(x.id, '[1]')}, Color.LIGHT_GRAY);`));
+    // a field built only from higher-timeframe values is already a closed bar and stays in the secondary aggregation, where
+    // [1] would mean one more higher bar back; so it is shown without the offset (never the forming chart bar either way)
+    const onlyHtf = (id, seen = new Set()) => { const d = map.get(id); if (!d) return false; if (htfTfOf(recipe, d)) return true; if (seen.has(id)) return true; seen.add(id); const r = referencesFor(d); return r.length > 0 && r.every(x => onlyHtf(x, seen)); };
+    const at = id => onlyHtf(id) ? '' : '[1]';
+    t.fields.forEach(x => L.push(x.bool ? `AddLabel(yes, "${String(x.id).replace(/[^A-Za-z0-9_]/g, '_')}: " + (if ${val(x.id, at(x.id))} then "true" else "false"), Color.LIGHT_GRAY);` : `AddLabel(yes, "${String(x.id).replace(/[^A-Za-z0-9_]/g, '_')}: " + ${val(x.id, at(x.id))}, Color.LIGHT_GRAY);`));
   }
   if (alerts.length) {
     L.push('', '# Alerts: Alert() uses the value at the last real bar, which is still forming, so [1] checks the bar that just closed;',
