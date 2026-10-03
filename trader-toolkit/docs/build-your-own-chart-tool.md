@@ -49,6 +49,7 @@ Other current targets:
 --target quantower       # Quantower C# indicator
 --target sierra-acsil    # Sierra Chart ACSIL C++ custom study
 --target prorealtime     # ProRealTime ProBuilder indicator
+--target gocharting-lipi # GoCharting Lipi indicator
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.

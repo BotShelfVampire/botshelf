@@ -11,7 +11,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 | NinjaTrader | NinjaScript/C# | generator target (`ninjatrader`: built-in EMA/SMA/RSI/ATR, cross/threshold/combine, plots, closed-bar `Alert()`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | Quantower | C# Quantower Algo | generator target (`quantower`: built-in indicators, cross/threshold/combine, line series, closed-bar log alerts) + simple SMA source | Source prepared; runtime compile still required |
 | Sierra Chart | ACSIL/C++ | generator target (`sierra-acsil`: ACSIL moving averages/RSI/ATR, cross/threshold/combine, subgraphs, closed-bar `sc.AddAlertLine`) + EMA overlay custom-study source | Source prepared; runtime build still required |
-| GoCharting | Lipi scripting | dual-EMA Lipi source | Source prepared; Lipi-editor validation still required |
+| GoCharting | Lipi scripting | generator target (`gocharting-lipi`: talib indicators, cross/threshold/combine, plots, `alertcondition` + closed-bar `alert()`) + dual-EMA Lipi source | Source prepared; Lipi-editor validation still required |
 | MT4 | MQL4 | generator target (`mql4`) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | Bookmap | Python API (open beta) and Java add-ons/API | Python generator target (`bookmap-python`, time bars built from trades) + trade-EMA add-on source; order-flow blocks still planned | Source prepared; runtime test still required |
 | MotiveWave | Java SDK | EMA custom-study source | Source prepared; SDK/build verification required |
@@ -112,3 +112,13 @@ The `prorealtime` target writes a ProBuilder personal indicator with underscore-
 
 - https://www.prorealcode.com/documentation/probuilder/
 - https://www.prorealtime.com/en/pdf/probuilder.pdf
+
+## GoCharting
+
+Lipi is GoCharting's chart scripting language: indicators only (no orders, no other symbols or timeframes). Blocks use braces, `static` (not `var`) persists values, and chart-output calls must be at the top level.
+
+The `gocharting-lipi` target declares `indicator(title, "BSV", overlay)`, computes `talib.ema`, `talib.sma`, `talib.rsi` and `talib.atr`, uses `talib.crossover/crossunder` for crosses, and draws `plot` lines. Each alert block becomes an `alertcondition` (offered in the alert dialog) plus `if <signal>[1] { alert(...) }`, which fires on realtime bars once per closed bar; overlays add `plotshape` markers. Session filters compute minutes of day with `hour(time, tz)` / `minute(time, tz)` in the recipe time zone. Not checked in the Lipi editor by BSV yet.
+
+- https://gocharting.com/docs/scripting
+- https://gocharting.com/docs/scripting/automation/alerts
+- https://gocharting.com/docs/scripting/reference/function-index
