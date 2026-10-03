@@ -8,7 +8,7 @@ The goal is practical: choose a platform, copy a starter, edit one recipe, and t
 
 1. Read [Build your own chart tool](docs/build-your-own-chart-tool.md).
 2. Pick a starter recipe in [recipes](recipes/).
-3. Generate a supported starter with `node generator/render.mjs <recipe.json> --target pine-v6|mql5|ctrader|mql4|ctrader-python|bookmap-python|ninjatrader|quantower|sierra-acsil|prorealtime|gocharting-lipi|motivewave|vela|jforex|easylanguage|atas|amibroker|thinkscript|tradovate|backtrader`.
+3. Generate a supported starter with `node generator/render.mjs <recipe.json> --target pine-v6|mql5|ctrader|mql4|ctrader-python|bookmap-python|ninjatrader|quantower|sierra-acsil|prorealtime|gocharting-lipi|motivewave|vela|jforex|easylanguage|atas|amibroker|thinkscript|tradovate|backtrader|backtesting-py`.
 4. Paste/import it into the target platform.
 5. Compile and inspect it yourself.
 6. Record the exact platform/version you tested.
@@ -47,6 +47,7 @@ The goal is practical: choose a platform, copy a starter, edit one recipe, and t
 - thinkorswim / thinkScript — generator target (`thinkscript`: study with `ExpAverage`/`Average`/`WildersAverage`/`TrueRange`, plots, `Alert(cond[1], …, Alert.BAR)` for closed bars, no `AddOrder`; BSV thinkScript-subset parser/evaluator check, not verified in thinkorswim by BSV)
 - Tradovate / JavaScript — generator target (`tradovate`: custom indicator with `module.exports` / `Calculator.init`/`map(d, index)`, EMA/SMA/RSI/ATR computed in the generated code, plots, closed-bar alert dots (the published API has no alert call), no orders; checked in node:vm against a BSV stub of the documented API, not verified in Tradovate by BSV)
 - backtrader / Python — generator target (`backtrader`: one `bt.Indicator` with plot lines and alert lines, `bt.ind.EMA`/`SMA`/`RSI(safediv=True)`/`ATR`, a `BsvAlerts` strategy that prints one ALERT line per completed bar and places no orders, `main()` reading a UTC CSV with `GenericCSVData`; executed by BSV inside the backtrader library on synthetic bars, not a broker, live-feed or trading-platform run; runtime status stays UNTESTED_RUNTIME)
+- Backtesting.py / Python — generator target (`backtesting-py`: an alert-only `Strategy`; EMA/SMA/RSI (Wilder)/ATR (Wilder), crosses, thresholds and sessions computed once in `init()` with numpy so bar i only uses bars 0..i; `next()` prints one ALERT line per completed bar; no orders; `main()` reads a UTC CSV with pandas; executed by BSV inside the Backtesting.py library on synthetic bars, not a broker, live-feed or trading-platform run; runtime status stays UNTESTED_RUNTIME)
 - Others — compatibility/research queue; only publish platform-specific code after an implementation path is verified
 
 See [compatibility](docs/compatibility.md).
@@ -78,4 +79,4 @@ They are source starters, not profitability claims. Runtime verification is sepa
 
 ## Structural CI
 
-The repository workflow `.github/workflows/trader-toolkit-check.yml` checks generator syntax, parses every recipe, exercises the original three generator targets (Pine v6, MQL5, cTrader C#; the MQL4, cTrader Python, Bookmap Python, NinjaTrader, Quantower, Sierra Chart ACSIL, ProRealTime, GoCharting Lipi, MotiveWave Java, Vela JavaScript, JForex Java, TradeStation EasyLanguage, ATAS C#, AmiBroker AFL, thinkorswim thinkScript, Tradovate JavaScript and backtrader Python targets are covered by `scripts/site/test_builder_parity.mjs` and a local py_compile check until the workflow is updated), and verifies that unsupported advanced blocks remain explicit instead of silently disappearing.
+The repository workflow `.github/workflows/trader-toolkit-check.yml` checks generator syntax, parses every recipe, exercises the original three generator targets (Pine v6, MQL5, cTrader C#; the MQL4, cTrader Python, Bookmap Python, NinjaTrader, Quantower, Sierra Chart ACSIL, ProRealTime, GoCharting Lipi, MotiveWave Java, Vela JavaScript, JForex Java, TradeStation EasyLanguage, ATAS C#, AmiBroker AFL, thinkorswim thinkScript, Tradovate JavaScript, backtrader Python and Backtesting.py Python targets are covered by `scripts/site/test_builder_parity.mjs` and a local py_compile check until the workflow is updated), and verifies that unsupported advanced blocks remain explicit instead of silently disappearing.

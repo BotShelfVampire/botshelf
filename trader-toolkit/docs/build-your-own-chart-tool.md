@@ -59,6 +59,7 @@ Other current targets:
 --target thinkscript     # thinkorswim thinkScript study (plots + closed-bar Alert, no orders)
 --target tradovate       # Tradovate custom indicator, JavaScript (plots + closed-bar alert dots, no orders)
 --target backtrader      # backtrader indicator + alert-printing strategy, Python (no orders; run on your own CSV)
+--target backtesting-py  # Backtesting.py alert-printing strategy, Python (no orders; run on your own CSV)
 ```
 
 The generator is deliberately conservative. Unsupported blocks remain visible as `TODO` comments rather than being silently dropped.

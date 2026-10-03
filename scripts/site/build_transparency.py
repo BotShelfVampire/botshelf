@@ -26,6 +26,7 @@ CHANGES = [  # material public changes, dated (JST), from this branch's LIVE dep
     ("2026-10-04", "Teleop recipe library: an original SO-101 simulation practice-session recipe (not run by BSV).", "/robot-pilot/#recipes"),
     ("2026-10-04", "Builder opportunity signals (opportunity-signal v0.1) counted from approved public requests only.", "/requests/#builders"),
     ("2026-10-04", "Capability manifests (capability-manifest v0.1) for every public catalogue entry and BSV recipe; nothing marked VERIFIED.", "/capabilities/index.json"),
+    ("2026-10-04", "Backtesting.py (Python) starters listed; 21 builder targets.", "/trading/build/"),
     ("2026-10-04", "Request Market Atom feed of approved public requests; robot-pilot open missions board (real approved requests only).", "/requests/"),
     ("2026-10-04", "backtrader (Python) starters listed; 20 builder targets.", "/trading/build/"),
     ("2026-10-04", "Tradovate (JavaScript custom indicator) starters listed; 19 builder targets.", "/trading/build/"),
@@ -35,7 +36,7 @@ CHANGES = [  # material public changes, dated (JST), from this branch's LIVE dep
     ("2026-10-04", "Robot Pilot Academy (simulation-first curriculum, browser practice record, mission requests).", "/robot-pilot/"),
     ("2026-10-03", "Request Market: verified-email requests, reviewed before listing; counts read from the store.", "/requests/"),
     ("2026-10-03", "Machine-readable trust facts at /.well-known/bsv-trust.json; robots.txt allows OAI-SearchBot and disallows GPTBot.", "/.well-known/bsv-trust.json"),
-    ("2026-10-03", "AmiBroker (AFL), thinkorswim (thinkScript), Tradovate (JavaScript) and backtrader (Python) starters listed; 18 builder targets.", "/trading/build/"),
+    ("2026-10-03", "AmiBroker (AFL), thinkorswim (thinkScript), Tradovate (JavaScript), backtrader (Python) and Backtesting.py (Python) starters listed; 18 builder targets.", "/trading/build/"),
 ]
 
 
@@ -120,7 +121,7 @@ def main():
     site = Path(a.site); blt.assets(site)
     today = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).date().isoformat()
     F = figures(site)
-    if len(F["targets"]) < 20 or F["build_total"] == 0:
+    if len(F["targets"]) < 21 or F["build_total"] == 0:
         sys.exit(f"transparency: could not read figures {F}")
     d = site / "transparency"; d.mkdir(exist_ok=True)
     for old in d.glob("transparency.*"):
