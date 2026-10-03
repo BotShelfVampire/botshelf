@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "0.1",
+  "name": "Liquidity Sweep Alert Starter",
+  "description": "Pivot/sweep concept with ATR context. Advanced blocks intentionally remain TODO until a target renderer supports them honestly.",
+  "overlay": true,
+  "blocks": [
+    {
+      "id": "atr",
+      "type": "indicator.atr",
+      "params": {
+        "length": 14
+      }
+    },
+    {
+      "id": "pivot",
+      "type": "structure.pivot",
+      "params": {
+        "left": 3,
+        "right": 3,
+        "source": "high_low"
+      }
+    },
+    {
+      "id": "sweep",
+      "type": "signal.liquidity_sweep",
+      "params": {
+        "pivot": "pivot",
+        "atr": "atr",
+        "minAtrFraction": 0.15
+      }
+    },
+    {
+      "id": "zone",
+      "type": "visual.zone",
+      "params": {
+        "source": "pivot",
+        "title": "Sweep reference"
+      }
+    },
+    {
+      "id": "alert_sweep",
+      "type": "alert.condition",
+      "params": {
+        "when": "sweep",
+        "message": "BSV recipe: liquidity sweep candidate"
+      }
+    }
+  ]
+}
