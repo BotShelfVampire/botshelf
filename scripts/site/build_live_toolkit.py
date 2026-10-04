@@ -464,6 +464,20 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
         copy["ai_frameworks"].setdefault(r["framework"], {"slug": re.sub(r"[^a-z0-9]+", "-", r["framework"].lower()).strip("-"), "en": r["framework"], "ja": r["framework"], "refs": []})
     fw_order = list(copy["ai_frameworks"].keys())
     jobs = copy["ai_jobs"]
+
+    def related(r):
+        # related items (AI toolkit improvement, 2026-10-04): same job on other frameworks, then other items for the same
+        # framework; catalog facts only (title, framework, status), public summary pages only
+        sj = [x for x in recs if x["id"] != r["id"] and x["job"] == r["job"]]
+        sf = [x for x in recs if x["id"] != r["id"] and x["framework"] == r["framework"] and x not in sj]
+        li = lambda x: f'<li><a data-tk-rel="{esc(x["id"])}" href="/library/toolkit/{x["id"]}/">{esc(x["title"])}</a> — <span class="muted">{esc(x["framework"])} · {esc(st[x["status"]]["en"])}</span></li>'
+        out = ""
+        if sj:
+            out += f'<p class="section-label">Same job, other frameworks<span data-lang-show="ja" hidden> · 同じ仕事・ほかのフレームワーク</span></p><ul class="tk-list">' + "".join(li(x) for x in sj) + "</ul>"
+        if sf:
+            out += f'<p class="section-label">More for {esc(r["framework"])}<span data-lang-show="ja" hidden> · {esc(r["framework"])} のほかの項目</span></p><ul class="tk-list">' + "".join(li(x) for x in sf) + "</ul>"
+        return f'<section class="section" id="tk-related">{out}</section>' if out else ""
+
     for r in recs:
         # gated source
         blocks, zentries = [], []
@@ -502,6 +516,7 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
                 f'<p data-lang-show="ja" hidden>{esc(st[r["status"]]["ja"])}。BSVではユーザーのアカウントや実行環境で動かしていません。ファイルがあること、CIの構文確認は実行検証ではありません。</p></section>'
                 f'<section class="section"><p class="section-label">Files</p><ul>{names}</ul></section>'
                 + (f'<section class="section"><p class="section-label">Official references</p><ul>{refs}</ul></section>' if refs else "")
+                + related(r)
                 + f'<section class="section"><p class="section-label">Need it for another framework?</p>{lib_both(T("Ask for a version for the framework or runtime you use. The request form opens with this item named; nothing is sent until you press send with a verified email.", "使っているフレームワークや実行環境向けの版をリクエストできます。フォームにはこの項目名が入った状態で開きます。メール確認済みで送信ボタンを押すまで何も送られません。"), "p", "muted")}'
                   f'<p><a class="btn-fat" data-tk-ask="{esc(r["id"])}" href="/requests/?area=ai-workflows&amp;toolkit={esc(r["id"])}#rq-form">Ask for another framework →</a></p></section>')
         write(site / f"library/toolkit/{r['id']}/index.html", lib_shell(site, f"{r['title']} — {r['framework']} | AI toolkits | BotShelf Vampire", r["summary"]["en"], f"/library/toolkit/{r['id']}/", body))
@@ -531,11 +546,14 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
            f'<div class="lib-filters tk-filters" aria-label="Toolkit filters"><div class="row"><label for="tk-q">Search</label><input id="tk-q" type="search" placeholder="Filter: memory, MCP, local, guardrails…" autocomplete="off"><span class="muted" id="tk-count"></span></div>'
            f'<div class="row"><label for="tk-f-framework">Framework</label><select id="tk-f-framework"><option value="">Any</option>{fopt}</select><label for="tk-f-job">Job</label><select id="tk-f-job"><option value="">Any</option>{jopt}</select><label for="tk-f-status">Status</label><select id="tk-f-status"><option value="">Any</option>{sopt}</select></div></div>'
            f'{by_job}<section class="section"><p class="section-label">By framework / runtime</p></section>{by_fw}'
+           f'<section class="section" id="tk-ask"><p class="section-label">Not listed?</p>{lib_both(T("Ask for a framework, runtime or tool that is not here. Requests are reviewed before anything is listed; nothing is sent until you press send with a verified email.", "ここにないフレームワーク・実行環境・ツールをリクエストできます。掲載の前に確認します。メール確認済みで送信ボタンを押すまで何も送られません。"), "p", "muted")}'
+           '<p><a class="btn-fat" data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form">Ask for a framework or tool →</a></p></section>'
            f'<section class="section how-box"><p class="section-label">How these differ</p><p>Bionic is an agent app/harness for open models; smolagents is a lightweight Python framework; Letta focuses on persistent state and memory; the OpenAI Agents SDK provides orchestration primitives (tools, handoffs, guardrails, sessions); Dots are always-on responsibilities inside OpenAI\'s product; Hugging Face provides MCP, Spaces, Skills and Tiny Agents; the LangGraph and CrewAI team runners run one Library AI Team task at a time with your approval before saving. Choose by job — they are not interchangeable.</p></section>')
     write(site / "library/toolkit/index.html", lib_shell(site, "AI agent toolkits — Dots, Hugging Face, Bionic, smolagents, Letta, OpenAI Agents SDK, LangGraph, CrewAI | Build Library | BotShelf Vampire",
           "Original BSV templates and starters for OpenAI Dots, Hugging Face MCP/Spaces/Skills/Tiny Agents, LM Studio Bionic, smolagents, Letta, the OpenAI Agents SDK, and LangGraph/CrewAI team runners — organised by job and framework, with honest test status.", "/library/toolkit/", hub))
-    meta = [{"id": r["id"], "title": r["title"], "framework": r["framework"], "job": r["job"], "type": r["type"], "status": r["status"], "summary": r["summary"], "url": f"/library/toolkit/{r['id']}/", "source_gated": True} for r in recs]
-    write(site / "library/toolkit/toolkit.v1.json", json.dumps({"schema": "bsv-ai-toolkit/v1", "source": "BotShelfVampire/botshelf ai-toolkit/catalog.json", "entries": meta}, ensure_ascii=False, indent=1) + "\n")
+    meta = [{"id": r["id"], "title": r["title"], "framework": r["framework"], "job": r["job"], "type": r["type"], "status": r["status"], "summary": r["summary"], "url": f"/library/toolkit/{r['id']}/", "source_gated": True,
+             "sourceAccess": "free email verification", "license": "MIT", "runtimeTestedByBSV": False, "capabilityId": "bsv.ai-toolkit." + r["id"]} for r in recs]
+    write(site / "library/toolkit/toolkit.v1.json", json.dumps({"schema": "bsv-ai-toolkit/v1", "source": "BotShelfVampire/botshelf ai-toolkit/catalog.json", "counts": {"entries": len(meta), "frameworks": len({m["framework"] for m in meta}), "runtimeTestedByBSV": 0}, "entries": meta}, ensure_ascii=False, indent=1) + "\n")
 
     # entry inside EXISTING library index
     lp = site / "library/index.html"
