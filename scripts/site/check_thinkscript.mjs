@@ -20,7 +20,12 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-const FN = { expaverage: [2, 2], average: [2, 2], wildersaverage: [2, 2], max: [2, 2], truerange: [3, 3], secondsfromtime: [1, 1], secondstilltime: [1, 1], alert: [2, 4], addlabel: [2, 6], getaggregationperiod: [0, 0] };
+const FN = { expaverage: [2, 2], average: [2, 2], wildersaverage: [2, 2], max: [2, 2], truerange: [3, 3], secondsfromtime: [1, 1], secondstilltime: [1, 1], alert: [2, 4], addlabel: [2, 6], getaggregationperiod: [0, 0], highest: [2, 2], lowest: [2, 2], min: [2, 2], isnan: [1, 1], compoundvalue: [3, 3] };
+// a variable may refer to itself only as CompoundValue(1, <visible data using X[1]>, <historical data without X>) (thinkScript
+// reference: CompoundValue; Referencing Historical Data); anything else that names itself is an undefined name
+const hasSelf = (e, k) => !!e && ((e.t === 'id' && e.v.toLowerCase() === k) || (e.t === 'named' && hasSelf(e.e, k)) || (e.t === 'call' && e.args.some(a => hasSelf(a, k))) || (e.t === 'bin' && (hasSelf(e.l, k) || hasSelf(e.r, k))) || (e.t === 'neg' && hasSelf(e.e, k)) || (e.t === 'if' && (hasSelf(e.c, k) || hasSelf(e.a, k) || hasSelf(e.b, k))));
+const selfOffsOk = (e, k) => !e ? true : e.t === 'id' ? (e.v.toLowerCase() !== k || e.off === 1) : e.t === 'named' ? selfOffsOk(e.e, k) : e.t === 'call' ? e.args.every(a => selfOffsOk(a, k)) : e.t === 'bin' ? selfOffsOk(e.l, k) && selfOffsOk(e.r, k) : e.t === 'neg' ? selfOffsOk(e.e, k) : e.t === 'if' ? selfOffsOk(e.c, k) && selfOffsOk(e.a, k) && selfOffsOk(e.b, k) : true;
+const selfHold = (s) => { const k = s.n.toLowerCase(), e = s.e; return s.t === 'def' && e && e.t === 'call' && e.f.toLowerCase() === 'compoundvalue' && e.args.length === 3 && e.args[0].t === 'num' && e.args[0].v === 1 && hasSelf(e.args[1], k) && !hasSelf(e.args[2], k) && selfOffsOk(e.args[1], k); };
 const AGG = { MIN: 60e3, TWO_MIN: 120e3, THREE_MIN: 180e3, FOUR_MIN: 240e3, FIVE_MIN: 300e3, TEN_MIN: 600e3, FIFTEEN_MIN: 900e3, TWENTY_MIN: 1200e3, THIRTY_MIN: 1800e3,
   HOUR: 3600e3, TWO_HOURS: 7200e3, FOUR_HOURS: 14400e3, DAY: 86400e3, TWO_DAYS: 172800e3, THREE_DAYS: 259200e3, FOUR_DAYS: 345600e3 };
 const FUND = new Set(['open', 'high', 'low', 'close']);
@@ -124,7 +129,9 @@ function statics(f, stmts, recipe) {
   const toChart = (e, what) => { const c = ctxInfo(e, vars); ok(!c.bad && !c.many, f, `${what}: one secondary aggregation per expression`); if (c.ctx && c.ctx !== 'P') ok(c.closed, f, `${what}: secondary value reaches the chart without a closed-bar offset`);
     if (c.mixed) { const leak = []; const w = (x) => { if (!x) return; if (x.t === 'id' && vars.has(x.v.toLowerCase())) { const v = vars.get(x.v.toLowerCase()); if (v.ctx && v.ctx !== 'P' && !v.closed) leak.push(x.v); } if (x.t === 'call') x.args.forEach(a => w(a.t === 'named' ? a.e : a)); if (x.t === 'bin') { w(x.l); w(x.r); } if (x.t === 'neg') w(x.e); if (x.t === 'if') { w(x.c); w(x.a); w(x.b); } }; w(e); ok(!leak.length && !ctxInfo(e, vars).secs.some(g => g !== 'P'), f, `${what}: chart-period expression mixes in secondary aggregation ${leak.join(',')}`); } };
   for (const s of stmts) {
+    const hold = s.n && selfHold(s) && !defined.has(s.n.toLowerCase()); if (hold) defined.add(s.n.toLowerCase());
     if (s.e) walk(s.e);
+    if (hold) defined.delete(s.n.toLowerCase());
     if (s.t === 'def' || s.t === 'plot') { const c = ctxInfo(s.e, vars); ok(!c.bad && !c.many, f, `${s.n}: one aggregation per variable`); if (c.ctx === 'P' && c.secs.length) toChart(s.e, s.n); if (s.t === 'plot') toChart(s.e, s.n); vars.set(s.n.toLowerCase(), { ctx: c.ctx, closed: c.closed }); }
     if (s.t === 'expr' && s.e.t === 'call') s.e.args.forEach(a => toChart(a.t === 'named' ? a.e : a, s.e.f));
     if (s.t === 'def' || s.t === 'plot') { const k = s.n.toLowerCase(); ok(!defined.has(k) && !CONST.has(k) && !FN[k], f, `redefines ${s.n}`); defined.add(k); if (s.t === 'plot') plots.add(k); }
@@ -184,6 +191,10 @@ function evalTs(stmts, bars, sink) {
         const A = e.args.map(ev);
         if (f === 'expaverage') return expA(arr(A[0]), A[1]); if (f === 'average') return avgA(arr(A[0]), A[1]); if (f === 'wildersaverage') return wildA(arr(A[0]), A[1]);
         if (f === 'max') { const a = arr(A[0]), b = arr(A[1]); return a.map((v, i) => (fin(v) && fin(b[i])) ? Math.max(v, b[i]) : NaN); }
+        if (f === 'min') { const a = arr(A[0]), b = arr(A[1]); return a.map((v, i) => (fin(v) && fin(b[i])) ? Math.min(v, b[i]) : NaN); }
+        if (f === 'highest' || f === 'lowest') { const a = arr(A[0]), p = A[1], g = f === 'highest' ? Math.max : Math.min; return a.map((_, i) => { if (i < p - 1) return NaN; const w = a.slice(i - p + 1, i + 1); return w.every(fin) ? g(...w) : NaN; }); }
+        if (f === 'isnan') return arr(A[0]).map(v => +!fin(v));
+        if (f === 'compoundvalue') { const vis = arr(A[1]), hist = arr(A[2]); return vis.map((v, i) => i < A[0] ? hist[i] : v); }
         if (f === 'truerange') { const h = arr(A[0]), c = arr(A[1]), l = arr(A[2]); return h.map((v, i) => i === 0 ? v - l[i] : Math.max(v, c[i - 1]) - Math.min(l[i], c[i - 1])); }
         if ((f === 'secondsfromtime' || f === 'secondstilltime') && curG !== 'P') throw new Error('time function in secondary context');
         if (f === 'secondsfromtime') return bars.map(b => secOfDay(b.time) - hhmmSec(A[0]));
@@ -194,11 +205,26 @@ function evalTs(stmts, bars, sink) {
     }
     throw new Error('cannot evaluate ' + e.t);
   };
+  // self-referencing hold, bar by bar: parts without the variable are evaluated as arrays first; X[1] is the value one bar back
+  const BIN = { '+': (x, y) => x + y, '-': (x, y) => x - y, '*': (x, y) => x * y, '/': (x, y) => x / y, '>': (x, y) => +(x > y), '<': (x, y) => +(x < y), '>=': (x, y) => +(x >= y), '<=': (x, y) => +(x <= y), '==': (x, y) => +(x === y), '!=': (x, y) => (fin(x) && fin(y)) ? +(x !== y) : 0,
+    and: (x, y) => +(!!x && !!y && fin(x) && fin(y)), or: (x, y) => +((!!x && fin(x)) || (!!y && fin(y))) };
+  const evalHold = (s) => { const k = s.n.toLowerCase(), out = N(base.n, NaN);
+    const prep = (e) => { if (!hasSelf(e, k)) { const a = arr(ev(e)); return (i) => a[i]; }
+      if (e.t === 'id') return (i) => i >= 1 ? out[i - 1] : NaN;
+      if (e.t === 'if') { const c = prep(e.c), a = prep(e.a), b = prep(e.b); return (i) => { const v = c(i); return fin(v) ? (v ? a(i) : b(i)) : NaN; }; }
+      if (e.t === 'bin') { const l = prep(e.l), r = prep(e.r), F = BIN[e.o.toLowerCase()]; return (i) => F(l(i), r(i)); }
+      if (e.t === 'neg') { const x = prep(e.e); return (i) => -x(i); }
+      if (e.t === 'call' && ['max', 'min'].includes(e.f.toLowerCase()) && e.args.length === 2) { const a = prep(e.args[0]), b = prep(e.args[1]), g = e.f.toLowerCase() === 'max' ? Math.max : Math.min; return (i) => { const x = a(i), y = b(i); return fin(x) && fin(y) ? g(x, y) : NaN; }; }
+      throw new Error('self reference in an unsupported form'); };
+    const vis = prep(s.e.args[1]), hist = arr(ev(s.e.args[2]));
+    for (let i = 0; i < base.n; i++) out[i] = i < 1 ? hist[i] : vis(i);
+    return out; };
   const chartEnv = new Map();
   for (const s of stmts) {
     if (s.t === 'def' || s.t === 'plot') {
       const c = ctxInfo(s.e, vars); curG = c.ctx && c.ctx !== 'P' ? c.ctx : 'P'; cur = curG === 'P' ? base : comp(curG);
-      const v = ev(s.e); cur = base; const g = c.ctx === '' ? '' : curG; curG = 'P';
+      if (selfHold(s) && curG !== 'P') throw new Error('self reference in a secondary aggregation');
+      const v = selfHold(s) ? evalHold(s) : ev(s.e); cur = base; const g = c.ctx === '' ? '' : curG; curG = 'P';
       env.set(s.n.toLowerCase(), v); vctx.set(s.n.toLowerCase(), g); vars.set(s.n.toLowerCase(), { ctx: c.ctx, closed: c.closed });
       const cv = toChartArr(v, g); chartEnv.set(s.n.toLowerCase(), cv);
       if (s.t === 'plot') sink.plots.push({ name: s.n, v: Array.isArray(cv) ? cv : N(base.n, cv) });
@@ -225,7 +251,7 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
-let alertsSeen = 0, panelsSeen = 0, htfChecked = 0;
+let alertsSeen = 0, panelsSeen = 0, htfChecked = 0, rangeChecked = 0, breakoutsSeen = 0, mutantsCaught = 0, zonesSeen = 0, pivSigSeen = 0;
 const TS_MIN = { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 10: 1, 15: 1, 20: 1, 30: 1, 60: 1, 120: 1, 240: 1, 1440: 1, 2880: 1, 4320: 1, 5760: 1 };
 function htfReadable(recipe, b) {
   const d = recipe.blocks.find(x => x.id === (b.params || {}).timeframeRef), t = String(d?.params?.timeframe ?? '').toUpperCase();
@@ -253,7 +279,11 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   if (failures > before) continue; // do not evaluate code that failed the static checks
   const sink = { plots: [], alerts: [] };
   const env = evalTs(stmts, bars, sink);
-  ok(sink.plots.length === recipe.blocks.filter(b => b.type === 'visual.plot').length, f, 'one plot per visual.plot');
+  const zoneB = recipe.blocks.filter(b => b.type === 'visual.zone' && new RegExp(`^plot ZH\\d+ = V_${b.params?.source}_high;`, 'm').test(code));
+  ok(sink.plots.length === recipe.blocks.filter(b => b.type === 'visual.plot').length + 2 * zoneB.length, f, 'one plot per visual.plot, two per rendered zone');
+  zoneB.forEach((z, k) => { const n0 = sink.plots.length - 2 * zoneB.length + 2 * k, hv = env.get(`v_${z.params.source}_high`), lv = env.get(`v_${z.params.source}_low`);
+    const z15 = evalTs(stmts, bars15, { plots: [], alerts: [] }); ok(sink.plots[n0].v === hv && sink.plots[n0 + 1].v === lv && z15.get(`v_${z.params.source}_high`).some(Number.isFinite), f, `${z.id}: zone lines are the source high / low (not vacuous on the 15-minute bars)`); zonesSeen++; });
+  recipe.blocks.filter(b => b.type === 'visual.zone' && !zoneB.includes(b)).forEach(b => ok(code.includes(`# TODO unsupported block visual.zone: ${b.id}`), f, `${b.id}: zone left as TODO`));
   ok(sink.alerts.length === recipe.blocks.filter(b => b.type === 'alert.condition').length, f, 'one Alert per alert.condition');
   for (const b of recipe.blocks) {
     const v = env.get(('V_' + b.id).toLowerCase()), p = b.params || {}, x = pxOf[p.source || 'close'];
@@ -273,17 +303,17 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const tables = recipe.blocks.filter(b => b.type === 'visual.table');
   if (tables.length) {
     const by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
-    const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine)|filter\.session)$/;
-    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : []; };
+    const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine|breakout)|filter\.session|structure\.range)$/;
+    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : b.type === 'structure.range' ? [q.during] : b.type === 'signal.breakout' ? [q.range] : []; };
     const shown = (r, seen = new Set()) => { if (!by[r]) return !!pxOf[r]; if (seen.has(r)) return true; seen.add(r); const b = by[r]; if (!OKT.test(b.type) || ((b.params || {}).timeframeRef && !htfReadable(recipe, b))) return false; return deps(b).filter(Boolean).every(x => shown(x, seen)); };
     // a field built only from higher-timeframe values is shown without [1] (it is already the previous closed higher bar)
     const htfOnly = (r, seen = new Set()) => { const b = by[r]; if (!b) return false; if ((b.params || {}).timeframeRef) return true; if (seen.has(r)) return true; seen.add(r); const d = deps(b).filter(Boolean); return d.length > 0 && d.every(x => htfOnly(x, seen)); };
     const want = [], labels = (sink.labels || []).map(l => l.text[NB - 1]); let skipped = 0;
     for (const t of tables) { const fs2 = (t.params?.fields || []).filter(x => shown(x)); skipped += (t.params?.fields || []).length - fs2.length + (fs2.length ? 0 : 1); if (fs2.length) want.push([t.params?.title || t.id, fs2]); }
     const expect = [];
-    for (const [title, fs2] of want) { expect.push(String(title)); for (const x of fs2) { const isB = /^(signal|filter)\./.test(by[x]?.type || ''); const v = env.get(((isB ? 'S_' : 'V_') + x).toLowerCase()); const at = v[htfOnly(x) ? NB - 1 : NB - 2]; expect.push(x + ': ' + (isB ? (at ? 'true' : 'false') : String(at))); } }
+    for (const [title, fs2] of want) { expect.push(String(title)); for (const x0 of fs2) for (const x of by[x0].type === 'structure.range' ? by[x0].params.track.map(k => x0 + '_' + k) : [x0]) { const isB = /^(signal|filter)\./.test(by[x]?.type || ''); const v = env.get(((isB ? 'S_' : 'V_') + x).toLowerCase()); const at = v[htfOnly(x) ? NB - 1 : NB - 2]; expect.push(x + ': ' + (isB ? (at ? 'true' : 'false') : String(at))); } }
     ok(JSON.stringify(labels) === JSON.stringify(expect), f, `value panel labels ${JSON.stringify(labels)} expected ${JSON.stringify(expect)}`);
-    for (const [, fs2] of want) for (const x of fs2) if (/^indicator\./.test(by[x].type)) { const lab = labels.find(l => l.startsWith(x + ': ')); const v = Number(lab.slice(x.length + 2)); const r = env.get(('V_' + x).toLowerCase())[htfOnly(x) ? NB - 1 : NB - 2]; ok(htfOnly(x) ? (!fin(v) && !fin(r)) : (fin(v) && Math.abs(v - r) < 1e-12 * Math.max(1, Math.abs(r))), f, `panel ${x} shows the closed bar's value (higher timeframe: empty on this hourly chart)`); }
+    for (const [, fs2] of want) for (const x of fs2) if (/^indicator\./.test(by[x]?.type || '')) { const lab = labels.find(l => l.startsWith(x + ': ')); const v = Number(lab.slice(x.length + 2)); const r = env.get(('V_' + x).toLowerCase())[htfOnly(x) ? NB - 1 : NB - 2]; ok(htfOnly(x) ? (!fin(v) && !fin(r)) : (fin(v) && Math.abs(v - r) < 1e-12 * Math.max(1, Math.abs(r))), f, `panel ${x} shows the closed bar's value (higher timeframe: empty on this hourly chart)`); }
     ok((code.match(/TODO [A-Za-z0-9_]+: visual\.table /g) || []).length === skipped && !/TODO unsupported block visual\.table/.test(code), f, `panel TODO lines (${skipped})`);
     panelsSeen += want.length;
   }
@@ -305,6 +335,70 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
       for (const b of htfB) for (let n = 3001; n <= 3400; n++) { const a = evalTs(ms, bars15.slice(0, n), { plots: [], alerts: [] }).get(('V_' + b.id).toLowerCase())[n - 1], c = full.get(('V_' + b.id).toLowerCase())[n - 1]; if (a !== c) { caught++; break; } }
       ok(caught === htfB.length && staticCaught, f, `no-offset mutant caught by the prefix test (${caught}/${htfB.length}) and by the static closed-bar rule (${staticCaught})`); }
   }
+  // ranges and breakouts (structure.range / signal.breakout) on the 15-minute bars: an independent window reference written
+  // here from the recipe's session (bar times read in EST, as the evaluator's SecondsFromTime does), every bar compared,
+  // breakouts must fire (not vacuous), prefix runs agree (no lookahead), and two mutants must be caught
+  const byId = Object.fromEntries(recipe.blocks.map(b => [b.id, b])), same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b)) || Math.abs(a - b) < 1e-9, tr = (v) => !!(v && !Number.isNaN(v));
+  const rngB = recipe.blocks.filter(b => b.type === 'structure.range' && new RegExp(`^def R_${b.id} = `, 'm').test(code));
+  if (rngB.length) {
+    const by = byId, e15 = evalTs(stmts, bars15, { plots: [], alerts: [] });
+    const inside = (sb) => { const q = sb.params || {}, [a, z] = String(q.session || '0000-2359').split('-').map(x => +x.slice(0, 2) * 60 + +x.slice(2, 4)); return bars15.map(b => { const d = new Date(b.time + EST), m = d.getUTCHours() * 60 + d.getUTCMinutes(); return a <= z ? m >= a && m < z : m >= a || m < z; }); };
+    const refRange = (rb) => { const R = inside(by[rb.params.during]), H = [], Lo = []; let h = NaN, l = NaN;
+      bars15.forEach((b, i) => { if (R[i]) { const fresh = i === 0 || !R[i - 1]; h = fresh ? b.high : Math.max(h, b.high); l = fresh ? b.low : Math.min(l, b.low); } H.push(h); Lo.push(l); }); return { R, H, Lo }; };
+    const bos = recipe.blocks.filter(x => x.type === 'signal.breakout' && rngB.some(r => r.id === x.params?.range));
+    const bad = (env) => { let n = 0; for (const rb of rngB) { const q = refRange(rb); for (const k of (rb.params.track || [])) { const v = env.get(`v_${rb.id}_${k}`.toLowerCase()), w = k === 'high' ? q.H : q.Lo; for (let i = 0; i < bars15.length; i++) if (!same(v[i], w[i])) n++; } }
+      for (const bb of bos) { const q = refRange(by[bb.params.range]), d = bb.params.direction || 'either', v = env.get(`s_${bb.id}`.toLowerCase());
+        for (let i = 0; i < bars15.length; i++) { const c = bars15[i].close, pc = i ? bars15[i - 1].close : NaN, okb = !q.R[i] && Number.isFinite(q.H[i]) && i > 0;
+          const up = okb && c > q.H[i] && pc <= q.H[i], dn = okb && c < q.Lo[i] && pc >= q.Lo[i], want = d === 'either' ? up || dn : d === 'above' ? up : dn; if (tr(v[i]) !== want) n++; } }
+      return n; };
+    for (const rb of rngB) ok(refRange(rb).H.some(Number.isFinite), f, `${rb.id}: the 15-minute bars have windows (not vacuous)`);
+    ok(bad(e15) === 0, f, `range / breakout values equal the reference on every 15-minute bar (${bad(e15)} differ)`);
+    rangeChecked += rngB.length;
+    for (const bb of bos) { const n = e15.get(`s_${bb.id}`.toLowerCase()).filter(tr).length; ok(n > 0, f, `${bb.id}: breakouts fire on the 15-minute bars (${n})`); breakoutsSeen += n; }
+    let pd = 0; for (let n = 1200; n <= 4000; n += 151) { const ep = evalTs(stmts, bars15.slice(0, n), { plots: [], alerts: [] }); for (const rb of rngB) for (const k of rb.params.track) if (!same(ep.get(`v_${rb.id}_${k}`.toLowerCase())[n - 1], e15.get(`v_${rb.id}_${k}`.toLowerCase())[n - 1])) pd++; for (const bb of bos) if (tr(ep.get(`s_${bb.id}`.toLowerCase())[n - 1]) !== tr(e15.get(`s_${bb.id}`.toLowerCase())[n - 1])) pd++; }
+    ok(pd === 0, f, `range prefix runs give the same last-bar value (no lookahead; ${pd} differ)`);
+    for (const [mn, from, to] of [['window never resets', /if W_\w+ then (high|low) else /g, ''], ['breakout without the close before', / and close\[1\] <= V_\w+_high;/, ';']]) {
+      if (mn.startsWith('breakout') && !bos.length) continue;
+      const mc = code.replace(from, to); if (mc === code) { ok(false, f, `mutant could not be built: ${mn}`); continue; }
+      const caught = bad(evalTs(parse(tokenize(mc)), bars15, { plots: [], alerts: [] })) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++;
+    }
+  }
+  // pivots, sweeps and divergences on the 15-minute bars: an independent bar-by-bar reference (pivot confirmed `right` bars later,
+  // strictly beyond the left bars, at least as far as the right ones; last pivot held); sweep and divergence use the evaluator's
+  // ATR / oscillator (checked against their own reference above) and are compared after warm-up; mutants must be caught
+  const pivB = recipe.blocks.filter(b => b.type === 'structure.pivot' && new RegExp(`^def P_${b.id}_h = `, 'm').test(code));
+  if (pivB.length) {
+    const by = byId, N15 = bars15.length, px15 = (k) => bars15.map(b => b[k]);
+    const refPiv = (pb) => { const q = pb.params, [hk, lk] = (q.source || 'close') === 'high_low' ? ['high', 'low'] : ['close', 'close'], H = px15(hk), Lo = px15(lk), out = { h: [], l: [], ph: [], pl: [], H, Lo };
+      let vh = NaN, vl = NaN; for (let i = 0; i < N15; i++) { const j = i - q.right; let up = false, dn = false;
+        if (j - q.left >= 0) { up = true; dn = true; for (let n = j - q.left; n <= i; n++) { if (n === j) continue; if (n < j ? !(H[j] > H[n]) : !(H[j] >= H[n])) up = false; if (n < j ? !(Lo[j] < Lo[n]) : !(Lo[j] <= Lo[n])) dn = false; } }
+        if (up) { vh = H[j]; out.ph.push(j); } if (dn) { vl = Lo[j]; out.pl.push(j); } out.h.push(vh); out.l.push(vl); } return out; };
+    const sigB = recipe.blocks.filter(b => /^signal\.(liquidity_sweep|divergence)$/.test(b.type) && pivB.some(x => x.id === b.params?.pivot));
+    const bad = (env) => { let n = 0; for (const pb of pivB) { const q = refPiv(pb); for (let i = 0; i < N15; i++) { if (!same(env.get(`v_${pb.id}_high`)[i], q.h[i])) n++; if (!same(env.get(`v_${pb.id}_low`)[i], q.l[i])) n++; } }
+      for (const sb of sigB) { const pb = by[sb.params.pivot], q = refPiv(pb), v = env.get(`s_${sb.id}`), from = 400;
+        if (sb.type === 'signal.liquidity_sweep') { const A = env.get(`v_${sb.params.atr}`), fr = Number(sb.params.minAtrFraction || 0);
+          for (let i = from; i < N15; i++) { const b = bars15[i], ph = q.h[i - 1], pl = q.l[i - 1]; const w = Number.isFinite(A[i]) && ((Number.isFinite(ph) && b.high > ph && b.high - ph >= fr * A[i] && b.close < ph) || (Number.isFinite(pl) && b.low < pl && pl - b.low >= fr * A[i] && b.close > pl)); if (tr(v[i]) !== w) n++; } }
+        else { const O = env.get(`v_${sb.params.oscillator}`), d = sb.params.direction || 'both', w = new Array(N15).fill(false), R = pb.params.right;
+          if (d !== 'bullish') for (let k = 1; k < q.ph.length; k++) { const a = q.ph[k - 1], j = q.ph[k]; if (q.H[j] > q.H[a] && O[j] < O[a]) w[j + R] = true; }
+          if (d !== 'bearish') for (let k = 1; k < q.pl.length; k++) { const a = q.pl[k - 1], j = q.pl[k]; if (q.Lo[j] < q.Lo[a] && O[j] > O[a]) w[j + R] = true; }
+          for (let i = from; i < N15; i++) if (tr(v[i]) !== w[i]) n++; } }
+      return n; };
+    const e15 = evalTs(stmts, bars15, { plots: [], alerts: [] });
+    ok(bad(e15) === 0, f, `pivot / sweep / divergence values equal the reference on the 15-minute bars (${bad(e15)} differ)`);
+    for (const pb of pivB) ok(refPiv(pb).ph.length > 0 && refPiv(pb).pl.length > 0, f, `${pb.id}: pivots occur on the 15-minute bars (not vacuous)`);
+    for (const sb of sigB) { const c = e15.get(`s_${sb.id}`).slice(400).filter(tr).length; ok(c > 0, f, `${sb.id}: fires on the 15-minute bars (${c}; not vacuous)`); pivSigSeen += c; }
+    let pd = 0; for (let n = 1200; n <= 4000; n += 151) { const ep = evalTs(stmts, bars15.slice(0, n), { plots: [], alerts: [] }); for (const pb of pivB) for (const k of ['high', 'low']) if (!same(ep.get(`v_${pb.id}_${k}`)[n - 1], e15.get(`v_${pb.id}_${k}`)[n - 1])) pd++; for (const sb of sigB) if (tr(ep.get(`s_${sb.id}`)[n - 1]) !== tr(e15.get(`s_${sb.id}`)[n - 1])) pd++; }
+    ok(pd === 0, f, `pivot prefix runs give the same last-bar values (no lookahead; ${pd} differ)`);
+    for (const [mn, from, to, need] of [['pivot without the right-side test', / and (\w+)\[(\d+)\] >= Highest\(\1, \2\);/, ';', null], ['sweep without the close back inside', / and close < V_\w+_high\[1\]\)/, ')', 'signal.liquidity_sweep'], ['divergence oscillator test flipped', / < OH_(\w+)\[1\];/, ' > OH_$1[1];', 'signal.divergence']]) {
+      if (need && !sigB.some(b => b.type === need)) continue;
+      const mc = code.replace(from, to); if (mc === code) { ok(false, f, `mutant could not be built: ${mn}`); continue; }
+      const caught = bad(evalTs(parse(tokenize(mc)), bars15, { plots: [], alerts: [] })) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++;
+    }
+  }
+  // a self reference outside the documented CompoundValue form must fail the static check (the evaluator never guesses)
+  if (/CompoundValue\(1, if P_\w+_h then/.test(code)) { const mc = code.replace(/def (V_\w+_high) = CompoundValue\(1, (if P_\w+_h then [^,]+ else \1\[1\]), Double\.NaN\);/, 'def $1 = $2;');
+    const sb = failures, cb = checks; QUIET = true; statics('mutant', parse(tokenize(mc)), recipe); QUIET = false; const caught = failures > sb; failures = sb; checks = cb;
+    ok(mc !== code && caught, f, 'a bare self reference (no CompoundValue) is rejected by the static check'); if (caught) mutantsCaught++; }
   // replay: the last 100 bars arrive one by one; Alert() reads its condition at the last real bar (still forming); Alert.BAR = once per bar.
   sink.alerts.forEach((a, k) => {
     const fired = []; let forming = 0;
@@ -323,5 +417,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify(fired) === JSON.stringify(expect), f, `alert ${k}: fired ${fired} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'thinkscript', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, note: 'BSV thinkScript-subset parser/evaluator, not thinkorswim' }));
+console.log(JSON.stringify({ target: 'thinkscript', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, zones: zonesSeen, sweep_divergence_15m: pivSigSeen, mutants_caught: mutantsCaught, note: 'BSV thinkScript-subset parser/evaluator, not thinkorswim' }));
 process.exit(failures ? 1 : 0);

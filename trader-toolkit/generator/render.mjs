@@ -131,14 +131,14 @@ function htfPrep(recipe, t) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; return fn(r); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; return fn(r); }
 // structure.range (high/low of each window where a session/signal is true; reset when a new window starts; after the
 // window the last window's values stay) and signal.breakout (first close beyond the finished window's high or low).
 // Rendered only where a BSV check runs them; elsewhere they stay TODO.
 function rangeRealTargets() { return ['backtrader', 'backtesting-py', 'nautilus']; }
 function rangeKeys(b) { const t = Array.isArray(b?.params?.track) ? b.params.track : []; return t.filter((x, i) => (x === 'high' || x === 'low') && t.indexOf(x) === i); }
 function rangeOk(recipe, b) {
-  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangeAfl) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm) + AmiBroker (HighestSince / ValueWhen, checked in the BSV AFL evaluator)
+  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangeAfl || recipe.bsvRangeTs) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm) + AmiBroker (HighestSince / ValueWhen, checked in the BSV AFL evaluator) + thinkScript (CompoundValue + self reference [1], checked in the BSV thinkScript evaluator)
   const d = blockMap(recipe).get(b.params?.during), t = Array.isArray(b.params?.track) ? b.params.track : [];
   return !!d && isBoolType(d.type) && t.length > 0 && rangeKeys(b).length === t.length;
 }
@@ -2181,7 +2181,7 @@ function renderThinkScript(recipe) {
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const px = { open: ['open'], high: ['high'], low: ['low'], close: ['close'], hl2: ['high', 'low'], hlc3: ['high', 'low', 'close'], ohlc4: ['open', 'high', 'low', 'close'] };
   const price = (ref, at = '') => { const k = px[ref]; return k.length === 1 ? k[0] + at : `((${k.map(x => x + at).join(' + ')}) / ${k.length})`; };
-  const val = (ref, at = '') => isPrice(ref) ? price(ref, at) : (isBoolType(map.get(ref)?.type) ? `S_${ref}${at}` : `V_${ref}${at}`);
+  const val = (ref, at = '') => isPrice(ref) ? price(ref, at) : (isBoolType(map.get(ref)?.type) ? `S_${ref}${at}` : `V_${String(ref).replace('.', '_')}${at}`); // range / pivot fields <id>.high -> V_<id>_high
   const bool = (ref, at = '') => isBoolType(map.get(ref)?.type) ? `S_${ref}${at}` : `(${val(ref, at)} != 0)`;
   const colors = ['CYAN', 'MAGENTA', 'YELLOW', 'ORANGE', 'GREEN', 'RED', 'PINK', 'LIGHT_GRAY'];
   const hhmm = m => String(Math.floor(m / 60) * 100 + (m % 60)).padStart(4, '0');
@@ -2252,6 +2252,54 @@ function renderThinkScript(recipe) {
         break;
       case 'visual.plot': case 'alert.condition': case 'visual.table':
         break;
+      case 'structure.range': {
+        if (!rangeOk(recipe, b)) { L.push(`# TODO unsupported block ${b.type}: ${b.id}`, `def V_${b.id} = Double.NaN;`); break; }
+        L.push(`# ${b.id}: high / low so far inside the window (a new window resets), then the finished window held; NaN before the first window.`,
+          '# CompoundValue(1, x, y) is y on the first bar and x after it; V[1] is the value one bar back (thinkScript reference: CompoundValue, Referencing Historical Data).',
+          `def R_${b.id} = ${bool(p.during)};`, `def W_${b.id} = CompoundValue(1, R_${b.id} and R_${b.id}[1] == 0, R_${b.id});`);
+        for (const k of rangeKeys(b)) { const [x, f] = k === 'high' ? ['high', 'Max'] : ['low', 'Min'];
+          L.push(`def V_${b.id}_${k} = CompoundValue(1, if W_${b.id} then ${x} else if R_${b.id} then ${f}(V_${b.id}_${k}[1], ${x}) else V_${b.id}_${k}[1], if R_${b.id} then ${x} else Double.NaN);`); }
+        break;
+      }
+      case 'signal.breakout': {
+        if (!breakoutOk(recipe, b)) { L.push(`# TODO unsupported block ${b.type}: ${b.id}`, `def S_${b.id} = no;`); break; }
+        const r = p.range, d = p.direction || 'either', ok = `R_${r} == 0 and IsNaN(V_${r}_high) == 0`;
+        L.push(`# ${b.id}: first close beyond the finished window, on a bar outside it (the close before was at or inside)`,
+          `def U_${b.id} = ${ok} and close > V_${r}_high and close[1] <= V_${r}_high;`, `def D_${b.id} = ${ok} and close < V_${r}_low and close[1] >= V_${r}_low;`,
+          `def S_${b.id} = ${d === 'either' ? `U_${b.id} or D_${b.id}` : d === 'above' ? `U_${b.id}` : `D_${b.id}`};`);
+        break;
+      }
+      case 'structure.pivot': {
+        if (!pivotOk(recipe, b)) { L.push(`# TODO unsupported block ${b.type}: ${b.id}`, `def V_${b.id} = Double.NaN;`); break; }
+        const [xh, xl] = (p.source || 'close') === 'high_low' ? ['high', 'low'] : ['close', 'close'], R = p.right, Lf = p.left;
+        L.push(`# ${b.id}: the bar ${R} bars ago is a pivot high if it is above the ${Lf} bars before it and at least as high as the ${R} after it (a flat top counts once); known only now, so no lookahead. The last confirmed pivot is held (NaN before the first).`,
+          `def P_${b.id}_h = ${xh}[${R}] > Highest(${xh}[${R + 1}], ${Lf}) and ${xh}[${R}] >= Highest(${xh}, ${R});`,
+          `def P_${b.id}_l = ${xl}[${R}] < Lowest(${xl}[${R + 1}], ${Lf}) and ${xl}[${R}] <= Lowest(${xl}, ${R});`,
+          `def V_${b.id}_high = CompoundValue(1, if P_${b.id}_h then ${xh}[${R}] else V_${b.id}_high[1], Double.NaN);`,
+          `def V_${b.id}_low = CompoundValue(1, if P_${b.id}_l then ${xl}[${R}] else V_${b.id}_low[1], Double.NaN);`);
+        break;
+      }
+      case 'signal.liquidity_sweep': {
+        if (!sweepOk(recipe, b)) { L.push(`# TODO unsupported block ${b.type}: ${b.id}`, `def S_${b.id} = no;`); break; }
+        const v = p.pivot, a = val(p.atr), m = `${Number(p.minAtrFraction || 0)} * ${a}`, ph = `V_${v}_high[1]`, pl = `V_${v}_low[1]`;
+        L.push(`# ${b.id}: sweep candidate: the wick goes beyond the last pivot known before this bar by at least ${Number(p.minAtrFraction || 0)} x ATR and the close is back inside`,
+          `def S_${b.id} = IsNaN(${a}) == 0 and ((IsNaN(${ph}) == 0 and high > ${ph} and high - ${ph} >= ${m} and close < ${ph}) or (IsNaN(${pl}) == 0 and low < ${pl} and ${pl} - low >= ${m} and close > ${pl}));`);
+        break;
+      }
+      case 'signal.divergence': {
+        if (!divergenceOk(recipe, b)) { L.push(`# TODO unsupported block ${b.type}: ${b.id}`, `def S_${b.id} = no;`); break; }
+        const pb = map.get(p.pivot), pq = pb.params, R = pq.right, [xh, xl] = (pq.source || 'close') === 'high_low' ? ['high', 'low'] : ['close', 'close'], oR = val(p.oscillator, `[${R}]`), d = p.direction || 'both', v = pb.id;
+        L.push(`# ${b.id}: regular divergence, true on the bar that confirms the new pivot; V_${v}_high[1] is the pivot before it, O_ holds the oscillator at that pivot`,
+          `def OH_${b.id} = CompoundValue(1, if P_${v}_h then ${oR} else OH_${b.id}[1], Double.NaN);`, `def OL_${b.id} = CompoundValue(1, if P_${v}_l then ${oR} else OL_${b.id}[1], Double.NaN);`,
+          `def B_${b.id} = P_${v}_h and ${xh}[${R}] > V_${v}_high[1] and ${oR} < OH_${b.id}[1];`,
+          `def U_${b.id} = P_${v}_l and ${xl}[${R}] < V_${v}_low[1] and ${oR} > OL_${b.id}[1];`,
+          `def S_${b.id} = ${d === 'both' ? `B_${b.id} or U_${b.id}` : d === 'bearish' ? `B_${b.id}` : `U_${b.id}`};`);
+        break;
+      }
+      case 'visual.zone':
+        if (!zoneOk(recipe, b)) { L.push(`# TODO unsupported block ${b.type}: ${b.id}`, `def V_${b.id} = Double.NaN;`); break; }
+        L.push(`# ${b.id}: zone drawn as two lines from ${p.source} (${map.get(p.source).type === 'structure.range' ? 'the window high / low' : 'last confirmed pivot high / low'}), see the plots below`);
+        break;
       default:
         L.push(`# TODO unsupported block ${b.type}: ${b.id}`);
         L.push(isBoolType(b.type) ? `def S_${b.id} = no;` : `def V_${b.id} = Double.NaN;`);
@@ -2259,6 +2307,7 @@ function renderThinkScript(recipe) {
   }
   if (plots.length) L.push('');
   plots.forEach((p, k) => L.push(`plot P${k + 1} = ${val(p.params?.source)};`, `P${k + 1}.SetDefaultColor(Color.${colors[k % colors.length]});`));
+  recipe.blocks.filter(b => zoneOk(recipe, b)).forEach((z, k) => L.push(`plot ZH${k + 1} = V_${z.params.source}_high; # ${tsNote(String(z.params?.title || z.id).slice(0, 50))} high`, `ZH${k + 1}.SetDefaultColor(Color.RED);`, `plot ZL${k + 1} = V_${z.params.source}_low; # ${tsNote(String(z.params?.title || z.id).slice(0, 50))} low`, `ZL${k + 1}.SetDefaultColor(Color.GREEN);`));
   for (const t of tableBlocks(recipe)) {
     L.push('');
     tableTodos(t, '#').forEach(x => L.push(x));
