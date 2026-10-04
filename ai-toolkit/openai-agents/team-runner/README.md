@@ -1,6 +1,6 @@
 # OpenAI Agents SDK team runner
 
-Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). BSV has not run it against a real model; `--self-test` only checks the control flow with a fake agent.
+Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). BSV has not run it against a real model; `--self-test` only checks the control flow with a fake agent. Smoke test (2026-10-04): BSV ran this file unchanged on openai-agents 0.23.1 + openai 3.24.0 against a local stub server with scripted replies (`scripts/site/smoke_team_runners.py`; no model, no paid API, no external network): 3 requests: draft, missing-section rewrite, reviewer revise; no tools offered; saved file = approved draft; `no` saves nothing; with a dummy `OPENAI_API_KEY` set, no trace upload was attempted (a copy with tracing switched on did try api.openai.com, which the test caught). That checks the wiring with the real library only, not answer quality on a real model.
 
 Runs one BSV Library AI Team task with the OpenAI Agents SDK on a **local** OpenAI-compatible model:
 
