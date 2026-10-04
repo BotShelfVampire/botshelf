@@ -1,6 +1,6 @@
 # CrewAI team runner
 
-Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). BSV has not run it against a real model; `--self-test` only checks the control flow with a fake crew.
+Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). BSV has not run it against a real model; `--self-test` only checks the control flow with a fake crew. Smoke test (2026-10-04): BSV ran this file unchanged on crewai 1.15.23 against a local stub server with scripted replies (`scripts/site/smoke_team_runners.py`; no model, no paid API, no external network): lead then checker, a second round when a section is missing, checker answer saved after `yes`; `no` saves nothing. That checks the wiring with the real library only, not answer quality on a real model.
 
 Runs one BSV Library AI Team task as a two-agent crew on a local model:
 

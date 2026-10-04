@@ -1,6 +1,6 @@
 # LangGraph team runner
 
-Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). BSV has not run it against a real model; `--self-test` only checks the graph wiring with a fake model.
+Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). BSV has not run it against a real model; `--self-test` only checks the graph wiring with a fake model. Smoke test (2026-10-04): BSV ran this file unchanged on langgraph 1.2.12 + openai 2.54.0 against a local stub server with scripted replies (`scripts/site/smoke_team_runners.py`; no model, no paid API, no external network): 3 requests: draft, missing-section rewrite, reviewer revise; approval interrupt; saved file = approved draft; `no` saves nothing. That checks the wiring with the real library only, not answer quality on a real model.
 
 Runs one BSV Library AI Team task (doc review, coding review, deep research, …) as a LangGraph graph with a local model:
 
