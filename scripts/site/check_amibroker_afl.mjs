@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
 const FN = { ema: [2, 2], ma: [2, 2], rsia: [1, 2], atr: [1, 1], ref: [2, 2], timenum: [0, 0], barindex: [0, 0], lastvalue: [1, 1], plot: [2, 9], alertif: [2, 6], printf: [1, 9], numtostr: [1, 4], writeif: [3, 3],
-  timeframeset: [1, 1], timeframerestore: [0, 0], timeframeexpand: [3, 3], interval: [0, 0], iif: [3, 3], isnull: [1, 1] };
+  timeframeset: [1, 1], timeframerestore: [0, 0], timeframeexpand: [3, 3], interval: [0, 0], iif: [3, 3], isnull: [1, 1], highestsince: [2, 2], lowestsince: [2, 2], valuewhen: [2, 2] };
 const CONST = new Set(['open', 'high', 'low', 'close', 'true', 'false', 'null', 'styleline',
   'expandfirst', 'indaily', 'colorblue', 'colorred', 'colorgreen', 'colororange', 'colorviolet', 'colorteal', 'colorbrown', 'colorgrey50']);
 const ORDER = new Set(['buy', 'sell', 'short', 'cover']);
@@ -156,6 +156,8 @@ function evalAfl(stmts, bars, sink) {
         if (f === 'interval') return bars.length > 1 ? (bars[1].time - bars[0].time) / 1000 : NaN;
         if (f === 'iif') { const c = arr(A[0]), a = arr(A[1]), b = arr(A[2]); return c.map((v, i) => (v && !Number.isNaN(v)) ? a[i] : b[i]); }
         if (f === 'isnull') return arr(A[0]).map(v => +Number.isNaN(v));
+        if (f === 'highestsince' || f === 'lowestsince') { const c = arr(A[0]), x = arr(A[1]), hi = f === 'highestsince'; let m = NaN; return x.map((v, i) => { if (c[i] && !Number.isNaN(c[i])) m = v; else if (!Number.isNaN(m)) m = hi ? Math.max(m, v) : Math.min(m, v); return m; }); } // since the last bar where the condition held (that bar included); Null before
+        if (f === 'valuewhen') { const c = arr(A[0]), x = arr(A[1]); let m = NaN; return x.map((v, i) => { if (c[i] && !Number.isNaN(c[i])) m = v; return m; }); } // value at the most recent bar where the condition held
         if (f === 'alertif') { sink.alerts.push({ text: A[2], cond: arr(A[0]), lookback: A[5] ?? 1, flags: A[4] ?? 15 }); return 0; }
       }
     }
@@ -175,7 +177,7 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
-let alertsSeen = 0, panelsSeen = 0, htfChecked = 0;
+let alertsSeen = 0, panelsSeen = 0, htfChecked = 0, rangeChecked = 0, breakoutsSeen = 0, mutantsCaught = 0;
 const byId = (recipe) => Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
 let CUR_RECIPE = null;
 function htfReadable(b) {  // indicator on a data.higher_timeframe of whole minutes < 1 day, or 1 day (what the generator renders for AFL)
@@ -237,20 +239,48 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
       for (const b of htfB) for (let n = 3001; n <= 3400; n += 1) { const a = evalAfl(ms, bars15.slice(0, n), { plots: [], alerts: [] }).get(('V_' + b.id).toLowerCase())[n - 1], c = full.get(('V_' + b.id).toLowerCase())[n - 1]; if (a !== c) { caught++; break; } }
       ok(caught === htfB.length, f, 'prefix test catches the shift-0 (forming higher bar) mutant'); }
   }
+  // ranges and breakouts (structure.range / signal.breakout) on the 15-minute bars: an independent window reference written
+  // here from the recipe's session (bar times read as UTC, as the evaluator's TimeNum does), every bar compared, breakouts must
+  // fire (not vacuous), prefix runs agree (no lookahead), and two mutants must be caught
+  const rngB = recipe.blocks.filter(b => b.type === 'structure.range' && new RegExp(`^R_${b.id} = `, 'm').test(code));
+  if (rngB.length) {
+    const by = byId(recipe), e15 = evalAfl(stmts, bars15, { plots: [], alerts: [] });
+    const inside = (sb) => { const q = sb.params || {}, [a, z] = String(q.session || '0000-2359').split('-').map(x => +x.slice(0, 2) * 60 + +x.slice(2, 4)); return bars15.map(b => { const d = new Date(b.time), m = d.getUTCHours() * 60 + d.getUTCMinutes(); return a <= z ? m >= a && m < z : m >= a || m < z; }); };
+    const refRange = (rb) => { const R = inside(by[rb.params.during]), H = [], Lo = []; let h = NaN, l = NaN;
+      bars15.forEach((b, i) => { if (R[i]) { const fresh = i === 0 || !R[i - 1]; h = fresh ? b.high : Math.max(h, b.high); l = fresh ? b.low : Math.min(l, b.low); } H.push(h); Lo.push(l); }); return { R, H, Lo }; };
+    const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b)) || Math.abs(a - b) < 1e-9;
+    const bad = (env) => { let n = 0; for (const rb of rngB) { const q = refRange(rb); for (const k of (rb.params.track || [])) { const v = env.get(`v_${rb.id}_${k}`.toLowerCase()), w = k === 'high' ? q.H : q.Lo; for (let i = 0; i < bars15.length; i++) if (!same(v[i], w[i])) n++; } }
+      for (const bb of recipe.blocks.filter(x => x.type === 'signal.breakout' && rngB.some(r => r.id === x.params?.range))) { const q = refRange(by[bb.params.range]), d = bb.params.direction || 'either', v = env.get(`s_${bb.id}`.toLowerCase());
+        for (let i = 0; i < bars15.length; i++) { const c = bars15[i].close, pc = i ? bars15[i - 1].close : NaN, okb = !q.R[i] && Number.isFinite(q.H[i]) && i > 0;
+          const up = okb && c > q.H[i] && pc <= q.H[i], dn = okb && c < q.Lo[i] && pc >= q.Lo[i], want = d === 'either' ? up || dn : d === 'above' ? up : dn; if (!!(v[i] && !Number.isNaN(v[i])) !== want) n++; } }
+      return n; };
+    for (const rb of rngB) ok(refRange(rb).H.some(Number.isFinite), f, `${rb.id}: the 15-minute bars have windows (not vacuous)`);
+    ok(bad(e15) === 0, f, `range / breakout values equal the reference on every 15-minute bar (${bad(e15)} differ)`);
+    rangeChecked += rngB.length;
+    const bos = recipe.blocks.filter(x => x.type === 'signal.breakout' && rngB.some(r => r.id === x.params?.range));
+    for (const bb of bos) { const n = e15.get(`s_${bb.id}`.toLowerCase()).filter(v => v && !Number.isNaN(v)).length; ok(n > 0, f, `${bb.id}: breakouts fire on the 15-minute bars (${n})`); breakoutsSeen += n; }
+    let pd = 0; for (let n = 1200; n <= 4000; n += 151) { const ep = evalAfl(stmts, bars15.slice(0, n), { plots: [], alerts: [] }); for (const rb of rngB) for (const k of rb.params.track) if (!same(ep.get(`v_${rb.id}_${k}`.toLowerCase())[n - 1], e15.get(`v_${rb.id}_${k}`.toLowerCase())[n - 1])) pd++; }
+    ok(pd === 0, f, `range prefix runs give the same last-bar value (no lookahead; ${pd} differ)`);
+    for (const [mn, from, to] of [['window never resets', /HighestSince\(W_(\w+), High\)/, 'HighestSince(BarIndex() == 0, High)'], ['breakout without the close before', / AND Ref\(Close, -1\) <= V_\w+_high;/, ';']]) {
+      if (mn.startsWith('breakout') && !bos.length) continue;
+      const mc = code.replace(from, to); if (mc === code) { ok(false, f, `mutant could not be built: ${mn}`); continue; }
+      const caught = bad(evalAfl(parse(tokenize(mc)), bars15, { plots: [], alerts: [] })) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++;
+    }
+  }
   // replay: bars 300..399 arrive one by one; AlertIf sees the last `lookback` bars; flag 8 = no repeat for the same bar time
   // value panels (visual.table): printf lines for the last completed bar; expected fields decided here independently
   const tables = recipe.blocks.filter(b => b.type === 'visual.table');
   if (tables.length) {
     const by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
-    const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine)|filter\.session)$/;
-    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : []; };
+    const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine|breakout)|filter\.session|structure\.range)$/;
+    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : b.type === 'structure.range' ? [q.during] : b.type === 'signal.breakout' ? [q.range] : []; };
     const shown = (r, seen = new Set()) => { if (!by[r]) return !!pxOf[r]; if (seen.has(r)) return true; seen.add(r); const b = by[r]; if (!OKT.test(b.type) || ((b.params || {}).timeframeRef && !htfReadable(b))) return false; return deps(b).filter(Boolean).every(x => shown(x, seen)); };
     const expect = []; let skipped = 0, shownPanels = 0;
     for (const t of tables) {
       const fs2 = (t.params?.fields || []).filter(x => shown(x)); skipped += (t.params?.fields || []).length - fs2.length + (fs2.length ? 0 : 1);
       if (!fs2.length) continue; shownPanels++;
       expect.push(String(t.params?.title || t.id) + '\\n');
-      for (const x of fs2) { const isB = /^(signal|filter)\./.test(by[x].type); const at = env.get(((isB ? 'S_' : 'V_') + x).toLowerCase())[bars.length - 2]; expect.push(x + ': ' + (isB ? (at ? 'true' : 'false') : (Number.isNaN(at) ? '{EMPTY}' : at.toFixed(6))) + '\\n'); }
+      for (const x0 of fs2) for (const x of by[x0].type === 'structure.range' ? by[x0].params.track.map(k => x0 + '_' + k) : [x0]) { const isB = /^(signal|filter)\./.test(by[x]?.type || ''); const at = env.get(((isB ? 'S_' : 'V_') + x).toLowerCase())[bars.length - 2]; expect.push(x + ': ' + (isB ? (at ? 'true' : 'false') : (Number.isNaN(at) ? '{EMPTY}' : at.toFixed(6))) + '\\n'); }
     }
     ok(JSON.stringify(sink.prints || []) === JSON.stringify(expect), f, `value panel printf ${JSON.stringify(sink.prints)} expected ${JSON.stringify(expect)}`);
     ok((code.match(/TODO [A-Za-z0-9_]+: visual\.table /g) || []).length === skipped && !/TODO unsupported block visual\.table/.test(code), f, `panel TODO lines (${skipped})`);
@@ -269,5 +299,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify([...fired].sort((x, y) => x - y)) === JSON.stringify(expect), f, `alert ${k}: fired ${[...fired]} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
+console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, mutants_caught: mutantsCaught, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
 process.exit(failures ? 1 : 0);
