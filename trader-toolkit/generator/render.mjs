@@ -131,14 +131,14 @@ function htfPrep(recipe, t) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; return fn(r); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; return fn(r); }
 // structure.range (high/low of each window where a session/signal is true; reset when a new window starts; after the
 // window the last window's values stay) and signal.breakout (first close beyond the finished window's high or low).
 // Rendered only where a BSV check runs them; elsewhere they stay TODO.
 function rangeRealTargets() { return ['backtrader', 'backtesting-py', 'nautilus']; }
 function rangeKeys(b) { const t = Array.isArray(b?.params?.track) ? b.params.track : []; return t.filter((x, i) => (x === 'high' || x === 'low') && t.indexOf(x) === i); }
 function rangeOk(recipe, b) {
-  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangeAfl || recipe.bsvRangeTs) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm) + AmiBroker (HighestSince / ValueWhen, checked in the BSV AFL evaluator) + thinkScript (CompoundValue + self reference [1], checked in the BSV thinkScript evaluator)
+  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangeAfl || recipe.bsvRangeTs || recipe.bsvRangePine) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm) + AmiBroker (HighestSince / ValueWhen, checked in the BSV AFL evaluator) + thinkScript (CompoundValue + self reference [1], checked in the BSV thinkScript evaluator)
   const d = blockMap(recipe).get(b.params?.during), t = Array.isArray(b.params?.track) ? b.params.track : [];
   return !!d && isBoolType(d.type) && t.length > 0 && rangeKeys(b).length === t.length;
 }
@@ -420,6 +420,53 @@ function renderPine(recipe) {
       case 'signal.combine': {
         const op = p.mode === 'any' ? ' or ' : ' and ';
         lines.push(`${b.id} = ${(p.signals || []).map(x => '(' + x + ')').join(op) || 'false'}`);
+        break;
+      }
+      case 'structure.range': {
+        if (!rangeOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id}`, `float ${b.id} = na`); break; }
+        lines.push(`// ${b.id}: high / low so far inside the window (a new window resets), then the finished window held; na before the first window (ta.valuewhen, ta.highest / ta.lowest with ta.barssince)`,
+          `${b.id}_in = ${map.get(p.during) && isBoolType(map.get(p.during).type) ? p.during : `(${p.during} != 0)`}`, `${b.id}_new = ${b.id}_in and not (bar_index > 0 and ${b.id}_in[1])`);
+        for (const k of rangeKeys(b)) lines.push(`${b.id}_${k} = ta.valuewhen(${b.id}_in, ta.${k === 'high' ? 'highest' : 'lowest'}(${k}, ta.barssince(${b.id}_new) + 1), 0)`);
+        break;
+      }
+      case 'signal.breakout': {
+        if (!breakoutOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id}`, `${b.id} = false`); break; }
+        const r = p.range, d = p.direction || 'either', okb = `not ${r}_in and not na(${r}_high)`;
+        lines.push(`// ${b.id}: first close beyond the finished window, on a bar outside it (the close before was at or inside)`,
+          `${b.id}_up = ${okb} and close > ${r}_high and close[1] <= ${r}_high`, `${b.id}_dn = ${okb} and close < ${r}_low and close[1] >= ${r}_low`,
+          `${b.id} = ${d === 'either' ? `${b.id}_up or ${b.id}_dn` : d === 'above' ? `${b.id}_up` : `${b.id}_dn`}`);
+        break;
+      }
+      case 'structure.pivot': {
+        if (!pivotOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id}`, `float ${b.id} = na`); break; }
+        const [xh, xl] = (p.source || 'close') === 'high_low' ? ['high', 'low'] : ['close', 'close'], R = p.right, Lf = p.left;
+        lines.push(`// ${b.id}: the bar ${R} bars ago is a pivot high if it is above the ${Lf} bars before it and at least as high as the ${R} after it (a flat top counts once); known only now, so no lookahead. Written with ta.highest / ta.lowest so the tie rule is explicit. The last confirmed pivot is held (na before the first).`,
+          `${b.id}_ph = ${xh}[${R}] > ta.highest(${xh}, ${Lf})[${R + 1}] and ${xh}[${R}] >= ta.highest(${xh}, ${R})`,
+          `${b.id}_pl = ${xl}[${R}] < ta.lowest(${xl}, ${Lf})[${R + 1}] and ${xl}[${R}] <= ta.lowest(${xl}, ${R})`,
+          `${b.id}_high = ta.valuewhen(${b.id}_ph, ${xh}[${R}], 0)`, `${b.id}_low = ta.valuewhen(${b.id}_pl, ${xl}[${R}], 0)`);
+        break;
+      }
+      case 'signal.liquidity_sweep': {
+        if (!sweepOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id}`, `${b.id} = false`); break; }
+        const v = p.pivot, a = p.atr, m = `${Number(p.minAtrFraction || 0)} * ${a}`, ph = `${v}_high[1]`, pl = `${v}_low[1]`;
+        lines.push(`// ${b.id}: sweep candidate: the wick goes beyond the last pivot known before this bar by at least ${Number(p.minAtrFraction || 0)} x ATR and the close is back inside`,
+          `${b.id} = not na(${a}) and ((not na(${ph}) and high > ${ph} and high - ${ph} >= ${m} and close < ${ph}) or (not na(${pl}) and low < ${pl} and ${pl} - low >= ${m} and close > ${pl}))`);
+        break;
+      }
+      case 'signal.divergence': {
+        if (!divergenceOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id}`, `${b.id} = false`); break; }
+        const pb = map.get(p.pivot), pq = pb.params, R = pq.right, [xh, xl] = (pq.source || 'close') === 'high_low' ? ['high', 'low'] : ['close', 'close'], o = p.oscillator, d = p.direction || 'both', v = pb.id;
+        lines.push(`// ${b.id}: regular divergence, true on the bar that confirms the new pivot; ta.valuewhen(..., 1) = the pivot before it`,
+          `${b.id}_bear = ${v}_ph and ${xh}[${R}] > ta.valuewhen(${v}_ph, ${xh}[${R}], 1) and ${o}[${R}] < ta.valuewhen(${v}_ph, ${o}[${R}], 1)`,
+          `${b.id}_bull = ${v}_pl and ${xl}[${R}] < ta.valuewhen(${v}_pl, ${xl}[${R}], 1) and ${o}[${R}] > ta.valuewhen(${v}_pl, ${o}[${R}], 1)`,
+          `${b.id} = ${d === 'both' ? `${b.id}_bear or ${b.id}_bull` : d === 'bearish' ? `${b.id}_bear` : `${b.id}_bull`}`);
+        break;
+      }
+      case 'visual.zone': {
+        if (!zoneOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id}`); break; }
+        const t = String(p.title || b.id).slice(0, 50);
+        lines.push(`// ${b.id}: zone drawn as two lines from ${p.source} (${map.get(p.source).type === 'structure.range' ? 'the window high / low' : 'last confirmed pivot high / low'})`,
+          `plot(${p.source}_high, title=${q(t + ' high')}, color=color.red)`, `plot(${p.source}_low, title=${q(t + ' low')}, color=color.green)`);
         break;
       }
       case 'visual.plot':
