@@ -208,6 +208,7 @@ TARGET_CHECKS = {  # which BSV check covers each target (facts from build_stage 
     "pine-v6": ("SUBSET_EVALUATOR", "scripts/site/check_pine.mjs", "BSV-written Pine v6-subset parser/evaluator (documented ta.* functions, sessions, request.security closed-bar idiom); not TradingView."),
     "thinkscript": ("SUBSET_EVALUATOR", "scripts/site/check_thinkscript.mjs", "BSV-written thinkScript-subset parser/evaluator; not thinkorswim."),
     "amibroker": ("SUBSET_EVALUATOR", "scripts/site/check_amibroker_afl.mjs", "BSV-written AFL-subset parser/evaluator; not AmiBroker."),
+    "mql5": ("API_STUB_RUN", "scripts/site/check_mql5.mjs", "BSV-written MQL5-subset translator run in node:vm against a BSV model of the documented MT5 indicator API (OnCalculate, CopyBuffer, series arrays); not MetaTrader 5 or MetaEditor."),
     "tradovate": ("API_STUB_RUN", "scripts/site/check_tradovate.mjs", "Run in node:vm against a BSV stub of the documented custom-indicator API; not Tradovate."),
     "vela": ("ENGINE_STAND_IN", "scripts/site/test_vela_engine.mjs", "Vela imports swapped for local stand-ins and run over synthetic bars; not a Vela runtime test."),
     "motivewave": ("STUB_COMPILE", "scripts/site/check_motivewave_stubs.sh", "javac against BSV stubs written from the public SDK javadoc; not the real SDK."),
