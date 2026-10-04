@@ -434,7 +434,7 @@ def ai_records(repo: Path, copy: dict) -> list[dict]:
         refs = set()
         for f in files:
             refs |= set(re.findall(r"https?://[^\s)<>`\"]+", f.read_text()))
-        out.append({"id": e["id"], "title": e["title"], "framework": e["platform"], "type": e["type"], "status": e["status"], "featured": bool(e.get("featured")),
+        out.append({"id": e["id"], "title": e["title"], "framework": e["platform"], "path": e["path"], "type": e["type"], "status": e["status"], "featured": bool(e.get("featured")),
                     "job": c["job"], "summary": c["summary"], "files": files, "base": pdir, "refs": sorted(u.rstrip(".,") for u in refs if not re.search(r"example|localhost|127\.0\.0\.1|0\.0\.0\.0|host\.docker\.internal|:\d{2,5}(/|$)|botshelfvampire\.com", u))})
     return out
 
@@ -447,9 +447,15 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
     hjs = (repo / "scripts/site/handoff_check.js").read_text()
     hname = f"library/source/handoff-check.{hashlib.sha256(hjs.encode()).hexdigest()[:8]}.js"
     write(site / hname, hjs)
+    hmd = (repo / "ai-toolkit/common/ai-team-handoff-packet.md").read_text()
+    ho_tpl = re.search(r"```text\n(.*?)```", hmd, re.S).group(1)
+    ho_opts = "".join(f'<option value="{esc(x["id"])}" data-path="{esc(x["path"])}" data-fw="{esc(x["framework"])}" data-st="{esc(x["status"])}">{esc(x["title"])}</option>' for x in recs)
     checker = ('<section class="section" id="ho-checker"><p class="section-label">Check a filled packet</p>'
                + lib_both(T("Paste a filled packet and press Check. It applies the packet's own rules (every section present, one status, DONE only with evidence, owner approval YES or NO, one next action, no guessed results). It runs in this browser only: nothing is uploaded or stored. It checks structure and wording, not whether the facts are true.",
                             "記入した packet を貼り付けて「Check」を押します。packet 自身のルール（すべての項目があること、status は1つ、DONE は根拠があるときだけ、owner approval は YES か NO、次の一手は1つ、推測で結果を書かない）で確かめます。このブラウザの中だけで動き、何もアップロード・保存しません。確かめるのは形と書き方で、内容が正しいかどうかではありません。"), "p", "muted")
+               + f'<p><label for="ho-item">Start from a toolkit item (optional)</label></p><p><select id="ho-item"><option value="">Choose…</option>{ho_opts}</select> '
+               f'<button type="button" class="btn" id="ho-start" data-ho-tpl="{esc(ho_tpl)}">Start a packet</button></p>'
+               + lib_both(T("Fills only what the catalog states (job id, NOT_STARTED, the source path, the framework, the catalog status as a limitation) into an empty box. Everything else stays blank for you, including owner approval.", "カタログに書かれていること（job id、NOT_STARTED、ソースの場所、フレームワーク、カタログの状態を limitations に）だけを、空の入力欄に入れます。owner approval を含め、ほかは空のままです。"), "p", "muted")
                + '<p><label for="ho-text">Filled packet</label></p><p><textarea id="ho-text" rows="14" cols="80" spellcheck="false"></textarea></p>'
                '<p><button type="button" class="btn" id="ho-check">Check</button></p><div id="ho-out" aria-live="polite"></div></section>')
     lic = (repo / "LICENSE").read_bytes()

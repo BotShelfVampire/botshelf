@@ -28,6 +28,15 @@ ok(H.checkHandoff(fill(done, { 'highest-value next step': 'deploy; then email; t
 ok(H.checkHandoff(fill(done, { 'must not do': '' })).warnings.some(w => /must not do/.test(w)), 'empty boundary warned');
 ok(!H.checkHandoff(fill(done, { 'owner approval needed': 'maybe' })).ok, 'approval must be YES or NO');
 ok(!H.checkHandoff('').ok && H.checkHandoff('').errors[0].includes('JOB'), 'empty text: every section missing');
+// startPacket: fills only catalog facts, keeps every section and leaves owner approval for the user
+const block = tpl.match(/```text\n([\s\S]*?)```/)[1];
+const item = { id: 'letta-memory', path: 'ai-toolkit/letta/memory-blocks.md', framework: 'Letta', status: 'UNTESTED_RUNTIME' };
+const sp = H.startPacket(block, item), rp = H.checkHandoff(sp), pp = H.parse(sp);
+ok(rp.status === 'NOT_STARTED' && !rp.errors.some(e => /Missing section|status must/.test(e)) && rp.errors.some(e => /YES or NO/.test(e)), 'started packet: all sections, NOT_STARTED, approval still to choose ' + JSON.stringify(rp.errors));
+ok(pp.sections.JOB.id === 'toolkit:letta-memory' && pp.sections['CURRENT STATE']['authoritative source'] === 'BotShelfVampire/botshelf ai-toolkit/letta/memory-blocks.md' && /UNTESTED_RUNTIME/.test(pp.sections.EVIDENCE.limitations) && /Not runtime-tested by BSV/.test(pp.sections.EVIDENCE.limitations), 'started packet: id, source and status filled from the item');
+const filledKeys = Object.values(pp.sections).reduce((n, s) => n + Object.values(s).filter(Boolean).length, 0);
+ok(filledKeys === 7 && pp.sections['NEXT ACTION']['owner approval needed'] === 'YES | NO' && !pp.sections.JOB.objective && !pp.sections.EVIDENCE['source revision'] && !pp.sections['WORK COMPLETED'].results, 'started packet: only the 6 catalog facts filled (+ the template\'s YES | NO left as is), results/evidence blank (' + filledKeys + ')');
+ok(sp.split('\n').length === block.split('\n').length && H.startPacket(sp, item) === sp, 'started packet: same lines as the template, idempotent');
 const site = process.argv[2];
 if (site) {
   const src = fs.readFileSync(path.join(site, 'library/source/ai-team-handoff.html'), 'utf8'), pub = fs.readFileSync(path.join(site, 'library/toolkit/ai-team-handoff/index.html'), 'utf8');
@@ -37,6 +46,11 @@ if (site) {
   const others = fs.readdirSync(path.join(site, 'library/source')).filter(f => f.endsWith('.html') && f !== 'ai-team-handoff.html');
   ok(others.every(f => !fs.readFileSync(path.join(site, 'library/source', f), 'utf8').includes('handoff-check')), 'checker only on that packet');
   ok(js.length === 1 && fs.readFileSync(path.join(site, 'library/source', js[0]), 'utf8') === fs.readFileSync(path.join(root, 'scripts/site/handoff_check.js'), 'utf8'), 'served file equals the repo module');
+  const cat = JSON.parse(fs.readFileSync(path.join(root, 'ai-toolkit/catalog.json'), 'utf8')).entries;
+  const opts = [...src.matchAll(/<option value="([a-z0-9-]+)" data-path="([^"]+)" data-fw="([^"]+)" data-st="([A-Z_]+)">/g)].map(m => m.slice(1).join('|'));
+  ok(JSON.stringify(opts) === JSON.stringify(cat.map(e => [e.id, e.path, e.platform, e.status].join('|').replace(/&/g, '&amp;'))), `start-from-item: one option per catalog entry with its path, framework and status (${opts.length})`);
+  const dt = (src.match(/id="ho-start" data-ho-tpl="([^"]*)"/) || [])[1] || '';
+  ok(dt.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') === block && src.includes('id="ho-item"'), 'start-from-item: template on the button equals the packet');
   ok(!/style="/.test(src.slice(src.indexOf('id="ho-checker"'), src.indexOf('</section>', src.indexOf('id="ho-checker"')))), 'no inline styles (CSP)');
 }
 console.log(JSON.stringify({ test: 'handoff-check', checks, failures }));
