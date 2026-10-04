@@ -178,6 +178,12 @@ ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?a
   ok(/schema problem/.test(r.rejected[0].reason) && /not a session-evidence/.test(r.rejected[1].reason), "import: rejection reasons name the cause");
   ok(P.mergeLog([], [a], null).added === 0, "import: nothing is added without the schema");
   const many = Array.from({ length: 25 }, (_, i) => mkE("teleop_" + String(i).padStart(16, "0")));
+  // Save keeps 20 and reports what fell out (#7 tranche 12)
+  const twenty = Array.from({ length: P.LOG_MAX }, (_, i) => ({ evidenceId: 'e' + i }));
+  const s1 = P.appendLog(twenty.slice(0, 5), { evidenceId: 'new' }), s2 = P.appendLog(twenty, { evidenceId: 'new' });
+  ok(P.LOG_MAX === 20 && s1.dropped === 0 && s1.list.length === 6 && s2.dropped === 1 && s2.list.length === 20 && s2.list[0].evidenceId === 'e1' && s2.list[19].evidenceId === 'new', 'save: appendLog keeps 20 and reports the dropped count');
+  ok(P.appendLog(null, { evidenceId: 'x' }).list.length === 1 && P.appendLog([null, 7, []], { evidenceId: 'x' }).list.length === 1, 'save: appendLog ignores non-objects');
+  ok(/var r = appendLog\(a, o\.evidence\)/.test(fs.readFileSync(path.join(site, "robot-pilot", jsf[0]), "utf8")) && !/a\.slice\(-20\)/.test(fs.readFileSync(path.join(site, "robot-pilot", jsf[0]), "utf8")), 'save button uses appendLog (no silent slice)');
   const r2 = P.mergeLog([a], many, EVS);
   ok(r2.list.length === 20 && r2.dropped === 6 && r2.list[19] === many[24] && !r2.list.includes(a), "import: log keeps the last 20, oldest dropped and counted");
   // backup (#7 tranche 10): the JSON backup round-trips through the import, unchanged
