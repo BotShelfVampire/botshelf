@@ -250,8 +250,10 @@ def generator_coverage() -> dict:
     _render_all()
     tk = json.loads((REPO / "trader-toolkit/catalog.json").read_text())
     targets = []
+    used = sorted({b["type"] for stem in tk["recipes"] for b in json.loads((REPO / f"trader-toolkit/recipes/{stem}.json").read_text())["blocks"]})
     for t, label, ext in blt.TARGETS:
         kind, script, note = TARGET_CHECKS.get(t, PARITY_ONLY)
+        stub = sorted({x for stem in tk["recipes"] for x in _RENDERED[(stem, t)]["unsupported"]})
         if not (REPO / script).exists():
             raise SystemExit(f"coverage: missing check script {script}")
         real, idiom = t in HTF_REAL, t in HTF_IDIOM
@@ -260,6 +262,8 @@ def generator_coverage() -> dict:
                                             "note": ("Computed from closed higher-timeframe bars only (no repaint, no lookahead) in per-bar JavaScript state; checked in BSV's node:vm stub of the documented custom-indicator API (not Tradovate) against an independent reference on every bar, a forming-bar mutant, and no value on too-coarse bars." if t == "tradovate" else "Computed from closed higher-timeframe bars only (no repaint, no lookahead); checked in the library on synthetic bars, including a cut-off run and a stop on too-coarse bars.") if real
                                             else (HTF_IDIOM_NOTE[t] if idiom else "Blocks that use a higher timeframe are left as unsupported stubs with a TODO line (empty value / false signal); never computed on the chart timeframe."),
                                             **({"docs": HTF_IDIOM_DOCS[t], "check": "scripts/site/check_htf.py"} if idiom else {})},
+                        "blockSupport": {"rendered": [x for x in used if x not in stub], "unsupportedTodo": stub,
+                                         "note": "Over the block types the BSV recipes use. Rendered = no recipe has a 'TODO unsupported block' line for that type on this target; a rendered block can still carry TODO notes (for example session time zones). Not a runtime test."},
                         "runtimeTestedByBSV": False})
     recipes = []
     for stem in tk["recipes"]:
