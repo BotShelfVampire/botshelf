@@ -181,9 +181,10 @@ function zoneOk(recipe, b) {
   return !!d && (pivotOk(recipe, d) || (rangeOk(recipe, d) && rangeKeys(d).length === 2));
 }
 function webhookOk(recipe, b) {
-  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs) || !b || b.type !== 'alert.webhook') return false;  // Tradovate: built per bar, drawn as W dots, never sent
+  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangePine) || !b || b.type !== 'alert.webhook') return false;  // Tradovate: built per bar, drawn as W dots, never sent; Pine: alert() once per bar close (keys / texts without quotes, backslashes or control characters)
   const q = b.params || {}, w = blockMap(recipe).get(q.when), pl = q.payload;
   if (!w || !isBoolType(w.type) || w.type === 'alert.webhook' || !pl || typeof pl !== 'object' || Array.isArray(pl) || !Object.keys(pl).length) return false;
+  if (recipe.bsvRangePine && !Object.entries(pl).every(([k, x]) => !/["\\\x00-\x1f]/.test(k) && (typeof x !== 'string' || !/["\\\x00-\x1f]/.test(x)) && (typeof x !== 'number' || Number.isFinite(x)))) return false;
   return Object.values(pl).every(x => ['number', 'boolean'].includes(typeof x) || (typeof x === 'string' && [...x.matchAll(/\{\{([^}]*)\}\}/g)].every(m => ['symbol', 'timeframe', 'time', 'open', 'high', 'low', 'close'].includes(m[1]))));
 }
 // signal.liquidity_sweep (a candidate only): on a completed bar, the wick goes beyond the last pivot high / low known
@@ -311,7 +312,7 @@ function tableSpec(recipe, b) {
     if (seen.has(ref)) return '';
     seen.add(ref);
     const d = map.get(ref), q = d.params || {};
-    if (q.timeframeRef && !(recipe.bsvHtfReal && htfSource(recipe, d))) return `${ref} uses higher timeframe ${q.timeframeRef}, which this target does not compute (not shown rather than computed on the chart timeframe)`;
+    if (q.timeframeRef && !(recipe.bsvHtfReal && htfSource(recipe, d)) && !(recipe.bsvRangePine && /^indicator\./.test(d.type) && htfTfOf(recipe, d))) return `${ref} uses higher timeframe ${q.timeframeRef}, which this target does not compute (not shown rather than computed on the chart timeframe)`;
     if (!tableValueType(d.type) && !rangeOk(recipe, d) && !breakoutOk(recipe, d)) return `${ref} (${d.type}) is not rendered yet`;
     for (const r of referencesFor(d)) { const w = why(r, seen); if (w) return w; }
     return '';
@@ -469,6 +470,11 @@ function renderPine(recipe) {
           `plot(${p.source}_high, title=${q(t + ' high')}, color=color.red)`, `plot(${p.source}_low, title=${q(t + ' low')}, color=color.green)`);
         break;
       }
+      case 'visual.table': break;  // value panels are drawn after all blocks (below)
+      case 'alert.webhook':
+        if (!webhookOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id}`, `${b.id} = false`); break; }
+        lines.push(`// ${b.id}: webhook condition (the JSON is sent with alert() at the end)`, `${b.id} = ${p.when}`);
+        break;
       case 'visual.plot':
         lines.push(`plot(${p.source}, title=${q(p.title || p.source)})`);
         break;
@@ -481,6 +487,31 @@ function renderPine(recipe) {
         if (isBoolType(b.type)) lines.push(`${b.id} = false`);
         else if (/^structure\./.test(b.type)) lines.push(`float ${b.id} = na`);
     }
+  }
+
+  const pv = (id) => String(id).replace('.', '_'), num = (x) => `str.tostring(${x}, "#.########")`;
+  for (const t of tableBlocks(recipe)) {
+    lines.push('');
+    tableTodos(t, '//').forEach(x => lines.push(x));
+    if (!t.fields.length) continue;
+    lines.push(`// Value panel ${t.title} (visual.table): drawn on the last bar, which may still be forming, so [1] shows the bar that just closed (na shows as NaN)`,
+      `var table T_${t.id} = table.new(position.top_right, 2, ${t.fields.length + 1})`, 'if barstate.islast', `    table.cell(T_${t.id}, 0, 0, ${q(t.title)})`);
+    t.fields.forEach((x, k) => lines.push(`    table.cell(T_${t.id}, 0, ${k + 1}, ${q(x.id)})`, `    table.cell(T_${t.id}, 1, ${k + 1}, ${x.bool ? `${pv(x.id)}[1] ? "true" : "false"` : num(`${pv(x.id)}[1]`)})`));
+  }
+  const ph = { symbol: 'syminfo.ticker', timeframe: 'timeframe.period', time: 'str.format_time(time, "yyyy-MM-dd HH:mm", "UTC")', open: num('open'), high: num('high'), low: num('low'), close: num('close') };
+  for (const b of recipe.blocks.filter(x => x.type === 'alert.webhook' && webhookOk(recipe, x))) {
+    const parts = []; let lit = '{';
+    Object.entries(b.params.payload).forEach(([k, x], n) => {
+      lit += `${n ? ',' : ''}"${k}":`;
+      if (typeof x !== 'string') { lit += JSON.stringify(x); return; }
+      lit += '"';
+      String(x).split(/(\{\{[^}]*\}\})/).forEach(seg => { const m = /^\{\{([^}]*)\}\}$/.exec(seg); if (m) { parts.push(q(lit), ph[m[1]]); lit = ''; } else lit += seg; });
+      lit += '"';
+    });
+    parts.push(q(lit + '}'));
+    lines.push('', `// ${b.id}: webhook JSON. TradingView sends it only after you create an alert on this script with "Any alert() function call" and your webhook URL;`,
+      '// once per bar close, so only completed bars. {{time}} = bar open time in UTC. Not run by BSV on TradingView (UNTESTED_RUNTIME).',
+      `if ${b.id}`, `    alert(${parts.filter(x => x !== '""').join(' + ')}, alert.freq_once_per_bar_close)`);
   }
 
   lines.push('');
