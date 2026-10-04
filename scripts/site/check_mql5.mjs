@@ -16,8 +16,8 @@ const EMPTY = 1.7976931348623157e308, PER = { PERIOD_CURRENT: 0, PERIOD_M1: 1, P
 const perSec = (p) => ({ 1: 60, 5: 300, 15: 900, 30: 1800, 16385: 3600, 16388: 14400, 16408: 86400 })[p];
 const API = new Set(['_Symbol', '_Period', ...Object.keys(PER), 'INVALID_HANDLE', 'INIT_SUCCEEDED', 'INIT_FAILED', 'EMPTY_VALUE', 'MODE_EMA', 'MODE_SMA', 'PRICE_CLOSE', 'PRICE_OPEN', 'PRICE_HIGH', 'PRICE_LOW', 'PRICE_MEDIAN', 'PRICE_TYPICAL',
   'INDICATOR_DATA', 'INDICATOR_SHORTNAME', 'iMA', 'iRSI', 'iATR', 'CopyBuffer', 'BarsCalculated', 'IndicatorRelease', 'IndicatorSetString', 'ArraySetAsSeries', 'SetIndexBuffer', 'iTime', 'iOpen', 'iHigh', 'iLow', 'iClose', 'iBarShift',
-  'PeriodSeconds', 'Bars', 'TimeToStruct', 'Alert', 'Print', 'MathMin', 'MathMax', 'MathAbs', 'Comment', 'DoubleToString', 'EnumToString', 'StringSubstr', 'TimeToString', 'TIME_DATE', 'TIME_MINUTES', '_Digits']);
-const JSKW = new Set(['function', 'let', 'var', 'return', 'if', 'else', 'for', 'while', 'true', 'false', 'mqlArr']);
+  'PeriodSeconds', 'Bars', 'TimeToStruct', 'Alert', 'Print', 'MathMin', 'MathMax', 'MathAbs', 'Comment', 'DoubleToString', 'EnumToString', 'StringSubstr', 'TimeToString', 'TIME_DATE', 'TIME_MINUTES', '_Digits', 'SymbolSelect', 'SymbolsTotal', 'SymbolName', 'StringSplit', 'StringLen', 'ArraySize', 'ArrayResize']);
+const JSKW = new Set(['function', 'let', 'var', 'return', 'if', 'else', 'for', 'while', 'continue', 'break', 'true', 'false', 'mqlArr']);
 function stripComment(line) { let s = false; for (let i = 0; i < line.length; i++) { if (line[i] === '"' && line[i - 1] !== '\\') s = !s; if (!s && line[i] === '/' && line[i + 1] === '/') return line.slice(0, i); } return line; }
 const noStr = (s) => s.replace(/"(?:[^"\\]|\\.)*"/g, '""');
 function translate(src) {
@@ -31,7 +31,8 @@ function translate(src) {
   if (/\/\s*\d+(?![\d.])/.test(noStr(js))) throw new Error('division by an integer literal (integer division in MQL5) is outside the subset');
   js = js.replace(/\b(int|double|bool|void|datetime|string)\s+(\w+)\s*\(([^)]*)\)\s*\{/g, (m0, t, n, ps) => { declared.add(n); const names = ps.split(',').map(p => p.trim()).filter(Boolean).map(p => { const q = /(\w+)\s*(\[\])?$/.exec(p); if (!q) throw new Error('parameter ' + p); declared.add(q[1]); return q[1]; }); return `function ${n}(${names.join(', ')}) {`; });
   js = js.replace(/\bMqlDateTime\s+(\w+)\s*;/g, (m0, n) => { declared.add(n); return `let ${n} = {};`; });
-  js = js.replace(/\b(?:double|int|bool)\s+(\w+)\[(\d*)\]\s*;/g, (m0, n, k) => { declared.add(n); return `let ${n} = mqlArr(${k || 0});`; });
+  js = js.replace(/^input\s+string\s+(\w+)\s*=\s*("(?:[^"\\]|\\.)*")\s*;/gm, (m0, n, v) => { declared.add(n); return `let ${n} = ${v};`; }); // input string: the default value (the user may edit it in the indicator settings)
+  js = js.replace(/\b(?:double|int|bool|string)\s+(\w+)\[(\d*)\]\s*;/g, (m0, n, k) => { declared.add(n); return `let ${n} = mqlArr(${k || 0});`; });
   js = js.replace(/\b(?:int|double|bool|datetime|string|long)\s+(\w+)\s*=/g, (m0, n) => { declared.add(n); return `let ${n} =`; });
   js = js.replace(/\b(?:int|double|bool|datetime|string)\s+(\w+)\s*;/g, (m0, n) => { declared.add(n); return `let ${n} = 0;`; });
   const left = /\b(int|double|bool|void|datetime|string|long|ENUM_TIMEFRAMES|MqlDateTime|const|input|static|class|struct)\b/.exec(noStr(js));
@@ -48,26 +49,31 @@ function mt5Values(h, bs) { const n = bs.length, px = bs.map(b => h.price === 'm
   if (h.kind === 'atr') { const tr = bs.map((b, i) => i === 0 ? 0 : Math.max(b.high, bs[i - 1].close) - Math.min(b.low, bs[i - 1].close)); let s = 0; for (let i = 1; i <= p && i < n; i++) s += tr[i]; if (p < n) o[p] = s / p; for (let i = p + 1; i < n; i++) o[i] = o[i - 1] + (tr[i] - tr[i - p]) / p; return o; } // ATR.mq5: simple average of the true range
   throw new Error('handle kind ' + h.kind); }
 class MqlRangeError extends Error {}
-function makeRuntime(chartMin) {
+function makeRuntime(chartMin, syms = {}) { // syms: other symbols -> full test bars on the chart's time grid (Market Watch = these symbols)
   const st = { cur: [], ver: 0 }, handles = [], buffers = [], alerts = [], prints = [], comments = [], cache = new Map();
   const tfOf = (tf) => tf === 0 || tf === chartMin ? 0 : tf;
-  const tfBars = (tf) => { tf = tfOf(tf); if (tf === 0) return st.cur; const k = 'b' + tf; if (cache.get(k)?.ver !== st.ver) cache.set(k, { ver: st.ver, v: compress(st.cur, perSec(tf) * 1000) }); return cache.get(k).v; };
-  const vals = (id) => { const k = 'h' + id; if (cache.get(k)?.ver !== st.ver) cache.set(k, { ver: st.ver, v: mt5Values(handles[id], tfBars(handles[id].tf)) }); return cache.get(k).v; };
+  const symBars = (s) => { if (s === undefined || s === 'BSVTEST') return st.cur; const k = 's' + s; if (cache.get(k)?.ver !== st.ver) { const full = syms[s] || [], lastT = st.cur.length ? st.cur[st.cur.length - 1].time : -Infinity, v = full.filter(b => b.time <= lastT);
+    if (st.forming && v.length && v[v.length - 1].time === lastT) v[v.length - 1] = firstTick(v[v.length - 1]); cache.set(k, { ver: st.ver, v }); } return cache.get(k).v; }; // another symbol: its bars up to the chart's newest bar time (forming together with it)
+  const tfBars = (tf, s) => { tf = tfOf(tf); if (s !== undefined && s !== 'BSVTEST') { if (tf !== 0) throw new Error('higher timeframe on another symbol is outside the model'); return symBars(s); } if (tf === 0) return st.cur; const k = 'b' + tf; if (cache.get(k)?.ver !== st.ver) cache.set(k, { ver: st.ver, v: compress(st.cur, perSec(tf) * 1000) }); return cache.get(k).v; };
+  const vals = (id) => { const k = 'h' + id; if (cache.get(k)?.ver !== st.ver) cache.set(k, { ver: st.ver, v: mt5Values(handles[id], tfBars(handles[id].tf, handles[id].sym)) }); return cache.get(k).v; };
   const mqlArr = (n = 0) => { const t = { store: new Array(n).fill(0), series: false };
     return new Proxy(t, { get(o, k) { if (k === '__t') return o; if (typeof k === 'string' && /^\d+$/.test(k)) { const i = +k; if (i >= o.store.length) throw new MqlRangeError(`array out of range [${i}] of ${o.store.length}`); return o.store[o.series ? o.store.length - 1 - i : i]; } return undefined; },
       set(o, k, v) { if (typeof k === 'string' && /^\d+$/.test(k)) { const i = +k; if (i >= o.store.length) throw new MqlRangeError(`array out of range [${i}] of ${o.store.length}`); o.store[o.series ? o.store.length - 1 - i : i] = v; return true; } throw new Error('property set ' + String(k)); } }); };
   const price = { 1: 'close', 2: 'open', 3: 'high', 4: 'low', 5: 'median', 6: 'typical' };
-  const handle = (h) => { if (tfOf(h.tf) !== 0 && !perSec(h.tf)) return -1; handles.push(h); return handles.length - 1; };
-  const at = (tf, i, f) => { const b = tfBars(tf), j = b.length - 1 - i; return j >= 0 && j < b.length ? (f === 'time' ? b[j].time / 1000 : b[j][f]) : 0; };
+  const known = (s) => s === 'BSVTEST' || Object.prototype.hasOwnProperty.call(syms, s);
+  const handle = (h) => { if ((tfOf(h.tf) !== 0 && !perSec(h.tf)) || !known(h.sym)) return -1; handles.push(h); return handles.length - 1; };
+  const at = (s, tf, i, f) => { if (!known(s)) return 0; const b = tfBars(tf, s), j = b.length - 1 - i; return j >= 0 && j < b.length ? (f === 'time' ? b[j].time / 1000 : b[j][f]) : 0; };
   const api = { _Symbol: 'BSVTEST', _Period: chartMin, ...PER, INVALID_HANDLE: -1, INIT_SUCCEEDED: 0, INIT_FAILED: 1, EMPTY_VALUE: EMPTY, MODE_SMA: 0, MODE_EMA: 1, PRICE_CLOSE: 1, PRICE_OPEN: 2, PRICE_HIGH: 3, PRICE_LOW: 4, PRICE_MEDIAN: 5, PRICE_TYPICAL: 6, INDICATOR_DATA: 0, INDICATOR_SHORTNAME: 0,
-    iMA: (s, tf, p, sh, m, pr) => sh === 0 ? handle({ kind: m === 1 ? 'ema' : 'sma', tf, period: p, price: price[pr] }) : -1, iRSI: (s, tf, p, pr) => handle({ kind: 'rsi', tf, period: p, price: price[pr] }), iATR: (s, tf, p) => handle({ kind: 'atr', tf, period: p, price: 'close' }),
+    iMA: (s, tf, p, sh, m, pr) => sh === 0 ? handle({ sym: s, kind: m === 1 ? 'ema' : 'sma', tf, period: p, price: price[pr] }) : -1, iRSI: (s, tf, p, pr) => handle({ sym: s, kind: 'rsi', tf, period: p, price: price[pr] }), iATR: (s, tf, p) => handle({ sym: s, kind: 'atr', tf, period: p, price: 'close' }),
     CopyBuffer: (id, buf, start, count, arr) => { if (!handles[id] || buf !== 0) return -1; const v = vals(id), n = v.length; if (start < 0 || count <= 0 || start + count > n) return -1; const t = arr.__t; if (t.store.length < count) t.store.length = count; t.store.fill(0);
       for (let k = 0; k < count; k++) { const val = v[n - 1 - start - k]; t.store[t.series ? t.store.length - 1 - k : count - 1 - k] = val; } return count; },
-    BarsCalculated: (id) => handles[id] ? tfBars(handles[id].tf).length : -1, IndicatorRelease: () => true, IndicatorSetString: () => true,
+    BarsCalculated: (id) => handles[id] ? tfBars(handles[id].tf, handles[id].sym).length : -1, IndicatorRelease: () => true, IndicatorSetString: () => true,
     ArraySetAsSeries: (arr, f) => { arr.__t.series = !!f; return true; }, SetIndexBuffer: (k, arr) => { buffers[k] = arr; return true; },
-    iTime: (s, tf, i) => at(tf, i, 'time'), iOpen: (s, tf, i) => at(tf, i, 'open'), iHigh: (s, tf, i) => at(tf, i, 'high'), iLow: (s, tf, i) => at(tf, i, 'low'), iClose: (s, tf, i) => at(tf, i, 'close'),
+    iTime: (s, tf, i) => at(s, tf, i, 'time'), iOpen: (s, tf, i) => at(s, tf, i, 'open'), iHigh: (s, tf, i) => at(s, tf, i, 'high'), iLow: (s, tf, i) => at(s, tf, i, 'low'), iClose: (s, tf, i) => at(s, tf, i, 'close'),
     iBarShift: (s, tf, t, exact) => { const b = tfBars(tf); let j = -1; for (let k = b.length - 1; k >= 0; k--) if (b[k].time / 1000 <= t) { j = k; break; } return j < 0 ? -1 : b.length - 1 - j; },
-    Bars: (s, tf) => tfBars(tf).length, PeriodSeconds: (tf) => tfOf(tf) === 0 ? chartMin * 60 : perSec(tf), TimeToStruct: (t, o) => { const d = new Date(t * 1000); Object.assign(o, { year: d.getUTCFullYear(), mon: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), min: d.getUTCMinutes(), sec: d.getUTCSeconds(), day_of_week: d.getUTCDay() }); return true; },
+    Bars: (s, tf) => known(s) ? tfBars(tf, s).length : 0,
+    SymbolSelect: (s, on) => known(s), SymbolsTotal: (sel) => Object.keys(syms).length, SymbolName: (k, sel) => Object.keys(syms)[k] ?? '', StringLen: (s) => String(s).length, // Market Watch = the model's other symbols
+    StringSplit: (s, sep, arr) => { const parts = String(s).split(sep); arr.__t.store = parts; return parts.length; }, ArraySize: (arr) => arr.__t.store.length, ArrayResize: (arr, n) => { const t = arr.__t; while (t.store.length < n) t.store.push(0); t.store.length = n; return n; }, PeriodSeconds: (tf) => tfOf(tf) === 0 ? chartMin * 60 : perSec(tf), TimeToStruct: (t, o) => { const d = new Date(t * 1000); Object.assign(o, { year: d.getUTCFullYear(), mon: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), min: d.getUTCMinutes(), sec: d.getUTCSeconds(), day_of_week: d.getUTCDay() }); return true; },
     Alert: (...a) => { alerts.push({ len: st.cur.length, msg: a.join('') }); }, Print: (...a) => { prints.push(a.join('')); }, Comment: (...a) => { comments.push({ len: st.cur.length, text: a.join('') }); }, // Comment / DoubleToString / EnumToString / StringSubstr / TimeToString per the MQL5 reference
     DoubleToString: (v, d = 8) => v.toFixed(Number.isInteger(d) && d >= 0 && d <= 16 ? d : 8), EnumToString: (p) => Object.keys(PER).find(k => PER[k] === p && p !== 0) || ({ 60: 'PERIOD_H1', 240: 'PERIOD_H4', 1440: 'PERIOD_D1' })[p] || String(p),
     StringSubstr: (s, a, len = -1) => len < 0 ? String(s).slice(a) : String(s).substr(a, len), TIME_DATE: 1, TIME_MINUTES: 2, _Digits: 5,
@@ -76,14 +82,14 @@ function makeRuntime(chartMin) {
   return { st, api, buffers, alerts, prints, comments, handles };
 }
 const firstTick = (b) => ({ time: b.time, open: b.open, high: b.open, low: b.open, close: b.open });
-function run(js, bars, chartMin, n0) { // n0 = bars on the first call; then each new bar arrives as a first tick and then its final tick
-  const rt = makeRuntime(chartMin), ctx = vm.createContext({ ...rt.api });
+function run(js, bars, chartMin, n0, syms = {}) { // n0 = bars on the first call; then each new bar arrives as a first tick and then its final tick
+  const rt = makeRuntime(chartMin, syms), ctx = vm.createContext({ ...rt.api });
   vm.runInContext('"use strict";\n' + js + '\n;globalThis.__bsv = { OnInit, OnCalculate, OnDeinit: typeof OnDeinit === "function" ? OnDeinit : null, call: (n, i) => globalThis[n](i) };', ctx, { timeout: 20000 });
   for (const [k, v] of Object.entries(rt.api)) if (k !== 'mqlArr' && typeof v !== 'function' && ctx[k] !== v) throw new Error('documented constant overwritten: ' + k);
   const F = ctx.__bsv, init = F.OnInit(); if (init !== 0) return { init, rt, F };
-  let prev = 0; const call = (cur) => { rt.st.cur = cur; rt.st.ver++; for (const b of rt.buffers) if (b) { const t = b.__t, add = cur.length - t.store.length; if (add > 0) { const fresh = new Array(add).fill(NaN); t.store = t.series ? [...fresh.slice(0, 0), ...t.store, ...fresh] : [...t.store, ...fresh]; } } const T = cur.map(b => b.time / 1000), r = F.OnCalculate(cur.length, prev, T, cur.map(b => b.open), cur.map(b => b.high), cur.map(b => b.low), cur.map(b => b.close), [], [], []); prev = r; };
+  let prev = 0; const call = (cur, forming = false) => { rt.st.cur = cur; rt.st.forming = forming; rt.st.ver++; for (const b of rt.buffers) if (b) { const t = b.__t, add = cur.length - t.store.length; if (add > 0) { const fresh = new Array(add).fill(NaN); t.store = t.series ? [...fresh.slice(0, 0), ...t.store, ...fresh] : [...t.store, ...fresh]; } } const T = cur.map(b => b.time / 1000), r = F.OnCalculate(cur.length, prev, T, cur.map(b => b.open), cur.map(b => b.high), cur.map(b => b.low), cur.map(b => b.close), [], [], []); prev = r; };
   call(bars.slice(0, n0));
-  for (let k = n0; k < bars.length; k++) { call([...bars.slice(0, k), firstTick(bars[k])]); call(bars.slice(0, k + 1)); }
+  for (let k = n0; k < bars.length; k++) { call([...bars.slice(0, k), firstTick(bars[k])], true); call(bars.slice(0, k + 1)); }
   return { init, rt, F };
 }
 // --- independent references (standard formulas) and synthetic bars (same as the Pine / AFL / thinkScript checks) ---
@@ -99,7 +105,7 @@ const srcOf = (bs, s) => bs.map(b => s === 'hl2' ? (b.high + b.low) / 2 : s === 
 const refInd = (bs, b) => { const p = b.params || {}, x = srcOf(bs, p.source); if (b.type === 'indicator.sma') return refSma(x, p.length); if (b.type === 'indicator.ema') return refEma(x, p.length);
   if (b.type === 'indicator.rsi') { const G = refRma(x.slice(1).map((w, i) => Math.max(w - x[i], 0)), p.length), L = refRma(x.slice(1).map((w, i) => Math.max(x[i] - w, 0)), p.length); return [NaN, ...G.map((u, i) => 100 * u / (u + L[i]))]; }
   const trs = bs.map((h, i) => i === 0 ? NaN : Math.max(h.high, bs[i - 1].close) - Math.min(h.low, bs[i - 1].close)); return [NaN, ...refSma(trs.slice(1), p.length)]; }; // MT5 ATR: simple average of the true range
-const vacuous = []; let panelsSeen = 0, hooksSeen = 0, pivChecked = 0, pivSigSeen = 0, zonesSeen = 0, rangeChecked = 0, breakoutsSeen = 0, todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, plotsChecked = 0, alertsSeen = 0, mutantsCaught = 0, files = 0, auditNames = 0;
+const vacuous = []; let scansSeen = 0, panelsSeen = 0, hooksSeen = 0, pivChecked = 0, pivSigSeen = 0, zonesSeen = 0, rangeChecked = 0, breakoutsSeen = 0, todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, plotsChecked = 0, alertsSeen = 0, mutantsCaught = 0, files = 0, auditNames = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'mql5'], { encoding: 'utf8' });
@@ -143,7 +149,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     return d; };
   if (rngB.length) { const d0 = badR(full.F); ok(d0 === 0, f, `range / breakout equal the window reference on every bar (${d0} differ)`); rangeChecked += rngB.length; for (const rb of rngB) ok(refRange(rb).H.some(fin), f, `${rb.id}: windows occur (not vacuous)`);
     for (const bb of bos) { let c = 0; for (let i = 1; i < top - 200; i++) if (full.F.call(`S_${bb.id}`, i)) c++; ok(c > 0, f, `${bb.id}: breakouts fire (${c})`); breakoutsSeen += c; if (d0 === 0) env.set(bb.id, series(`S_${bb.id}`, x => +tr(x))); }
-    for (const [mn, from, to, need] of [['window starts one bar too old', /double v = (iHigh|iLow)\(_Symbol, _Period, k\);/g, 'double v = $1(_Symbol, _Period, k + 1);', 0], ['breakout without the close before', / && iClose\(_Symbol, _Period, i \+ 1\) <= h;/, ';', 1]]) { if (need && !bos.length) continue;
+    for (const [mn, from, to, need] of [['window starts one bar too old', /double v = (iHigh|iLow)\((_Symbol|g_sym), _Period, k\);/g, 'double v = $1($2, _Period, k + 1);', 0], ['breakout without the close before', / && iClose\((?:_Symbol|g_sym), _Period, i \+ 1\) <= h;/, ';', 1]]) { if (need && !bos.length) continue;
       const mc = code.replace(from, to), caught = mc !== code && badR(run(translate(mc).js, bs, chartMin, n).F) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; } }
   // TODO stubs: never true / never a value
   for (const m of code.matchAll(/^(bool|double) ([SV])_(\w+)\(int i\) \{ return (false|EMPTY_VALUE); \} \/\/ TODO unsupported block/gm)) { let bad = 0; for (let i = 0; i < top; i += 7) { const x = S(`${m[2]}_${m[3]}`, i); if (m[1] === 'bool' ? x !== false : x !== EMPTY) bad++; } ok(bad === 0, f, `${m[3]}: TODO stub never true / never a value`); }
@@ -166,7 +172,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   if (pivB.length) { const d0 = badP(full.F); ok(d0 === 0, f, `pivot / sweep / divergence equal the chronological reference on every calculated bar from 400 (${d0} differ)`);
     for (const pb of pivB) { const q = refPiv(pb); ok(q.ph.length > 0 && q.pl.length > 0, f, `${pb.id}: pivots occur (not vacuous)`); pivChecked++; }
     for (const sb of pvSig) { let c = 0; for (let j = Math.max(400, n - top); j < n; j++) if (full.F.call(`S_${sb.id}`, n - 1 - j)) c++; ok(c > 0, f, `${sb.id}: fires (${c}; not vacuous)`); pivSigSeen += c; if (d0 === 0) env.set(sb.id, series(`S_${sb.id}`, x => +tr(x))); }
-    for (const [mn, from, to, need] of [['pivot without the right-side test', / for \(int k = 1; k <= \d+; k\+\+\) if \((iHigh|iClose)\(_Symbol, _Period, c - k\) > v\) return\(false\);/, '', null],
+    for (const [mn, from, to, need] of [['pivot without the right-side test', / for \(int k = 1; k <= \d+; k\+\+\) if \((iHigh|iClose)\((?:_Symbol|g_sym), _Period, c - k\) > v\) return\(false\);/, '', null],
       ['sweep without the close back inside', / && c < ph\)/, ')', 'signal.liquidity_sweep'], ['divergence oscillator test flipped', / && o1 < o0; \}/, ' && o1 > o0; }', 'signal.divergence']]) {
       if (need && !pvSig.some(b => b.type === need)) continue; const mc = code.replace(from, to), caught = mc !== code && badP(run(translate(mc).js, bs, chartMin, n).F) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; } }
   // zones: two extra buffers after the plots, holding the source's high / low; the incremental run equals one full calculation
@@ -174,7 +180,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     const want = src.type === 'structure.pivot' ? (() => { const q = refPiv(src); return [q.h, q.l]; })() : [0, 1].map(s => { const R = env.get(src.params.during).map(x => x === 1), out = []; let h = NaN, l = NaN; bs.forEach((b, j) => { if (R[j]) { const fresh = j === 0 || !R[j - 1]; h = fresh ? b.high : Math.max(h, b.high); l = fresh ? b.low : Math.min(l, b.low); } out.push(s ? l : h); }); return out; });
     let bad = 0, binc = 0; for (const s of [0, 1]) { const fb = full.rt.buffers[k0 + s]?.__t, ib = inc.rt.buffers[k0 + s]?.__t; if (!fb || !ib) { bad++; continue; } for (let j = Math.max(400, n - top + 1); j < n; j++) { if (!same(val(fb.store[j]), want[s][j])) bad++; if (!same(val(ib.store[j]), val(fb.store[j]))) binc++; } }
     ok(bad === 0 && binc === 0 && want[0].some(fin), f, `${z.id}: zone buffers = ${z.params.source} high / low (${bad} differ; incremental differ ${binc}; not vacuous)`); zonesSeen++; });
-  ok(recipe.blocks.every(b => !/^(structure|signal|visual\.(zone|table)|alert\.webhook|scanner)\./.test(b.type) || /^signal\.(cross|threshold|combine)$/.test(b.type) || hasFn(`S_${b.id}`) || hasFn(`V_${b.id}`) || hasFn(`V_${b.id}_high`) || hasFn(`V_${b.id}_low`) || code.includes(`TODO unsupported block ${b.type}: ${b.id}`)), f, 'every block is rendered or a declared TODO stub');
+  ok(recipe.blocks.every(b => !/^(structure|signal|visual\.(zone|table)|alert\.webhook|scanner)\./.test(b.type) || /^signal\.(cross|threshold|combine)$/.test(b.type) || code.includes(`g_scan_${b.id}_t = iTime`) || hasFn(`S_${b.id}`) || hasFn(`V_${b.id}`) || hasFn(`V_${b.id}_high`) || hasFn(`V_${b.id}_low`) || code.includes(`TODO unsupported block ${b.type}: ${b.id}`)), f, 'every block is rendered or a declared TODO stub');
   // plots: one buffer per visual.plot holding its source; the incremental run (new bar + ticks) equals one full calculation
   const plotB = recipe.blocks.filter(b => b.type === 'visual.plot');
   ok(full.rt.buffers.length === plotB.length + 2 * zoneB.length, f, 'one indicator buffer per visual.plot, two per rendered zone');
@@ -182,7 +188,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     for (let i = 0; i < top; i++) { const j = n - 1 - i, a = fb.store[fb.series ? j : j], w = v[j]; if (!same(val(a), w)) bad++; if (!same(val(ib.store[j]), val(a))) binc++; }
     ok(bad === 0, f, `${b.id}: plot buffer = its source on every calculated bar (${bad} differ)`); ok(binc === 0, f, `${b.id}: incremental calls (new bar + ticks) equal one full calculation (${binc} differ)`); plotsChecked++; });
   // alerts: once per CLOSED bar where the condition holds, never from the forming bar (the first tick of each bar differs)
-  const alB = recipe.blocks.filter(b => b.type === 'alert.condition'), alertsOf = (r) => r.rt.alerts.map(a => `${a.len}|${a.msg}`), stubbed = (id) => new RegExp(`^bool S_${id}\\(int i\\) \\{ return false; \\} // TODO`, 'm').test(code);
+  const alB = recipe.blocks.filter(b => b.type === 'alert.condition'), alertsOf = (r) => r.rt.alerts.filter(a => !a.msg.startsWith('BSV scan ')).map(a => `${a.len}|${a.msg}`), stubbed = (id) => new RegExp(`^bool S_${id}\\(int i\\) \\{ return false; \\} // TODO`, 'm').test(code);
   const wantAl = (sig) => { const out = []; for (const b of alB) { const w = env.get(b.params.when); if (!w) continue; for (let j = n0 - 2; j <= n - 2; j++) if (w[j] === 1) out.push(`${j + 2}|${b.params.message || b.id}`); } return out.sort(); }; // bar j is checked when bar j + 1 opens (j + 2 bars visible)
   if (alB.length) { const got = alertsOf(inc).sort(), want = wantAl(); const real = alB.some(b => !stubbed(b.params.when)); ok(got.length === want.length && got.every((x, k) => x === want[k]) && (want.length > 0 || !real || chartMin === 60), f, `alerts once per closed bar on the condition (${got.length} fired, ${want.length} expected)`); alertsSeen += got.length;
     const mc = code.replace(/(S_\w+)\(1\) && (g_alert_\w+) != iTime\(_Symbol, _Period, 1\)\) \{ \2 = iTime\(_Symbol, _Period, 1\);/, '$1(0) && $2 != iTime(_Symbol, _Period, 0)) { $2 = iTime(_Symbol, _Period, 0);');
@@ -227,6 +233,32 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(want.length > 0 && same2(got, want), f, `webhook JSON printed once per closed bar on the condition (${got.length} printed, ${want.length} expected)`); hooksSeen += got.length;
     for (const [mn, from, to] of [['price from the open', /DoubleToString\(iClose\(_Symbol, _Period, 1\), _Digits\)/, 'DoubleToString(iOpen(_Symbol, _Period, 1), _Digits)'], ['webhook from the forming bar', /if \((S_\w+)\(1\) && (g_hook_\w+) != iTime\(_Symbol, _Period, 1\)\) \{ \2 = iTime\(_Symbol, _Period, 1\);/, 'if ($1(0) && $2 != iTime(_Symbol, _Period, 0)) { $2 = iTime(_Symbol, _Period, 0);']]) {
       if (!from.test(code)) continue; const mc = code.replace(from, to), g2 = hooksOf(run(translate(mc).js, bs, chartMin, n0)), caught = mc !== code && !same2(g2, want); ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; } }
+  // symbol scans (batch 28): once per closed chart bar, each scanned symbol's signal at its bar that just closed, alerted as one list.
+  // Expected per symbol = the same script run as a chart on that symbol's test bars (symbol 1 = the chart bars, so its series is the one
+  // checked against the independent reference above); other symbols get different swings on the same time grid; Market Watch = the model's symbols
+  const scanB = recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && code.includes(`g_scan_${b.id}_t = iTime`));
+  recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && !scanB.includes(b)).forEach(b => ok(code.includes(`TODO unsupported block scanner.symbol_set: ${b.id} - `), f, `${b.id}: scan left as an explicit TODO with the reason`));
+  for (const sb of scanB) { const sig = sb.params.signal || alB[0].params.when, list = sb.params.symbols || [], dt = bs[1].time - bs[0].time;
+    const SY = Object.fromEntries(list.map((sy, k) => [sy, k === 0 ? bs : mkBars(n, dt, i => 100 + (12 + 5 * k) * Math.sin(i / (11 + 4 * k)) + (2 + k) * Math.sin(i * (1.1 + 0.3 * k)))]));
+    SY.BSVXTRA = SY[list[1] || list[0]].map(b => ({ ...b })); // in Market Watch only, not in the list (same swings as symbol 2, so it fires)
+    const sigOf = {}; for (const sy of Object.keys(SY)) { const F = SY[sy] === bs ? full.F : run(T.js, SY[sy], chartMin, n).F, out = new Array(n).fill(0); for (let i = 1; i < top; i++) out[n - 1 - i] = F.call(`S_${sig}`, i) ? 1 : 0; sigOf[sy] = out; }
+    ok(sigOf[list[0]].every((x, j) => j < n - top + 1 || x === (env.get(sig)[j] === 1 ? 1 : 0)), f, `${sb.id}: symbol 1 (the chart bars) uses the signal series checked above`);
+    const scanAl = (r) => r.rt.alerts.filter(a => a.msg.startsWith(`BSV scan ${sb.id}:`)).map(a => `${a.len}|${a.msg}`);
+    const wantScan = (syms) => { const out = []; for (let L = n0; L <= n; L++) { const j = L - 2, h = syms.filter(sy => sigOf[sy][j] === 1); if (h.length) out.push(`${L}|BSV scan ${sb.id}: ${h.join(' ')}`); } return out; };
+    const same3 = (a, b) => a.length === b.length && a.every((x, k) => x === b[k]), SYl = Object.fromEntries(list.map(sy => [sy, SY[sy]]));
+    const rs = run(T.js, bs, chartMin, n0, SYl), w0 = wantScan(list), g0 = scanAl(rs), hits = list.map(sy => w0.filter(x => x.split(': ')[1].split(' ').includes(sy)).length);
+    ok(same3(g0, w0), f, `${sb.id}: one alert per closed chart bar listing the symbols whose ${sig} held on their bar that just closed (${g0.length} alerts, ${w0.length} expected)`);
+    ok(hits.every(h => h > 0) && list.slice(1).some(sy => sigOf[sy].some((x, j) => j >= n0 - 2 && x !== sigOf[list[0]][j])), f, `${sb.id}: every symbol is listed on some bar and the symbols differ (hits ${hits.join(' / ')}; not vacuous)`); scansSeen += hits.reduce((a, b) => a + b, 0);
+    { const ga = alertsOf(rs).sort(), wa = wantAl(); ok(same3(ga, wa), f, `${sb.id}: the chart alerts are unchanged while the scan runs (the chart symbol is restored; ${ga.length} / ${wa.length})`); }
+    ok(!rs.rt.prints.some(x => x.startsWith(`BSV scan ${sb.id}:`)), f, `${sb.id}: no symbol skipped when every symbol has data`);
+    { const mw = code.replace(new RegExp(`^(input string InpScan_${sb.id} = )"[^"]*";`, 'm'), '$1"";'), r = run(translate(mw).js, bs, chartMin, n0, SY), g = scanAl(r), w = wantScan(Object.keys(SY));
+      ok(mw !== code && same3(g, w) && g.some(x => x.includes('BSVXTRA')), f, `${sb.id}: an empty list scans every Market Watch symbol (${g.length} alerts, ${w.length} expected)`); }
+    { const miss = list[list.length - 1], SYm = Object.fromEntries(list.filter(sy => sy !== miss).map(sy => [sy, SY[sy]])), r = run(T.js, bs, chartMin, n0, SYm), g = scanAl(r), w = wantScan(list.filter(sy => sy !== miss));
+      ok(same3(g, w) && r.rt.prints.some(x => x === `BSV scan ${sb.id}: unknown symbol ${miss}`) && r.rt.prints.some(x => x.startsWith(`BSV scan ${sb.id}: 1 symbol(s) skipped`)), f, `${sb.id}: an unknown symbol is reported and skipped, the others are still scanned`); }
+    for (const [mn, from, to] of [['scan reads the forming bar (shift 0)', `if (S_${sig}(1)) hits`, `if (S_${sig}(0)) hits`], ['scan ignores the symbol (reads the chart)', `         g_sym = g_scan_${sb.id}[k];\n`, ''],
+      ['scan copies the chart indicator values', new RegExp(`CopyBuffer\\(g_scan_${sb.id}_h_(\\w+)\\[k\\]`), 'CopyBuffer(h_$1']]) {
+      const mc = code.replace(from, to), caught = mc !== code && !same3(scanAl(run(translate(mc).js, bs, chartMin, n0, SYl)), w0); ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; }
+    { const mc = code.replace('      g_sym = _Symbol;\n', ''), r = run(translate(mc).js, bs, chartMin, n0, SYl), caught = mc !== code && !same3(alertsOf(r).sort(), wantAl()); ok(caught, f, 'mutant caught: the chart symbol is not restored after the scan'); if (caught) mutantsCaught++; } }
   const cx = recipe.blocks.find(b => b.type === 'signal.cross' && env.get(b.id)?.some(x => x === 1));
   if (cx) { const mc = code.replace(new RegExp(`^(bool S_${cx.id}\\(int i\\) \\{ return .*?) (>|<) (.*?) && (.*?) (<=|>=) `, 'm'), (m0, a, o1, b, c, o2) => `${a} ${o1 === '>' ? '<' : '>'} ${b} && ${c} ${o2 === '<=' ? '>=' : '<='} `), r = run(translate(mc).js, bs, chartMin, n); let d = 0; for (let i = 1; i < top; i++) if (!!r.F.call(`S_${cx.id}`, i) !== (env.get(cx.id)[n - 1 - i] === 1)) d++;
     ok(mc !== code && d > 0, f, `mutant caught: flipped cross (${cx.id})`); if (mc !== code && d > 0) mutantsCaught++; }
@@ -238,5 +270,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(mc !== code && d > 0, f, 'mutant caught: higher timeframe reads the forming higher bar (s instead of s + 1)'); if (mc !== code && d > 0) mutantsCaught++; }
   { const st0 = [...code.matchAll(/^bool (S_\w+)\(int i\) \{ return false; \} \/\/ TODO/gm)].find(m => code.split(m[1] + '(').length > 2), mc = st0 ? code.replace(st0[0], '// TODO') : code, changed = mc !== code; if (changed) { let caught = false; try { const t = translate(mc), u = [...names(t.js)].filter(x => !t.declared.has(x) && !API.has(x) && !JSKW.has(x)); caught = u.length > 0; } catch { caught = true; } ok(caught, f, 'mutant caught: a comment-only TODO block that is still referenced (the Pine bug) is an undeclared name'); if (caught) mutantsCaught++; } }
 }
-console.log(JSON.stringify({ target: 'mql5', recipes: files, checks, failures, names_audited: auditNames, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, plots: plotsChecked, panels: panelsSeen, webhook_payloads: hooksSeen, ranges: rangeChecked, pivots: pivChecked, sweep_divergence: pivSigSeen, zones: zonesSeen, breakouts: breakoutsSeen, alerts: alertsSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, alert_bars_60m_sets: fires, alerts_vacuous: vacuous, note: 'BSV MQL5-subset translator + stub of the documented MT5 API in node:vm, not MetaTrader 5' }));
+console.log(JSON.stringify({ target: 'mql5', recipes: files, checks, failures, names_audited: auditNames, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, plots: plotsChecked, panels: panelsSeen, webhook_payloads: hooksSeen, scan_hits: scansSeen, ranges: rangeChecked, pivots: pivChecked, sweep_divergence: pivSigSeen, zones: zonesSeen, breakouts: breakoutsSeen, alerts: alertsSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, alert_bars_60m_sets: fires, alerts_vacuous: vacuous, note: 'BSV MQL5-subset translator + stub of the documented MT5 API in node:vm, not MetaTrader 5' }));
 process.exit(failures ? 1 : 0);

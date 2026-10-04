@@ -18,6 +18,7 @@ import numpy as np, pandas as pd, backtesting  # noqa: E402
 from backtesting import Backtest, Strategy  # noqa: E402
 warnings.filterwarnings("ignore")
 
+scans_seen = 0
 checks = failures = files = alerts_seen = panels_seen = htf_seen = zones_seen = webhooks_seen = 0
 import bsv_py_reference as BSVREF  # noqa: E402
 def ok(c, f, m):
@@ -125,6 +126,8 @@ for f in sorted(RECIPES.glob("*.json")):
         gw = [tuple(l.split(" ", 2)) for l in out.stdout.splitlines() if l.startswith("WEBHOOK ")]; ww = BSVREF.webhook_expect(recipe, boo, start)
         ok(gw == ww and len(ww) > 0, name, f"webhook payloads printed {len(gw)} expected {len(ww)}")
         webhooks_seen += len(gw)
-print(json.dumps({"target": "backtesting-py", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen, "zones": zones_seen, "webhooks": webhooks_seen,
+    if any(x["type"] == "scanner.symbol_set" for x in recipe["blocks"]):  # symbol scans (batch 28): --scan over a dict of symbol -> bars
+        scans_seen += BSVREF.scan_checks(recipe, code, mp, tmp, sys.executable, "backtesting-py", ok, name)
+print(json.dumps({"target": "backtesting-py", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen, "zones": zones_seen, "webhooks": webhooks_seen, "scan_hits": scans_seen,
                   "backtesting": backtesting.__version__, "note": "run inside the Backtesting.py library on synthetic bars; not a broker, live-feed or platform runtime test"}))
 sys.exit(1 if failures else 0)

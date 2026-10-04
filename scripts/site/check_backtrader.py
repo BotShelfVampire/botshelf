@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RECIPES = ROOT / "trader-toolkit/recipes"
 import backtrader as bt  # noqa: E402
 
+scans_seen = 0
 checks = failures = files = alerts_seen = panels_seen = htf_seen = zones_seen = webhooks_seen = 0
 import bsv_py_reference as BSVREF  # noqa: E402
 def ok(c, f, m):
@@ -128,6 +129,8 @@ for f in sorted(RECIPES.glob("*.json")):
         gw = [tuple(l.split(" ", 2)) for l in out.stdout.splitlines() if l.startswith("WEBHOOK ")]; ww = BSVREF.webhook_expect(recipe, boo)
         ok(gw == ww and len(ww) > 0, name, f"webhook payloads printed {len(gw)} expected {len(ww)}")
         webhooks_seen += len(gw)
-print(json.dumps({"target": "backtrader", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen, "zones": zones_seen, "webhooks": webhooks_seen,
+    if any(x["type"] == "scanner.symbol_set" for x in recipe["blocks"]):  # symbol scans (batch 28): --scan over a dict of symbol -> bars
+        scans_seen += BSVREF.scan_checks(recipe, code, mp, tmp, sys.executable, "backtrader", ok, name)
+print(json.dumps({"target": "backtrader", "recipes": files, "checks": checks, "failures": failures, "alerts": alerts_seen, "panels": panels_seen, "htf_recipes": htf_seen, "zones": zones_seen, "webhooks": webhooks_seen, "scan_hits": scans_seen,
                   "backtrader": bt.__version__, "note": "run inside the backtrader library on synthetic bars; not a broker, live-feed or platform runtime test"}))
 sys.exit(1 if failures else 0)
