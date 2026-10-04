@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-let checks = 0, failures = 0, files = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0, zoneSeen = 0, htfSeen = 0;
+let checks = 0, failures = 0, files = 0, hooksSeen = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0, zoneSeen = 0, htfSeen = 0;
 const fail = (f, m) => { failures++; console.error('FAIL', f, m); };
 const ok = (c, f, m) => { checks++; if (!c) fail(f, m); };
 const fin = Number.isFinite;
@@ -153,7 +153,8 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const byIdR = new Map(recipe.blocks.map(b => [b.id, b]));
   const zones = recipe.blocks.filter(b => b.type === 'visual.zone' && /^structure\.(pivot|range)$/.test(byIdR.get(b.params?.source)?.type || '')); // pivot and range zones are rendered
   recipe.blocks.filter(b => b.type === 'visual.zone' && !zones.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block visual.zone: ${String(b.id).replace(/[^A-Za-z0-9_]/g, '_')}`), f, `${b.id}: zone without a pivot / range source left as TODO`));
-  const keys = [...plots.map((_, k) => 'P' + (k + 1)), ...zones.flatMap((_, n) => ['Z' + (n + 1) + 'H', 'Z' + (n + 1) + 'L']), ...alerts.map((_, k) => 'A' + (k + 1))];
+  const hooks = recipe.blocks.filter(b => b.type === 'alert.webhook'); // every recipe webhook here is valid (see webhookOk), so each is rendered
+  const keys = [...plots.map((_, k) => 'P' + (k + 1)), ...zones.flatMap((_, n) => ['Z' + (n + 1) + 'H', 'Z' + (n + 1) + 'L']), ...alerts.map((_, k) => 'A' + (k + 1)), ...hooks.map((_, n) => 'W' + (n + 1))];
   ok(Object.keys(ex).every(k => EXPORT_KEYS.has(k)), f, 'only documented Indicator fields: ' + Object.keys(ex));
   ok(/^[A-Za-z][A-Za-z0-9]*$/.test(ex.name) && typeof ex.description === 'string' && ex.description.length > 0, f, 'name/description');
   ok(typeof ex.calculator === 'function' && typeof ex.calculator.prototype.map === 'function' && typeof ex.calculator.prototype.init === 'function', f, 'calculator class with init/map');
@@ -162,9 +163,10 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   ok(ex.areaChoice === (recipe.overlay ? 'overlay' : 'new'), f, 'areaChoice follows overlay');
   ok(Array.isArray(ex.tags) && ex.tags.every(t => typeof t === 'string'), f, 'tags');
   ok(JSON.stringify(Object.keys(ex.plots)) === JSON.stringify(keys) && Object.values(ex.plots).every(p => typeof p.title === 'string' && Object.keys(p).join() === 'title'), f, 'plots P*/A* with titles');
-  ok(JSON.stringify(L.plotterCalls.map(x => x[1])) === JSON.stringify(keys) && L.plotterCalls.every(([t, n]) => t === (n[0] === 'A' ? 'dots' : 'singleline')), f, 'plotter: lines for plots, dots for alerts');
+  ok(JSON.stringify(L.plotterCalls.map(x => x[1])) === JSON.stringify(keys) && L.plotterCalls.every(([t, n]) => t === (/^[AW]/.test(n) ? 'dots' : 'singleline')), f, 'plotter: lines for plots, dots for alerts and webhooks');
   ok(L.required.length <= 1, f, 'requires only predef');
-  ok(alerts.length ? JSON.stringify(ex.shifts) === JSON.stringify(Object.fromEntries(alerts.map((_, k) => ['A' + (k + 1), -1]))) : ex.shifts === undefined, f, 'alert dots shifted onto the closed bar');
+  const dotKeys = keys.filter(k => /^[AW]/.test(k));
+  ok(dotKeys.length ? JSON.stringify(ex.shifts) === JSON.stringify(Object.fromEntries(dotKeys.map(k => [k, -1]))) : ex.shifts === undefined, f, 'alert and webhook dots shifted onto the closed bar');
   ok(ex.schemeStyles && Object.keys(ex.schemeStyles).join() === 'dark' && Object.keys(ex.schemeStyles.dark).every(k => keys.includes(k)), f, 'schemeStyles.dark keys are plots');
   // full run
   const run = (perturb) => {
@@ -247,6 +249,24 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     alertsSeen += fired.length;
     ok(JSON.stringify(fired) === JSON.stringify(expect), f, `${key}: fired ${fired} expected ${expect}`);
   });
+  // webhooks: dots on the closed bar where the condition held; the payload of that bar equals a separately written fill; never sent
+  const fill = (pl, b) => { const g = (v) => String(Number(v.toPrecision(10))), F = { symbol: 'SYMBOL', timeframe: 'TIMEFRAME', time: new Date(b.time).toISOString().slice(0, 19), open: g(b.open), high: g(b.high), low: g(b.low), close: g(b.close) };
+    return JSON.stringify(Object.fromEntries(Object.entries(pl).map(([k, x]) => [k, typeof x === 'string' ? x.split(/(\{\{[^}]*\}\})/).map(t => /^\{\{.*\}\}$/.test(t) ? F[t.slice(2, -2)] : t).join('') : x]))); };
+  const hookBad = (calc, out) => hooks.reduce((n, h, j) => { const key = 'W' + (j + 1), k = String(h.id).replace(/[^A-Za-z0-9_]/g, '_'), cond = ref.boolOf(h.params.when);
+    let m = 0; for (let i = 0; i < NB; i++) { if ((calc.bars[i]['J_' + k] ?? null) !== (cond[i] ? fill(h.params.payload, bars[i]) : null)) m++; if ((out[i][key] !== undefined) !== (i > 0 && !!cond[i - 1])) m++; } return n + m; }, 0);
+  hooks.forEach((h, j) => { const cond = ref.boolOf(h.params.when), n = cond.filter(Boolean).length; ok(n > 0, f, `W${j + 1}: condition fires on the synthetic bars (not vacuous)`); hooksSeen += n; });
+  if (hooks.length) {
+    ok(hookBad(A.calc, A.out) === 0, f, `webhook payloads and dots equal the reference (${hookBad(A.calc, A.out)} differ)`);
+    ok(hookBad(B.calc, B.out) === 0, f, 'webhook payloads unchanged after forming-bar updates');
+    for (const [mn, from, to] of [['payload close read from the open', 'close: g(s.c)', 'close: g(s.o)'], ['payload from the bar before', 'this.bsvWebhook(', 'this.bsvWebhook(p ? p : s, '], ['dots on the forming bar', /W1: p && p\.S_/, 'W1: s.S_']]) {
+      let mc = typeof from === 'string' ? code.split(from).join(to) : code.replace(from, to);
+      if (mn === 'payload from the bar before') mc = mc.replace(/this\.bsvWebhook\(p \? p : s, (\{.*?\}), d\.timestamp\(\), s\)/g, 'this.bsvWebhook($1, d.timestamp(), p ? p : s)');
+      if (mc === code) { ok(false, f, `webhook mutant could not be built: ${mn}`); continue; }
+      let M; try { M = load(mc, f); } catch (e) { ok(false, f, `webhook mutant ${mn} failed to load`); continue; }
+      const c2 = new M.ex.calculator(); c2.props = {}; c2.init(); const o2 = []; for (let i = 0; i < NB; i++) o2.push(c2.map(entity(bars[i]), i));
+      const caught = hookBad(c2, o2) > 0; ok(caught, f, `mutant caught: webhook ${mn}`); if (caught) mutCaught++;
+    }
+  }
   // mutants of the pivot / sweep / divergence code: each must change the signals (the reference tells them apart)
   for (const [mn, from, to] of [['sweep without the close back inside', / && s\.c < p\.V_\w+_high\)/, ')'], ['sweep without the ATR distance', / && s\.h - p\.V_\w+_high >= [^&]+&&/, ' &&'],
     ['divergence oscillator test flipped', /&& x\[1\] < s\.dh_/, '&& x[1] > s.dh_'], ['divergence price test dropped', /x\[0\] < s\.dl_\w+\[0\] &&/, 'true &&']]) {
@@ -260,5 +280,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(!same, f, `mutant caught: ${mn}`); if (!same) mutCaught++;
   }
 }
-console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, htf_values: htfSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
+console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, webhook_payloads: hooksSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, htf_values: htfSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
 process.exit(failures ? 1 : 0);
