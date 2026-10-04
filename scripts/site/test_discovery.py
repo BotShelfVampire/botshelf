@@ -266,6 +266,7 @@ def main():
         ok("' Session dates: '" in pjs and "o.firstDate" in pjs, "robot pilot: log summary states the saved session dates (self-reported)")
         ok("' End time before start time in: '" in pjs and "o.endBeforeStart" in pjs, "robot pilot: log summary flags sessions that end before they start (#7 t18)")
         ok('<p class="muted" id="tk-empty" hidden>' in hub and 'id="tk-empty" hidden>No toolkit item matches these filters. <a data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form">' in hub and "' of '+cards.length+' shown'" in tkjs, "AI hub: empty state with an ask link that carries the framework; count shows N of M (AI t18, #6 t18)")
+        ok('<button type="button" class="lib-chip" id="tk-link" hidden>Copy link to this view</button>' in hub and "lk.hidden=!on||!navigator.clipboard" in tkjs and "writeText(location.href)" in tkjs, "AI hub: copy-link button only while filtered and when the clipboard exists (AI t19)")
         ok("which block types render or stay TODO" in rd("llms.txt"), "llms.txt: coverage line names block support (#8 t18)")
         cvb = json.loads(rd("trading/build/coverage.json"))
         U = [set(x["blockSupport"]["rendered"]) | set(x["blockSupport"]["unsupportedTodo"]) for x in cvb["targets"]]
@@ -273,6 +274,8 @@ def main():
            and {b for x in cvb["targets"] for b in x["blockSupport"]["unsupportedTodo"]} == {b for r in cvb["recipes"] for b in r["unsupportedBlocks"]}, "coverage.json: blockSupport per target (same block types, rendered / TODO disjoint, TODO union = generator gaps)")
         ab = next(x for x in cvb["targets"] if x["id"] == "amibroker")["blockSupport"]
         ok({"structure.range", "signal.breakout", "structure.pivot", "visual.zone", "signal.liquidity_sweep", "signal.divergence"} <= set(ab["rendered"]), "coverage.json: AmiBroker renders range, breakout, pivot, zone, sweep and divergence")
+        _ts = next(x for x in json.loads(rd("trading/build/coverage.json"))["targets"] if x["id"] == "thinkscript")["blockSupport"]
+        ok({"structure.range", "signal.breakout", "structure.pivot", "visual.zone", "signal.liquidity_sweep", "signal.divergence"} <= set(_ts["rendered"]) and "alert.webhook" in _ts["unsupportedTodo"], "coverage.json: thinkorswim renders range, breakout, pivot, zone, sweep and divergence; webhook stays TODO")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
