@@ -170,6 +170,7 @@ def page(site, cur, css_hrefs, js_href):
         f'<button type="button" class="btn" id="rp-save">{both("Save in this browser", "このブラウザーに保存")}</button>'
         f'<button type="button" class="btn" id="rp-send">{both("Send to BSV for private review", "BSVに非公開で確認を依頼")}</button></div>'
         f'<p class="small muted">{both("Sending is optional and needs a verified email. The record is stored privately; only the owner and the BSV reviewer see it. Your pilot id is replaced by a pseudonymous id tied to your account. A review means a BSV reviewer looked at the evidence; the record stays SELF_REPORTED and is never a licence, a certification or permission to operate real hardware.", "送信は任意で、メール確認が必要です。記録は非公開で保存し、見るのはオーナーとBSVの確認担当だけです。パイロットIDはアカウントに結びついた仮名のIDに置き換えます。確認はBSVの確認担当が証跡を見たという意味で、記録は自己申告（SELF_REPORTED）のままです。免許・認定・実機操作の許可にはなりません。")}</p>'
+        f'<p class="small muted" id="rp-cap">{both("This browser keeps the latest 20 saved sessions. Back up the log as JSON (below) to keep more; saving says when an old one is removed.", "このブラウザーには最新20件まで保存します。それより多く残すには、下のJSONバックアップを使ってください。古い記録を削除したときは保存時に表示します。")}</p>'
         '<p class="rq-msg" id="rp-msg" role="status"></p><p class="small muted" id="rp-saved"></p>'
         '<pre class="rp-preview" id="rp-preview" aria-label="JSON preview"></pre></form>'
         f'<h3 id="check">{both("Check a saved file", "保存したファイルを確認")}</h3>'
