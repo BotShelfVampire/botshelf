@@ -1,4 +1,5 @@
 # Progress 2026-10-04 00:00 JST (New Bobby) — P0 tranches
+- 10:35 JST LIVE 6ac1ad44 (batch 14) after 6ac1ab4d (batch 13); comments b13+14: #4 c5975496804, #8 c5975497359, #6 c5975497505, #7 c5975497589. Batch 15 (Tradovate webhook, hub URL filters, t15) pushed, stage67 building. Next: deploy stage67, one comment per Issue, email 27 (6ac1a328..stage67).
 - 10:11 JST LIVE 6ac1a7da: tranche 12 (#8 c5975301680, #6 c5975301857, #7 c5975301999). Next email send_report27.py (covers 6ac1a328, 6ac1a520, 6ac1a7da). Then batched deploys (Trader+AI+tranche 13 per deploy).
 - 10:00 JST LIVE 6ac1a520: AI handoff 'start from a toolkit item' (gated page only). Next: tranche 12 (#8 llms AI toolkit section, #6 AI framework picks, #7 save cap notice) — prepared in /workspace/bsv-wt.
 - 09:51 JST LIVE 6ac1a328: Tradovate visual.zone (pivot source; Z lines), check_tradovate 376/0 mutants 5; range zone stays TODO. Next: AI handoff 'start from toolkit item', then tranche 12 (#8 llms AI toolkit section, #6 AI framework picks, #7 save warns when the 20-session cap drops oldest).
