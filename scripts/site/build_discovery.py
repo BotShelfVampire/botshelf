@@ -219,7 +219,7 @@ def llms(site: Path, today: str) -> dict:
     block = [LL_BEGIN, "", f"## Start here, rules and trust facts ({today})", *lines,
              f"- Trust facts (machine-readable; each fact quotes its production page): {ORIGIN}/.well-known/bsv-trust.json",
              *([f"- Capability manifests (capability-manifest v0.1; every public catalogue entry, BSV recipe and AI toolkit entry, verification as labelled): {ORIGIN}/capabilities/index.json"] if (site / "capabilities/index.json").exists() else []),
-             *([f"- Generator coverage (per target: which BSV check covers it; per recipe x target: TODO lines; none runtime-tested by BSV): {ORIGIN}/trading/build/coverage.json"] if (site / "trading/build/coverage.json").exists() else []),
+             *([f"- Generator coverage (per target: which BSV check covers it and which block types render or stay TODO; per recipe x target: TODO lines; none runtime-tested by BSV): {ORIGIN}/trading/build/coverage.json"] if (site / "trading/build/coverage.json").exists() else []),
              *([f"- Recent material changes (the dated list in the Transparency Center; JSON, also an Atom feed at {ORIGIN}/transparency/changes.atom): {ORIGIN}/transparency/changes.json"] if (site / "transparency/changes.json").exists() else []),
              f"- Sitemap: {ORIGIN}/sitemap.xml",
              "- Gated source is not listed here and needs a verified email session; this file does not replace robots.txt, sitemap.xml or canonical URLs.",

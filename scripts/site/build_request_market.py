@@ -297,6 +297,8 @@ def coverage_csv(cov: dict) -> str:
     for r in cov["recipes"]: w.writerow([r["id"]] + [r["todoLines"][t] for t in T])
     w.writerow([]); w.writerow(["target", "check_kind", "check_script", "higher_timeframe", "runtime_tested_by_bsv"])
     for x in cov["targets"]: w.writerow([x["id"], x["check"]["kind"], x["check"]["script"], x["higherTimeframe"]["status"], "false"])
+    w.writerow([]); w.writerow(["target", "block_types_rendered", "block_types_todo"])  # from coverage.json blockSupport (generator output, not a runtime test)
+    for x in cov["targets"]: w.writerow([x["id"], " ".join(x["blockSupport"]["rendered"]), " ".join(x["blockSupport"]["unsupportedTodo"])])
     return b.getvalue()
 
 
