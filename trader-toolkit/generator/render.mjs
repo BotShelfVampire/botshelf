@@ -131,14 +131,14 @@ function htfPrep(recipe, t) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate'; r.bsvRangeJs = t === 'tradovate'; return fn(r); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; return fn(r); }
 // structure.range (high/low of each window where a session/signal is true; reset when a new window starts; after the
 // window the last window's values stay) and signal.breakout (first close beyond the finished window's high or low).
 // Rendered only where a BSV check runs them; elsewhere they stay TODO.
 function rangeRealTargets() { return ['backtrader', 'backtesting-py', 'nautilus']; }
 function rangeKeys(b) { const t = Array.isArray(b?.params?.track) ? b.params.track : []; return t.filter((x, i) => (x === 'high' || x === 'low') && t.indexOf(x) === i); }
 function rangeOk(recipe, b) {
-  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm)
+  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangeAfl) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm) + AmiBroker (HighestSince / ValueWhen, checked in the BSV AFL evaluator)
   const d = blockMap(recipe).get(b.params?.during), t = Array.isArray(b.params?.track) ? b.params.track : [];
   return !!d && isBoolType(d.type) && t.length > 0 && rangeKeys(b).length === t.length;
 }
@@ -2031,7 +2031,7 @@ function renderAmiBroker(recipe) {
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot');
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const px = { open: 'Open', high: 'High', low: 'Low', close: 'Close', hl2: '(High + Low) / 2', hlc3: '(High + Low + Close) / 3', ohlc4: '(Open + High + Low + Close) / 4' };
-  const val = (ref) => isPrice(ref) ? px[ref] : (isBoolType(map.get(ref)?.type) ? `S_${ref}` : `V_${ref}`);
+  const val = (ref) => isPrice(ref) ? px[ref] : (isBoolType(map.get(ref)?.type) ? `S_${ref}` : `V_${String(ref).replace('.', '_')}`); // range fields <id>.high -> V_<id>_high
   const prev = (ref) => `Ref(${val(ref)}, -1)`;
   const bool = (ref) => isBoolType(map.get(ref)?.type) ? `S_${ref}` : `(${val(ref)} != 0)`;
   const htfOk = (list) => list.filter(r => htfTfOf(recipe, map.get(r))).map(r => `NOT IsNull(${val(r)}) AND `).join('');
@@ -2092,6 +2092,21 @@ function renderAmiBroker(recipe) {
         break;
       case 'visual.plot': case 'alert.condition': case 'visual.table':
         break;
+      case 'structure.range': {
+        if (!rangeOk(recipe, b)) { L.push(`// TODO unsupported block ${b.type}: ${b.id}`, `V_${b.id} = Null;`); break; }
+        L.push(`// ${b.id}: high / low so far inside the window (a new window resets), then the finished window held; Null before the first window (AFL guide: HighestSince, LowestSince, ValueWhen)`,
+          `R_${b.id} = ${bool(p.during)};`, `W_${b.id} = R_${b.id} AND (BarIndex() == 0 OR Ref(R_${b.id}, -1) == 0);`);
+        for (const k of rangeKeys(b)) L.push(`V_${b.id}_${k} = ValueWhen(R_${b.id}, ${k === 'high' ? 'HighestSince' : 'LowestSince'}(W_${b.id}, ${k === 'high' ? 'High' : 'Low'}));`);
+        break;
+      }
+      case 'signal.breakout': {
+        if (!breakoutOk(recipe, b)) { L.push(`// TODO unsupported block ${b.type}: ${b.id}`, `S_${b.id} = False;`); break; }
+        const r = p.range, d = p.direction || 'either', ok = `R_${r} == 0 AND NOT IsNull(V_${r}_high)`;
+        L.push(`// ${b.id}: first close beyond the finished window, on a bar outside it (the close before was at or inside)`,
+          `U_${b.id} = ${ok} AND Close > V_${r}_high AND Ref(Close, -1) <= V_${r}_high;`, `D_${b.id} = ${ok} AND Close < V_${r}_low AND Ref(Close, -1) >= V_${r}_low;`,
+          `S_${b.id} = ${d === 'either' ? `U_${b.id} OR D_${b.id}` : d === 'above' ? `U_${b.id}` : `D_${b.id}`};`);
+        break;
+      }
       default:
         L.push(`// TODO unsupported block ${b.type}: ${b.id}`);
         L.push(isBoolType(b.type) ? `S_${b.id} = False;` : `V_${b.id} = Null;`);
