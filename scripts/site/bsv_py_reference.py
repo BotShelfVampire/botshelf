@@ -357,3 +357,43 @@ def htf_mutations(recipe, code, tmp, python, ok, name):
         mp = tmp / "htf_mutant.py"; mp.write_text(code.replace(a, b)); res = []
         htf_checks(recipe, lambda c: subprocess.run([python, str(mp), str(c)], capture_output=True, text=True, timeout=300), tmp, lambda c, n, m: res.append(bool(c)), name)
         ok(a in code and not all(res), name, f"higher-timeframe check catches a helper that {label}")
+
+
+# ---- symbol scans (scanner.symbol_set, batch 28), shared by the Python target checks
+SCAN_MUTATIONS = {  # one deliberately broken copy per target: each must change the scan result
+    "backtrader": ("scan latches any earlier bar (not only the last completed bar)", "self.hit, self.when = bool(", "self.hit, self.when = self.hit or bool("),
+    "backtesting-py": ("scan reads the bar before the last", "][-1]):", "][-2]):"),
+    "nautilus": ("scan stops one bar early", "st = run_backtest(rows, Quiet)", "st = run_backtest(rows[:-1], Quiet)"),
+}
+
+
+def scan_checks(recipe, code, mp, tmp, python, target, ok, name):
+    """The script's --scan mode on four CSVs (prefixes of the test bars that end on chosen bars) prints exactly the symbols whose
+    scanned signal holds on their last completed bar, from the independent reference (no lookahead in the reference, so a
+    prefix ending at bar i has the full-data value of bar i). Returns the number of hits printed."""
+    import subprocess
+    seen = 0
+    for b in [x for x in recipe["blocks"] if x["type"] == "scanner.symbol_set"]:
+        sid = re.sub(r"[^A-Za-z0-9_]", "_", b["id"])
+        if f"def bsv_scan_{sid}(" not in code:
+            ok(f"TODO unsupported block scanner.symbol_set: {b['id']} - " in code, name, f"{b['id']}: scan left as an explicit TODO with the reason"); continue
+        _, _, _, boo = reference(recipe)
+        sig = (b.get("params") or {}).get("signal") or next(x["params"]["when"] for x in recipe["blocks"] if x["type"] == "alert.condition")
+        w = boo(sig); on = [i for i in range(400, NB) if w[i] and not w[i - 1]]; off = [i for i in range(400, NB) if w[i - 1] and not w[i]]
+        if not (len(on) >= 2 and off):
+            ok(False, name, f"{b['id']}: {sig} must fire on the test bars for the scan check"); continue
+        picks = {"AAA": on[0], "BBB": off[0], "CCC": on[-1], "DDD": NB - 1}  # ends on: a new hit, the bar after a hit, the last hit, the full data
+        args = []
+        for sym, i in picks.items():
+            p = tmp / f"scan_{sym}.csv"; write_csv(p, n=i + 1); args.append(f"{sym}={p}")
+        want = [("SCAN", b["id"], sym, bars[i]["t"].strftime("%Y-%m-%dT%H:%M:%S")) for sym, i in picks.items() if w[i]] + [("SCAN", b["id"], "done", str(len(picks)))]
+        run = lambda path: subprocess.run([python, str(path), "--scan", *args], capture_output=True, text=True, timeout=600)
+        out = run(mp); got = [tuple(l.split(" ")) for l in out.stdout.splitlines() if l.startswith("SCAN ")]
+        ok(out.returncode == 0 and got == want and len(want) >= 3 and not any(l.startswith("ALERT ") for l in out.stdout.splitlines()), name,
+           f"{b['id']}: --scan lists the symbols whose {sig} held on their last completed bar ({len(got) - 1} listed, {len(want) - 1} expected; no ALERT lines) {out.stderr[-200:]}")
+        seen += len(want) - 1
+        label, a, c = SCAN_MUTATIONS[target]
+        mm = tmp / "scan_mutant.py"; mm.write_text(code.replace(a, c)); out2 = run(mm)
+        got2 = [tuple(l.split(" ")) for l in out2.stdout.splitlines() if l.startswith("SCAN ")]
+        ok(a in code and got2 != want, name, f"{b['id']}: mutant caught: {label}")
+    return seen

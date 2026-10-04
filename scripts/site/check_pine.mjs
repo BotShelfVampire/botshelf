@@ -14,9 +14,9 @@ const dir = path.join(root, 'trader-toolkit/recipes');
 const FN = { 'ta.ema': [2, 2], 'ta.sma': [2, 2], 'ta.rsi': [2, 2], 'ta.atr': [1, 1], 'ta.crossover': [2, 2], 'ta.crossunder': [2, 2], time: [3, 3], na: [1, 1],
   'request.security': [3, 4], 'timeframe.in_seconds': [0, 1], 'runtime.error': [1, 1], plot: [1, 2], alertcondition: [1, 3], indicator: [1, 2],
   'ta.highest': [2, 2], 'ta.lowest': [2, 2], 'ta.barssince': [1, 1], 'ta.valuewhen': [3, 3],
-  'table.new': [3, 3], 'table.cell': [4, 4], 'str.tostring': [2, 2], 'str.format_time': [3, 3], alert: [2, 2] };
+  'table.new': [3, 3], 'table.cell': [4, 4], 'str.tostring': [2, 2], 'str.format_time': [3, 3], alert: [2, 2], 'input.symbol': [2, 2] };
 const NAMED = new Set(['title', 'message', 'overlay', 'lookahead', 'color']);
-const CONSTS = new Set(['na', 'bar_index', 'color.red', 'color.green', 'open', 'high', 'low', 'close', 'hl2', 'hlc3', 'ohlc4', 'true', 'false', 'syminfo.tickerid', 'timeframe.period', 'barmerge.lookahead_on', 'time', 'syminfo.ticker', 'barstate.islast', 'position.top_right', 'alert.freq_once_per_bar_close']);
+const CONSTS = new Set(['na', 'bar_index', 'color.red', 'color.green', 'open', 'high', 'low', 'close', 'hl2', 'hlc3', 'ohlc4', 'true', 'false', 'syminfo.tickerid', 'timeframe.period', 'barmerge.lookahead_on', 'time', 'syminfo.ticker', 'barstate.islast', 'position.top_right', 'alert.freq_once_per_bar_close', 'alert.freq_once_per_bar']);
 const KW = new Set(['and', 'or', 'not', 'if', 'else', 'for', 'while', 'var', 'varip', 'import', 'export', 'switch', 'true', 'false', 'method', 'type', 'continue', 'break', 'in', 'to', 'by', 'enum']);
 let checks = 0, failures = 0, files = 0, QUIET = false;
 const fail = (f, m) => { failures++; if (!QUIET) console.error('FAIL', f, m); };
@@ -79,14 +79,16 @@ function parse(code) {
 }
 const walk = (e, fn) => { if (!e) return; fn(e); if (e.t === 'call') e.args.forEach(a => walk(a, fn)); else if (e.t === 'named' || e.t === 'neg' || e.t === 'not' || e.t === 'off') walk(e.e, fn); else if (e.t === 'bin') { walk(e.l, fn); walk(e.r, fn); } else if (e.t === 'if') { walk(e.c, fn); walk(e.a, fn); walk(e.b, fn); } };
 function statics(f, stmts) {
-  const defined = new Set(), tables = new Set(); let indicators = 0;
+  const defined = new Set(), tables = new Set(), symInputs = new Set(), scanRes = new Set(), scanAny = new Set(); let indicators = 0;
+  const orLeaves = (e) => e.t === 'bin' && e.o === 'or' ? [...orLeaves(e.l), ...orLeaves(e.r)] : [e];
   const chk = (e) => walk(e, (x) => {
     if (x.t === 'id') ok(defined.has(x.v) || CONSTS.has(x.v), f, `undefined or undocumented name ${x.v}`);
     if (x.t === 'off') ok(Number.isInteger(x.n) && x.n >= 1, f, `offset [${x.n}] must look back`);
     if (x.t === 'named') ok(NAMED.has(x.n), f, `named argument ${x.n}`);
     if (x.t === 'call') { const s = FN[x.f]; ok(!!s, f, `undocumented function ${x.f}`); const pos = x.args.filter(a => a.t !== 'named').length; if (s) ok(pos >= s[0] && pos <= s[1], f, `${x.f} arg count ${pos}`);
       if (x.f === 'request.security') { const la = x.args.find(a => a.t === 'named' && a.n === 'lookahead'), ex = x.args[2];
-        ok(x.args[0].t === 'id' && x.args[0].v === 'syminfo.tickerid' && x.args[1].t === 'str' && ex && ex.t === 'off' && ex.n === 1 && la && la.e.t === 'id' && la.e.v === 'barmerge.lookahead_on', f, 'request.security only as (syminfo.tickerid, tf, expr[1], lookahead = barmerge.lookahead_on): closed higher bars');
+        const htfForm = x.args[0].t === 'id' && x.args[0].v === 'syminfo.tickerid' && x.args[1].t === 'str', scanForm = x.args[0].t === 'id' && symInputs.has(x.args[0].v) && x.args[1].t === 'id' && x.args[1].v === 'timeframe.period' && ex && ex.t === 'off' && ex.e.t === 'id' && defined.has(ex.e.v);
+        ok((htfForm || scanForm) && ex && ex.t === 'off' && ex.n === 1 && la && la.e.t === 'id' && la.e.v === 'barmerge.lookahead_on', f, 'request.security only as (syminfo.tickerid, tf, expr[1], lookahead = barmerge.lookahead_on): closed higher bars, or (input.symbol, timeframe.period, signal[1], lookahead = barmerge.lookahead_on): the other symbol closed bar');
         walk(ex, y => { if (y.t === 'call') ok(y.f !== 'request.security', f, 'nested request.security'); }); }
       if (x.f === 'time') { const tz = x.args[2]; let good = tz && tz.t === 'str'; try { if (good) new Intl.DateTimeFormat('en-US', { timeZone: tz.v }); } catch { good = false; } ok(x.args[0].t === 'id' && x.args[0].v === 'timeframe.period' && x.args[1].t === 'str' && /^\d{4}-\d{4}$/.test(x.args[1].v) && good, f, 'time(timeframe.period, "HHMM-HHMM", <valid IANA time zone>)'); }
       if (x.f === 'str.tostring') ok(x.args[1] && x.args[1].t === 'str' && x.args[1].v === '#.########', f, 'str.tostring(x, "#.########") only');
@@ -96,12 +98,13 @@ function statics(f, stmts) {
   for (const s of stmts) {
     if (s.t === 'def' && s.ty === 'table') ok(s.e.t === 'call' && s.e.f === 'table.new' && s.e.args[0].t === 'id' && s.e.args[0].v === 'position.top_right', f, `var table ${s.n} = table.new(position.top_right, ...) only`);
     else if (s.t === 'def') ok(!(s.e.t === 'call' && s.e.f === 'table.new'), f, 'table.new only in a var table declaration (created once)');
-    if (s.t === 'def') { chk(s.e); if (s.e.t === 'id' && s.e.v === 'na') ok(s.ty === 'float', f, `${s.n} = na needs a declared type (float ${s.n} = na)`); ok(!defined.has(s.n) && !KW.has(s.n) && !CONSTS.has(s.n) && !FN[s.n], f, `redeclares or shadows ${s.n}`); defined.add(s.n); if (s.ty === 'table') tables.add(s.n); }
+    if (s.t === 'def' && s.e.t === 'call' && s.e.f === 'input.symbol') ok(s.e.args.length === 2 && s.e.args.every(a => a.t === 'str'), f, `${s.n}: input.symbol("SYMBOL", "title") only`);
+    if (s.t === 'def') { chk(s.e); if (s.e.t === 'call' && s.e.f === 'input.symbol') symInputs.add(s.n); if (s.e.t === 'call' && s.e.f === 'request.security' && s.e.args[0].t === 'id' && symInputs.has(s.e.args[0].v)) scanRes.add(s.n); if (orLeaves(s.e).every(l => l.t === 'id' && scanRes.has(l.v))) scanAny.add(s.n); if (s.e.t === 'id' && s.e.v === 'na') ok(s.ty === 'float', f, `${s.n} = na needs a declared type (float ${s.n} = na)`); ok(!defined.has(s.n) && !KW.has(s.n) && !CONSTS.has(s.n) && !FN[s.n], f, `redeclares or shadows ${s.n}`); defined.add(s.n); if (s.ty === 'table') tables.add(s.n); }
     else if (s.t === 'if') { chk(s.c); const calls = s.body.every(b => b.t === 'expr' && b.e.t === 'call'), fs0 = s.body.map(b => b.e.f);
       const guard = calls && s.body.length === 1 && fs0[0] === 'runtime.error';
       const panel = calls && s.c.t === 'id' && s.c.v === 'barstate.islast' && s.body.length > 0 && s.body.every(b => b.e.f === 'table.cell' && b.e.args[0].t === 'id' && tables.has(b.e.args[0].v) && b.e.args[1].t === 'num' && b.e.args[2].t === 'num');
-      const hook = calls && s.c.t === 'id' && defined.has(s.c.v) && s.body.length === 1 && fs0[0] === 'alert' && s.body[0].e.args[1].t === 'id' && s.body[0].e.args[1].v === 'alert.freq_once_per_bar_close';
-      ok(guard || panel || hook, f, 'if blocks only: a runtime.error guard, a barstate.islast panel of table.cell calls, or alert(msg, alert.freq_once_per_bar_close) (completed bars only)'); s.body.forEach(b => chk(b.e)); }
+      const hook = calls && s.c.t === 'id' && defined.has(s.c.v) && s.body.length === 1 && fs0[0] === 'alert' && s.body[0].e.args[1].t === 'id' && (s.body[0].e.args[1].v === 'alert.freq_once_per_bar_close' || (s.body[0].e.args[1].v === 'alert.freq_once_per_bar' && scanAny.has(s.c.v)));
+      ok(guard || panel || hook, f, 'if blocks only: a runtime.error guard, a barstate.islast panel of table.cell calls, alert(msg, alert.freq_once_per_bar_close) (completed bars only), or alert(msg, alert.freq_once_per_bar) on symbol scans built only from closed bars ([1] + lookahead_on)'); s.body.forEach(b => chk(b.e)); }
     else { chk(s.e); ok(s.e.t === 'call' && ['indicator', 'plot', 'alertcondition'].includes(s.e.f), f, `bare expression statement ${s.e.f || s.e.t}`); }
   }
   ok(indicators === 1, f, 'exactly one indicator() declaration (no strategy, no orders)');
@@ -139,6 +142,11 @@ function evalPine(stmts, bars, sink) {
         and: (x, y) => +(!!x && !!y && fin(x) && fin(y)), or: (x, y) => +((!!x && fin(x)) || (!!y && fin(y))) }[e.o]; return a.map((v, i) => F(v, b[i])); }
       case 'call': {
         const f = e.f, pos = e.args.filter(a => a.t !== 'named');
+        if (f === 'request.security' && pos[0].t === 'id' && pos[0].v !== 'syminfo.tickerid') { // symbol scan: same timeframe, another symbol; the request recomputes the declared variable on that symbol's bars
+          const sv = r(pos[0]), sym = Array.isArray(sv) ? sv[0] : sv, sb = SYMBARS[sym]; if (!sb) throw new Error('no test bars for symbol ' + sym);
+          const ex = pos[2], id = ex.t === 'off' ? ex.e.v : ex.v, off = ex.t === 'off' ? ex.n : 0, di = stmts.findIndex(st => st.t === 'def' && st.n === id), lastT = c.bars[c.n - 1].time, sub = sb.filter(b => b.time <= lastT), x = arr(evalPine(stmts.slice(0, di + 1), sub, { plots: [], alerts: [] }).get(id));
+          let j = -1; return c.bars.map(b => { while (j + 1 < sub.length && sub[j + 1].time <= b.time) j++; return j >= off ? +tr(x[j - off]) : 0; }); } // expr[1] + lookahead_on: that symbol's previous (closed) bar; a Pine v6 bool is never na
+        if (f === 'input.symbol') return pos[0].v;
         if (f === 'request.security') { const ms = tfMs(pos[1].v); if (!(ms > spacing * 1000)) throw new Error('higher timeframe not higher'); const g = compress(c.bars, ms), v = arr(run(pos[2], ctxOf(g.bars), true)); return g.gidx.map(j => v[j]); } // lookahead_on: the containing higher bar's value of expr[1] = previous closed higher bar
         if (f === 'timeframe.in_seconds') return pos.length ? tfMs(pos[0].v) / 1000 : spacing;
         const A = pos.map(r);
@@ -167,7 +175,7 @@ function evalPine(stmts, bars, sink) {
     else if (s.t === 'if') { const cv = run(s.c, top), cnd = Array.isArray(cv) ? cv : N(top.n, cv), hit = cnd.map((v, i) => v && fin(v) ? i : -1).filter(i => i >= 0);
       for (const b of s.body) { const e = b.e, aN = (x) => { const v = run(x, top); return Array.isArray(v) ? v : N(top.n, v); };
         if (e.f === 'table.cell') { const A = e.args.map(aN); hit.forEach(i => (sink.cells = sink.cells || []).push({ t: e.args[0].v, c: A[1][i], r: A[2][i], text: A[3][i] })); }
-        else if (e.f === 'alert') { const msg = aN(e.args[0]); hit.forEach(i => (sink.hooks = sink.hooks || []).push({ i, msg: msg[i] })); }
+        else if (e.f === 'alert') { const msg = aN(e.args[0]); hit.forEach(i => (sink.hooks = sink.hooks || []).push({ i, msg: msg[i], cond: s.c.v })); }
         else if (hit.length) run(e, top); } }
     else run(s.e, top);
   }
@@ -186,8 +194,9 @@ const refInd = (bs, b) => { const p = b.params || {}, x = srcOf(bs, p.source);
   if (b.type === 'indicator.rsi') { const G = refRma(x.slice(1).map((w, i) => Math.max(w - x[i], 0)), p.length), L = refRma(x.slice(1).map((w, i) => Math.max(x[i] - w, 0)), p.length); return [NaN, ...G.map((u, i) => 100 * u / (u + L[i]))]; }
   const tr = bs.map((h, i) => i === 0 ? h.high - h.low : Math.max(h.high, bs[i - 1].close) - Math.min(h.low, bs[i - 1].close)); return [NaN, ...refRma(tr.slice(1), p.length)]; };
 const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b)) || Math.abs(a - b) < 1e-9, tr = (v) => !!(v && fin(v));
+let SYMBARS = {}; // symbol -> test bars for request.security symbol scans (set per recipe)
 const lookBackAlerts = {}; // recipe -> alert bars, for recipes that use signal.recent
-let todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, mutantsCaught = 0, alertsSeen = 0, rangeChecked = 0, breakoutsSeen = 0, zonesSeen = 0, pivSigSeen = 0, panelsSeen = 0, hooksSeen = 0;
+let todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, mutantsCaught = 0, alertsSeen = 0, rangeChecked = 0, breakoutsSeen = 0, zonesSeen = 0, pivSigSeen = 0, panelsSeen = 0, hooksSeen = 0, scansSeen = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'pine-v6'], { encoding: 'utf8' });
@@ -198,6 +207,8 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   // a recipe with a 60-minute higher timeframe stops with runtime.error on an hourly chart and runs on 15-minute bars
   if (htf.length) { let stopped = false; try { evalPine(stmts, bars60, { plots: [], alerts: [] }); } catch (e) { stopped = e instanceof PineRuntimeError; } ok(stopped, f, 'runtime.error stops the script when the chart is not lower than the higher timeframe'); }
   const bs = htf.length || recipe.blocks.some(b => b.type === 'filter.session') ? bars15 : bars60, sink = { plots: [], alerts: [] };
+  // symbol scans: the first listed symbol gets the chart's own bars (so its expectation is the series checked against the reference below), the others get different swings on the same time grid
+  SYMBARS = {}; recipe.blocks.filter(b => b.type === 'scanner.symbol_set').forEach(b => (b.params.symbols || []).forEach((sy, k) => { SYMBARS[sy] = k === 0 ? bs : mkBars(bs.length, bs[1].time - bs[0].time, i => 100 + (12 + 5 * k) * Math.sin(i / (11 + 4 * k)) + (2 + k) * Math.sin(i * (1.1 + 0.3 * k))); }));
   let env; try { env = evalPine(stmts, bs, sink); checks++; } catch (e) { fail(f, 'evaluate: ' + e.message); continue; }
   const hourly = compress(bars15, 3600e3).bars, gix = compress(bars15, 3600e3).gidx;
   for (const b of recipe.blocks) {
@@ -277,11 +288,26 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   // webhooks: alert() on exactly the bars where the condition holds, the JSON = the recipe payload with {{...}} filled from the bar (independent of the script)
   const hookB = recipe.blocks.filter(b => b.type === 'alert.webhook' && new RegExp(`^if ${b.id}$`, 'm').test(code));
   const wantJson = (pl, i) => Object.fromEntries(Object.entries(pl).map(([k, x]) => [k, typeof x !== 'string' ? x : x.replace(/\{\{([^}]*)\}\}/g, (m0, nm) => nm === 'symbol' ? TICKER : nm === 'timeframe' ? String((bs[1].time - bs[0].time) / 60e3) : nm === 'time' ? new Date(bs[i].time).toISOString().slice(0, 16).replace('T', ' ') : fmt8(bs[i][nm]))]));
-  const badH = (sk) => { let d = 0; for (const hb of hookB) { const w = env.get(hb.params.when), want = w.map((v, i) => tr(v) ? i : -1).filter(i => i >= 0), got = sk.hooks || []; if (got.length !== want.length) { d++; continue; } got.forEach((h, k) => { let j = null; try { j = JSON.parse(h.msg); } catch { d++; return; } if (h.i !== want[k] || JSON.stringify(j) !== JSON.stringify(wantJson(hb.params.payload, h.i))) d++; }); } return d; };
+  const badH = (sk) => { let d = 0; for (const hb of hookB) { const w = env.get(hb.params.when), want = w.map((v, i) => tr(v) ? i : -1).filter(i => i >= 0), got = (sk.hooks || []).filter(h => h.cond === hb.id); if (got.length !== want.length) { d++; continue; } got.forEach((h, k) => { let j = null; try { j = JSON.parse(h.msg); } catch { d++; return; } if (h.i !== want[k] || JSON.stringify(j) !== JSON.stringify(wantJson(hb.params.payload, h.i))) d++; }); } return d; };
   recipe.blocks.filter(b => b.type === 'alert.webhook' && !hookB.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block alert.webhook: ${b.id}`), f, `${b.id}: webhook left as TODO`));
-  if (hookB.length) { ok(badH(sink) === 0 && (sink.hooks || []).length > 0, f, `webhook alert() fires on its condition with the recipe JSON (${(sink.hooks || []).length} sent, ${badH(sink)} differ)`); hooksSeen += (sink.hooks || []).length;
+  if (hookB.length) { const nh = (sink.hooks || []).filter(h => hookB.some(hb => hb.id === h.cond)).length; ok(badH(sink) === 0 && nh > 0, f, `webhook alert() fires on its condition with the recipe JSON (${nh} sent, ${badH(sink)} differ)`); hooksSeen += nh;
     for (const [mn, from, to] of [['price from the open', /str\.tostring\(close, /, 'str.tostring(open, '], ['webhook on the condition before', /^if (\w+)$/m, 'if $1[1]']]) { if (!from.test(code)) continue; const mc = code.replace(from, to), sk = { plots: [], alerts: [] }; evalPine(parse(mc), bs, sk); const caught = mc !== code && badH(sk) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; }
     { const mc = code.replace('alert.freq_once_per_bar_close', 'alert.freq_all'), fb = failures, cb = checks; QUIET = true; statics('mutant', parse(mc)); QUIET = false; const st = failures > fb; failures = fb; checks = cb; ok(st, f, 'mutant caught: alert every tick (alert.freq_all) is rejected'); if (st) mutantsCaught++; } }
+  // symbol scans (batch 28): each scan result = that symbol's signal on its previous (closed) bar, from the same script run as a chart on that
+  // symbol's test bars; symbol 1 = the chart bars, so its expectation is the chart series already checked against the independent reference
+  const scanB = recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && new RegExp(`^${b.id}_1 = request\\.security\\(`, 'm').test(code));
+  recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && !scanB.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block scanner.symbol_set: ${b.id} - `), f, `${b.id}: scan left as an explicit TODO with the reason`));
+  for (const sb of scanB) { const sig = sb.params.signal || alertsB[0].params.when, syms = sb.params.symbols, n = bs.length;
+    const per = syms.map((sy, k) => k === 0 ? env.get(sig) : evalPine(stmts, SYMBARS[sy], { plots: [], alerts: [] }).get(sig)), want = per.map(x => x.map((_, i) => i >= 1 && tr(x[i - 1])));
+    const badS = (e, sk) => { let d = 0; syms.forEach((sy, k) => { const v = e.get(`${sb.id}_${k + 1}`); for (let i = 0; i < n; i++) if (tr(v[i]) !== want[k][i]) d++; });
+      const wh = []; for (let i = 0; i < n; i++) { const l = syms.filter((sy, k) => want[k][i]); if (l.length) wh.push(`${i}|BSV scan ${sb.id}: ${l.map(x => x + ' ').join('')}`); }
+      const gh = (sk.hooks || []).filter(h => h.cond === sb.id).map(h => `${h.i}|${h.msg}`); if (gh.length !== wh.length || gh.some((x, k) => x !== wh[k])) d++; return d; };
+    const hits = want.map(w => w.filter(Boolean).length), differ = want.slice(1).some(w => w.some((x, i) => x !== want[0][i]));
+    ok(badS(env, sink) === 0, f, `${sb.id}: every symbol's scan result = its signal on the bar that just closed, one alert per bar listing them (${badS(env, sink)} differ)`);
+    ok(hits.every(h => h > 0) && differ, f, `${sb.id}: every symbol fires on the test bars and the symbols differ (hits ${hits.join(' / ')}; not vacuous)`); scansSeen += hits.reduce((a, b) => a + b, 0);
+    { const mc = code.replace(new RegExp(`(${sig})\\[1\\], lookahead`, 'g'), '$1, lookahead'), fb = failures, cb = checks; QUIET = true; statics('mutant', parse(mc)); QUIET = false; const st = failures > fb; failures = fb; checks = cb;
+      const sk = { plots: [], alerts: [] }, caught = mc !== code && st && badS(evalPine(parse(mc), bs, sk), sk) > 0; ok(caught, f, `mutant caught: scan reads the forming bar (no [1]) is rejected and changes the result`); if (caught) mutantsCaught++; }
+    { const mc = code.replace(`request.security(${sb.id}_sym_2, timeframe.period, ${sig}[1], lookahead = barmerge.lookahead_on)`, `${sig}[1]`), sk = { plots: [], alerts: [] }, caught = mc !== code && badS(evalPine(parse(mc), bs, sk), sk) > 0; ok(caught, f, 'mutant caught: symbol 2 reads the chart symbol'); if (caught) mutantsCaught++; } }
   // prefix runs: every variable's last value equals the full run (nothing reads future bars)
   let pd = 0; for (let n = 1000; n <= bs.length; n += 97) { const ep = evalPine(stmts, bs.slice(0, n), { plots: [], alerts: [] }); for (const [k, v] of env) if (Array.isArray(v) && !same(ep.get(k)[n - 1], v[n - 1])) pd++; }
   ok(pd === 0, f, `prefix runs give the same last-bar values (no lookahead; ${pd} differ)`);
@@ -298,5 +324,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   for (const rc of recipe.blocks.filter(b => b.type === 'signal.recent' && env.get(b.id) && env.get(b.id).some(tr))) { const mc = code.replace(new RegExp(`^(${rc.id} = \\w+)\\[1\\]`, 'm'), '$1[0]'), e2 = evalPine(parse(mc), bs, { plots: [], alerts: [] });
     const caught = mc !== code && e2.get(rc.id).some((x, i) => tr(x) !== tr(env.get(rc.id)[i])); ok(caught, f, `mutant caught: look-back includes the current bar (${rc.id})`); if (caught) mutantsCaught++; }
 }
-console.log(JSON.stringify({ target: 'pine-v6', recipes: files, checks, failures, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, alert_bars: alertsSeen, ranges: rangeChecked, breakouts: breakoutsSeen, zones: zonesSeen, sweep_divergence: pivSigSeen, panels: panelsSeen, webhook_payloads: hooksSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, look_back_alert_bars: lookBackAlerts, note: "BSV Pine-subset parser/evaluator, not TradingView" }));
+console.log(JSON.stringify({ target: 'pine-v6', recipes: files, checks, failures, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, alert_bars: alertsSeen, ranges: rangeChecked, breakouts: breakoutsSeen, zones: zonesSeen, sweep_divergence: pivSigSeen, panels: panelsSeen, webhook_payloads: hooksSeen, scan_hits: scansSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, look_back_alert_bars: lookBackAlerts, note: "BSV Pine-subset parser/evaluator, not TradingView" }));
 process.exit(failures ? 1 : 0);
