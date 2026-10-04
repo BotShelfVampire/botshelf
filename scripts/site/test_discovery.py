@@ -264,12 +264,15 @@ def main():
         # batch 17: hub Clear filters + ask link carries the framework; practice-log session dates
         ok('<button type="button" class="lib-chip" id="tk-clear" hidden>' in hub and "getElementById('tk-clear')" in tkjs and "'&platform='+encodeURIComponent(fw)" in tkjs, "AI toolkit hub: Clear filters; the ask link carries the framework filter")
         ok("' Session dates: '" in pjs and "o.firstDate" in pjs, "robot pilot: log summary states the saved session dates (self-reported)")
+        ok("' End time before start time in: '" in pjs and "o.endBeforeStart" in pjs, "robot pilot: log summary flags sessions that end before they start (#7 t18)")
+        ok('<p class="muted" id="tk-empty" hidden>' in hub and 'id="tk-empty" hidden>No toolkit item matches these filters. <a data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form">' in hub and "' of '+cards.length+' shown'" in tkjs, "AI hub: empty state with an ask link that carries the framework; count shows N of M (AI t18, #6 t18)")
+        ok("which block types render or stay TODO" in rd("llms.txt"), "llms.txt: coverage line names block support (#8 t18)")
         cvb = json.loads(rd("trading/build/coverage.json"))
         U = [set(x["blockSupport"]["rendered"]) | set(x["blockSupport"]["unsupportedTodo"]) for x in cvb["targets"]]
         ok(all(set(x["blockSupport"]["rendered"]).isdisjoint(x["blockSupport"]["unsupportedTodo"]) for x in cvb["targets"]) and all(u == U[0] for u in U)
            and {b for x in cvb["targets"] for b in x["blockSupport"]["unsupportedTodo"]} == {b for r in cvb["recipes"] for b in r["unsupportedBlocks"]}, "coverage.json: blockSupport per target (same block types, rendered / TODO disjoint, TODO union = generator gaps)")
         ab = next(x for x in cvb["targets"] if x["id"] == "amibroker")["blockSupport"]
-        ok({"structure.range", "signal.breakout"} <= set(ab["rendered"]) and "visual.zone" in ab["unsupportedTodo"], "coverage.json: AmiBroker renders structure.range and signal.breakout; its zone stays TODO")
+        ok({"structure.range", "signal.breakout", "structure.pivot", "visual.zone", "signal.liquidity_sweep", "signal.divergence"} <= set(ab["rendered"]), "coverage.json: AmiBroker renders range, breakout, pivot, zone, sweep and divergence")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
@@ -288,8 +291,10 @@ def main():
         import csv as _csv  # coverage.csv (#8 tranche 9): same matrix and statuses as coverage.json
         cr = list(_csv.reader((s / "trading/build/coverage.csv").read_text().splitlines())) if (s / "trading/build/coverage.csv").exists() else [[]]
         cut = cr.index([]) if [] in cr else len(cr)
+        cut2 = cr.index([], cut + 1) if [] in cr[cut + 1:] else len(cr)  # block-support section follows (#8 t18)
         ok(cr[0] == ["recipe"] + [x["id"] for x in cv["targets"]] and [[r[0]] + [int(v) for v in r[1:]] for r in cr[1:cut]] == [[r["id"]] + [r["todoLines"][x["id"]] for x in cv["targets"]] for r in cv["recipes"]]
-           and [r[3] for r in cr[cut + 2:]] == [x["higherTimeframe"]["status"] for x in cv["targets"]] and all(r[4] == "false" for r in cr[cut + 2:]) and 'href="/trading/build/coverage.csv"' in ct, "coverage.csv equals coverage.json (matrix + statuses) and is linked")
+           and [r[3] for r in cr[cut + 2:cut2]] == [x["higherTimeframe"]["status"] for x in cv["targets"]] and all(r[4] == "false" for r in cr[cut + 2:cut2]) and 'href="/trading/build/coverage.csv"' in ct, "coverage.csv equals coverage.json (matrix + statuses) and is linked")
+        ok(cr[cut2 + 1:cut2 + 2] == [["target", "block_types_rendered", "block_types_todo"]] and [[r[0], r[1].split(), r[2].split()] for r in cr[cut2 + 2:]] == [[x["id"], x["blockSupport"]["rendered"], x["blockSupport"]["unsupportedTodo"]] for x in cv["targets"]], "coverage.csv: block-support rows equal coverage.json blockSupport, one per target (#8 t18)")
         ok(re.findall(r'data-doc href="([^"]+)"', ct) == [u for x in cv["targets"] for u in x["higherTimeframe"].get("docs", [])], "coverage page: official doc links for documented-idiom targets")
         ok('"@type":"Dataset"' in ct and "/trading/build/coverage.json" in ct and "<script>" not in ct.replace('<script type="application/ld+json">', ""), "coverage page: Dataset JSON-LD for the downloadable file, no inline script")
         tids = [x["id"] for x in cv["targets"]]
