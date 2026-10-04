@@ -261,6 +261,15 @@ def main():
             g2 = json.loads(subprocess.run(["node", "-e", h2], capture_output=True, text=True, timeout=30).stdout or "[]")
             ok(g2 == ["MT5", "MT5", "MT5"], f"requests: platform prefill adds a known chip value once, ignores unknown values (node) {g2}")
         ok(pjs.count("'bsv-practice-log-' + new Date().toISOString().slice(0, 10) + '.") == 2, "robot pilot: CSV and JSON downloads carry the date")
+        # batch 17: hub Clear filters + ask link carries the framework; practice-log session dates
+        ok('<button type="button" class="lib-chip" id="tk-clear" hidden>' in hub and "getElementById('tk-clear')" in tkjs and "'&platform='+encodeURIComponent(fw)" in tkjs, "AI toolkit hub: Clear filters; the ask link carries the framework filter")
+        ok("' Session dates: '" in pjs and "o.firstDate" in pjs, "robot pilot: log summary states the saved session dates (self-reported)")
+        cvb = json.loads(rd("trading/build/coverage.json"))
+        U = [set(x["blockSupport"]["rendered"]) | set(x["blockSupport"]["unsupportedTodo"]) for x in cvb["targets"]]
+        ok(all(set(x["blockSupport"]["rendered"]).isdisjoint(x["blockSupport"]["unsupportedTodo"]) for x in cvb["targets"]) and all(u == U[0] for u in U)
+           and {b for x in cvb["targets"] for b in x["blockSupport"]["unsupportedTodo"]} == {b for r in cvb["recipes"] for b in r["unsupportedBlocks"]}, "coverage.json: blockSupport per target (same block types, rendered / TODO disjoint, TODO union = generator gaps)")
+        ab = next(x for x in cvb["targets"] if x["id"] == "amibroker")["blockSupport"]
+        ok({"structure.range", "signal.breakout"} <= set(ab["rendered"]) and "visual.zone" in ab["unsupportedTodo"], "coverage.json: AmiBroker renders structure.range and signal.breakout; its zone stays TODO")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
