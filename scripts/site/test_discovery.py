@@ -4,6 +4,7 @@
 --site checks the built site; --live additionally fetches production and re-reads every trust fact
 from the live page (fresh read), checks llms.txt URLs return 200 and gated source stays gated.
 """
+import urllib.parse
 import argparse, json, re, sys, urllib.request, urllib.error
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -237,6 +238,14 @@ def main():
         sup = t[t.find('id="rq-ai-supply"'):t.find("</table>", t.find('id="rq-ai-supply"'))]
         ok(re.findall(r'data-ai-fw="([^"]+)"', sup) == [blt.esc(f) for f in dict.fromkeys(e["platform"] for e in aicat)] and sum(int(x) for x in re.findall(r"</td><td>(\d+)</td>", sup)) == len(aicat), "requests: AI toolkit items by framework = catalog counts")
         ok('id="rp-cap"' in rd("robot-pilot/index.html") and "latest 20" in rd("robot-pilot/index.html"), "robot pilot: 20-session cap stated next to Save")
+        # batch 15: hub filters in the URL, matrix + supply links to filtered views, llms filtered-view line, Clear asks first
+        tkjs = next((rd(x.lstrip("/")) for x in re.findall(r'<script src="(/library/toolkit/toolkit\.[^"]+\.js)"', hub)), "")
+        ok("history.replaceState" in tkjs and "u.get(keys[i])" in tkjs and "o.value===v" in tkjs, "AI toolkit hub: filters read from / written to the URL, only known options accepted")
+        ok(re.findall(r'data-tk-fw-link href="\?framework=([^"#]+)#tk-q"', mx) == [blt.esc(urllib.parse.quote(f)) for f in dict.fromkeys(e["framework"] for e in tv)], "AI toolkit hub: each framework in the matrix links to its filtered view")
+        ok(re.findall(r'data-ai-fw-link href="/library/toolkit/\?framework=([^"#]+)#tk-q"', sup) == [blt.esc(urllib.parse.quote(f)) for f in dict.fromkeys(e["platform"] for e in aicat)], "requests: AI supply rows link to the filtered AI toolkit hub")
+        ok(f"- Filtered hub views use the page filters as URL parameters (framework, job, status, q), for example {ORIGIN}/library/toolkit/?framework=" in lt, "llms.txt: filtered AI hub views described")
+        pjs = "".join(rd(x.lstrip("/")) for x in re.findall(r'<script src="(/[^"]*pilot[^"]*\.js)"', rd("robot-pilot/index.html")))
+        ok("root.confirm('Delete the '" in pjs and "This cannot be undone." in pjs, "robot pilot: Clear asks before deleting saved sessions")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
