@@ -81,11 +81,13 @@ for f in sorted(RECIPES.glob("*.json")):
             got = [r.get(b["id"], NAN) for r in rec["sig"]] if (b.get("params") or {}).get("timeframeRef") else [r.get(k, NAN) for r in rec["subs"]]; want = V[b["id"]]
             worst = max((abs(g - w) / max(1, abs(w)) for g, w in zip(got, want) if fin(w)), default=0); warm = sum(1 for g, w in zip(got, want) if not fin(w) and fin(g))
             ok(worst < 1e-9 and warm == 0 and all(fin(g) for g, w in zip(got, want) if fin(w)), name, f"{b['id']} ({b['type']}) equals reference: worst {worst}, early values {warm}")
-        if re.match(r"^(signal\.(cross|threshold|combine|breakout|liquidity_sweep|divergence)|filter\.session)$", b["type"]):
+        if re.match(r"^(signal\.(cross|threshold|combine|recent|breakout|liquidity_sweep|divergence)|filter\.session)$", b["type"]):
             got = [bool(r.get(b["id"])) for r in rec["sig"]]; want = S[b["id"]]
             diff = sum(1 for g, w in zip(got, want) if g != bool(w))
             ok(diff == 0, name, f"{b['id']} ({b['type']}) equals reference ({diff} bars differ)")
             ok(b["type"] not in ("signal.liquidity_sweep", "signal.divergence") or sum(map(bool, S[b["id"]])) > 0, name, f"{b['id']} fires on the synthetic bars (the comparison is not vacuous)")
+        if b["type"] == "alert.condition" and any(x["type"] == "signal.recent" for x in recipe["blocks"]):  # look-back recipes: the alert condition must hold on these bars
+            al = b; c = sum(map(bool, S.get(al["params"]["when"], []))); ok(c > 0, name, f"{al['id']}: alert condition with a look-back holds on the synthetic bars ({c} bars)")
     by = {x["id"]: x for x in recipe["blocks"]}
     for n, z in enumerate([x for x in recipe["blocks"] if x["type"] == "visual.zone" and BSVREF.zone_source(by, x)]):  # zone lines = the source's high/low
         src = BSVREF.zone_source(by, z)

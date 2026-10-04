@@ -179,7 +179,7 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
-let sigRecomputed = 0;
+let sigRecomputed = 0; const lookBackAlerts = {}; // recipe -> bars where the alert condition holds, for recipes that use signal.recent
 let alertsSeen = 0, panelsSeen = 0, htfChecked = 0, rangeChecked = 0, breakoutsSeen = 0, mutantsCaught = 0, zonesSeen = 0, pivSigSeen = 0;
 const byId = (recipe) => Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
 let CUR_RECIPE = null;
@@ -237,7 +237,8 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
         if (b.type === 'signal.recent') { const sg = get(p.signal); let h = false; for (let k = 1; k <= p.bars && i - k >= 0; k++) if (tb(sg[i - k])) h = true; want.push(h); }
         if (b.type === 'signal.combine') { const L = (p.signals || []).map(get); want.push(L.length > 0 && L.every(Boolean) && (p.mode === 'any' ? L.some(s => tb(s[i])) : L.every(s => tb(s[i])))); } }
       let bad = 0; for (let i = 100; i < 400; i++) if (tb(v[i]) !== want[i]) bad++;
-      ok(bad === 0 && (b.type !== 'signal.recent' || want.some(Boolean)), f, `${b.id} (${b.type}) equals the recomputation from its inputs (${bad} differ)`); sigRecomputed++; } }
+      ok(bad === 0 && (b.type !== 'signal.recent' || want.some(Boolean)), f, `${b.id} (${b.type}) equals the recomputation from its inputs (${bad} differ)`); sigRecomputed++; }
+    if (recipe.blocks.some(b => b.type === 'signal.recent')) for (const al of recipe.blocks.filter(b => b.type === 'alert.condition')) { const w = get(al.params.when) || []; let c = 0; for (let i = 0; i < 400; i++) if (tb(w[i])) c++; lookBackAlerts[f.replace('.json', '')] = c; ok(c > 0, f, `${al.id}: alert condition with a look-back holds on the test bars (${c} bars)`); } }
   // higher timeframe on 15-minute bars: previous closed hour, equal to the independent reference; prefix runs agree (no lookahead)
   const htfB = recipe.blocks.filter(b => (b.params || {}).timeframeRef && htfReadable(b) && String(byId(recipe)[b.params.timeframeRef].params.timeframe) === '60');
   if (htfB.length) {
@@ -348,5 +349,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify([...fired].sort((x, y) => x - y)) === JSON.stringify(expect), f, `alert ${k}: fired ${[...fired]} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, zones: zonesSeen, sweep_divergence_15m: pivSigSeen, mutants_caught: mutantsCaught, signals_recomputed: sigRecomputed, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
+console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, zones: zonesSeen, sweep_divergence_15m: pivSigSeen, mutants_caught: mutantsCaught, signals_recomputed: sigRecomputed, look_back_alert_bars: lookBackAlerts, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
 process.exit(failures ? 1 : 0);
