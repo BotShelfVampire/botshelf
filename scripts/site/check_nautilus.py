@@ -80,10 +80,12 @@ for f in sorted(RECIPES.glob("*.json")):
         if b["type"] in ("indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr"):
             got = [h[0].get(b["id"], float("nan")) for h in hist]; bad = sum(1 for g, w in zip(got, V[b["id"]]) if not same(g, w))
             ok(bad == 0, name, f"{b['id']} ({b['type']}) equals reference ({bad} bars differ)")
-        if re.match(r"^(signal\.(cross|threshold|combine|breakout|liquidity_sweep|divergence)|filter\.session)$", b["type"]):
+        if re.match(r"^(signal\.(cross|threshold|combine|recent|breakout|liquidity_sweep|divergence)|filter\.session)$", b["type"]):
             got = [bool(h[1].get(b["id"])) for h in hist]; diff = sum(1 for g, w in zip(got, S[b["id"]]) if g != bool(w))
             ok(diff == 0, name, f"{b['id']} ({b['type']}) equals reference ({diff} bars differ)")
             ok(b["type"] not in ("signal.liquidity_sweep", "signal.divergence") or sum(map(bool, S[b["id"]])) > 0, name, f"{b['id']} fires on the synthetic bars (the comparison is not vacuous)")
+        if b["type"] == "alert.condition" and any(x["type"] == "signal.recent" for x in recipe["blocks"]):  # look-back recipes: the alert condition must hold on these bars
+            al = b; c = sum(map(bool, S.get(al["params"]["when"], []))); ok(c > 0, name, f"{al['id']}: alert condition with a look-back holds on the synthetic bars ({c} bars)")
         if b["type"] == "visual.plot":
             got = [h[0].get("plot:" + b["id"], float("nan")) for h in hist]
             ok(all(same(g, w) for g, w in zip(got, val(b["params"]["source"]))), name, f"plot value {b['id']}")

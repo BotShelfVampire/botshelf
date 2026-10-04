@@ -410,6 +410,7 @@ def main():
     if tpc.exists():
         tv = bd.visible_text(tpc)
         ok('id="changelog"' in tpc.read_text() and "2026-10-04" in tv and "Functional fix" in tv and "機能の修正" in tv and "signal.recent" in tv, "trend-pullback-composite: changelog (EN + JA) and the signal.recent block on the recipe page")
+        ok("Follow-up: the pullback level is now 40" in tv and "押し目の水準を40" in tv and tv.find("Follow-up") < tv.find("Functional fix"), "trend-pullback-composite: batch 26 follow-up (pullback level 40) is the newest changelog entry")
         ok(not re.search(r'class="[^"]*changelog', tpc.read_text()), "changelog section uses existing classes only")
         chj = s / "transparency/changes.json"
         ok(chj.exists() and "trend-pullback-composite" in chj.read_text() and "functional fix" in chj.read_text(), "transparency changes feed discloses the trend-pullback-composite fix")

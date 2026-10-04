@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
+const lookBackAlerts = {}; // recipe -> bars where the alert condition holds, for recipes that use signal.recent
 let checks = 0, failures = 0, files = 0, panelsSeen = 0, hooksSeen = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0, zoneSeen = 0, htfSeen = 0;
 const fail = (f, m) => { failures++; console.error('FAIL', f, m); };
 const ok = (c, f, m) => { checks++; if (!c) fail(f, m); };
@@ -248,6 +249,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     for (let i = R0; i < NB; i++) { if (A.out[i][key] !== undefined) fired.push(i - 1); if (cond[i - 1]) expect.push(i - 1); }
     ok(A.out.every((o, i) => o[key] === undefined || (i > 0 && Math.abs(o[key] - (recipe.overlay ? bars[i - 1].close : 1)) < 1e-12)), f, `${key}: dot value`);
     alertsSeen += fired.length;
+    if (recipe.blocks.some(b => b.type === 'signal.recent')) { const c = cond.filter(Boolean).length; lookBackAlerts[f.replace('.json', '')] = c; ok(c > 0, f, `${key}: alert condition with a look-back holds on the test bars (${c} bars)`); }
     ok(JSON.stringify(fired) === JSON.stringify(expect), f, `${key}: fired ${fired} expected ${expect}`);
   });
   // value panels: per-bar values of every shown field equal the reference; reading the bar before (a stale panel) must be caught
@@ -299,5 +301,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(!same, f, `mutant caught: ${mn}`); if (!same) mutCaught++;
   }
 }
-console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, webhook_payloads: hooksSeen, panels: panelsSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, htf_values: htfSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
+console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, webhook_payloads: hooksSeen, panels: panelsSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, htf_values: htfSeen, mutants_caught: mutCaught, look_back_alert_bars: lookBackAlerts, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
 process.exit(failures ? 1 : 0);
