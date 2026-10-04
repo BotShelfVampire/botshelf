@@ -406,14 +406,14 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
 # ---------------------------------------------------------------------------
 # AI
 # ---------------------------------------------------------------------------
-def lib_shell(site: Path, title: str, desc: str, canonical: str, body: str, robots: str = "index,follow") -> str:
+def lib_shell(site: Path, title: str, desc: str, canonical: str, body: str, robots: str = "index,follow", extra_head: str = "") -> str:
     li = (site / "library/index.html").read_text()
     hdr = li[li.find("<header"): li.find("</header>") + 9]
     return (
         '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n'
         f'<title>{esc(title)}</title>\n<meta name="description" content="{esc(desc)}">\n<link rel="canonical" href="{ORIGIN}{canonical}">\n<meta name="robots" content="{robots}">\n'
         '<link rel="icon" href="/img/mark.jpg" type="image/jpeg">\n<link rel="stylesheet" href="/css/shelf.css">\n'
-        f'<link rel="stylesheet" href="{ASSET["acss"]}">\n</head>\n<body class="bsv-ai-toolkit">\n' + hdr +
+        f'<link rel="stylesheet" href="{ASSET["acss"]}">\n{extra_head}</head>\n<body class="bsv-ai-toolkit">\n' + hdr +
         f'\n<main class="wrap">{body}</main>\n<footer><p>Original BSV templates and starters (MIT). BSV does not host or control the external products named here; their names belong to their owners.</p>'
         '<p data-lang-show="ja" hidden>BSVオリジナルのテンプレートとスターター（MITライセンス）。ここに名前のある外部サービスをBSVが運営・管理しているわけではありません。名称は各社のものです。</p>'
         '<p class="muted">No secrets in templates. No destructive commands. No auto-spend.</p></footer>\n'
@@ -519,7 +519,12 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
                 + related(r)
                 + f'<section class="section"><p class="section-label">Need it for another framework?</p>{lib_both(T("Ask for a version for the framework or runtime you use. The request form opens with this item named; nothing is sent until you press send with a verified email.", "使っているフレームワークや実行環境向けの版をリクエストできます。フォームにはこの項目名が入った状態で開きます。メール確認済みで送信ボタンを押すまで何も送られません。"), "p", "muted")}'
                   f'<p><a class="btn-fat" data-tk-ask="{esc(r["id"])}" href="/requests/?area=ai-workflows&amp;toolkit={esc(r["id"])}#rq-form">Ask for another framework →</a></p></section>')
-        write(site / f"library/toolkit/{r['id']}/index.html", lib_shell(site, f"{r['title']} — {r['framework']} | AI toolkits | BotShelf Vampire", r["summary"]["en"], f"/library/toolkit/{r['id']}/", body))
+        # CreativeWork JSON-LD (#8 tranche 14): catalog facts only (no rating, no review, no test claim)
+        ld = {"@context": "https://schema.org", "@type": "CreativeWork", "name": r["title"], "description": r["summary"]["en"], "url": f"{ORIGIN}/library/toolkit/{r['id']}/",
+              "license": "https://spdx.org/licenses/MIT.html", "isAccessibleForFree": True, "inLanguage": "en", "genre": copy["ai_types"][r["type"]]["en"], "about": r["framework"],
+              "creator": {"@type": "Organization", "name": "BotShelf Vampire", "url": ORIGIN + "/"}, "isPartOf": {"@type": "CollectionPage", "url": ORIGIN + "/library/toolkit/"}}
+        write(site / f"library/toolkit/{r['id']}/index.html", lib_shell(site, f"{r['title']} — {r['framework']} | AI toolkits | BotShelf Vampire", r["summary"]["en"], f"/library/toolkit/{r['id']}/", body,
+                                                                    extra_head='<script type="application/ld+json">' + json.dumps(ld, ensure_ascii=False, separators=(",", ":")) + "</script>\n"))
 
     def card(r):
         s = " ".join([r["title"], r["framework"], r["job"], r["summary"]["en"], r["summary"]["ja"]]).lower()
@@ -546,6 +551,9 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
            f'<div class="lib-filters tk-filters" aria-label="Toolkit filters"><div class="row"><label for="tk-q">Search</label><input id="tk-q" type="search" placeholder="Filter: memory, MCP, local, guardrails…" autocomplete="off"><span class="muted" id="tk-count"></span></div>'
            f'<div class="row"><label for="tk-f-framework">Framework</label><select id="tk-f-framework"><option value="">Any</option>{fopt}</select><label for="tk-f-job">Job</label><select id="tk-f-job"><option value="">Any</option>{jopt}</select><label for="tk-f-status">Status</label><select id="tk-f-status"><option value="">Any</option>{sopt}</select></div></div>'
            f'{by_job}<section class="section"><p class="section-label">By framework / runtime</p></section>{by_fw}'
+           + '<section class="section" id="tk-matrix"><p class="section-label">Jobs covered, by framework<span data-lang-show="ja" hidden> · フレームワークごとの対応する仕事</span></p><ul class="tk-list">'
+           + "".join(f'<li data-tk-fw="{esc(f)}"><strong>{esc(f)}</strong> — ' + ", ".join(f'<a href="#job-{j}">{esc(jobs[j]["en"])}</a> ({sum(1 for r in recs if r["framework"] == f and r["job"] == j)})' for j in jobs if any(r["framework"] == f and r["job"] == j for r in recs)) + '</li>' for f in fw_order if any(r["framework"] == f for r in recs))
+           + '</ul>' + lib_both(T("Counted from the catalog: which jobs each framework has BSV items for. Not a ranking and not a test result.", "カタログから数えた、フレームワークごとにBSVの項目がある仕事です。順位でも検証結果でもありません。"), "p", "muted") + '</section>'
            f'<section class="section" id="tk-ask"><p class="section-label">Not listed?</p>{lib_both(T("Ask for a framework, runtime or tool that is not here. Requests are reviewed before anything is listed; nothing is sent until you press send with a verified email.", "ここにないフレームワーク・実行環境・ツールをリクエストできます。掲載の前に確認します。メール確認済みで送信ボタンを押すまで何も送られません。"), "p", "muted")}'
            '<p><a class="btn-fat" data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form">Ask for a framework or tool →</a></p></section>'
            f'<section class="section how-box"><p class="section-label">How these differ</p><p>Bionic is an agent app/harness for open models; smolagents is a lightweight Python framework; Letta focuses on persistent state and memory; the OpenAI Agents SDK provides orchestration primitives (tools, handoffs, guardrails, sessions); Dots are always-on responsibilities inside OpenAI\'s product; Hugging Face provides MCP, Spaces, Skills and Tiny Agents; the LangGraph and CrewAI team runners run one Library AI Team task at a time with your approval before saving. Choose by job — they are not interchangeable.</p></section>')
