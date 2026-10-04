@@ -187,10 +187,10 @@ function zoneOk(recipe, b) {
   return !!d && (pivotOk(recipe, d) || (rangeOk(recipe, d) && rangeKeys(d).length === 2));
 }
 function webhookOk(recipe, b) {
-  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangePine) || !b || b.type !== 'alert.webhook') return false;  // Tradovate: built per bar, drawn as W dots, never sent; Pine: alert() once per bar close (keys / texts without quotes, backslashes or control characters)
+  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangePine || recipe.bsvRangeMql5) || !b || b.type !== 'alert.webhook') return false;  // Tradovate: built per bar, drawn as W dots, never sent; Pine: alert() once per bar close (keys / texts without quotes, backslashes or control characters)
   const q = b.params || {}, w = blockMap(recipe).get(q.when), pl = q.payload;
   if (!w || !isBoolType(w.type) || w.type === 'alert.webhook' || !pl || typeof pl !== 'object' || Array.isArray(pl) || !Object.keys(pl).length) return false;
-  if (recipe.bsvRangePine && !Object.entries(pl).every(([k, x]) => !/["\\\x00-\x1f]/.test(k) && (typeof x !== 'string' || !/["\\\x00-\x1f]/.test(x)) && (typeof x !== 'number' || Number.isFinite(x)))) return false;
+  if ((recipe.bsvRangePine || recipe.bsvRangeMql5) && !Object.entries(pl).every(([k, x]) => !/["\\\x00-\x1f]/.test(k) && (typeof x !== 'string' || !/["\\\x00-\x1f]/.test(x)) && (typeof x !== 'number' || Number.isFinite(x)))) return false;
   return Object.values(pl).every(x => ['number', 'boolean'].includes(typeof x) || (typeof x === 'string' && [...x.matchAll(/\{\{([^}]*)\}\}/g)].every(m => ['symbol', 'timeframe', 'time', 'open', 'high', 'low', 'close'].includes(m[1]))));
 }
 // signal.liquidity_sweep (a candidate only): on a completed bar, the wick goes beyond the last pivot high / low known
@@ -566,6 +566,8 @@ function renderMql5(recipe) {
   for (const b of inds) L.push(`int    h_${b.id} = INVALID_HANDLE;`, `double A_${b.id}[];`);
   for (const b of htfInds) L.push(`int    h_${b.id} = INVALID_HANDLE; // higher timeframe ${htfTfOf(recipe, b)}`);
   for (const a of alerts) L.push(`datetime g_alert_${a.id} = 0;`);
+  const hooks = recipe.blocks.filter(b => b.type === 'alert.webhook' && webhookOk(recipe, b)), tables = tableBlocks(recipe).filter(t => t.fields.length);
+  for (const h of hooks) L.push(`datetime g_hook_${h.id} = 0;`);
   L.push(`#define BSV_WARMUP ${warmup(recipe)}`);
   L.push('');
   if (htfInds.length) {
@@ -665,6 +667,12 @@ function renderMql5(recipe) {
         if (!zoneOk(recipe, b)) L.push(`double V_${b.id}(int i) { return EMPTY_VALUE; } // TODO unsupported block ${b.type}: ${b.id}`);
         else L.push(`// ${b.id}: zone drawn as two lines from ${p.source} (${map.get(p.source).type === 'structure.range' ? 'the window high / low' : 'last confirmed pivot high / low'})`);
         break;
+      case 'visual.table':
+        tableTodos(tableSpec(recipe, b), '//').forEach(x => L.push(x));
+        break;
+      case 'alert.webhook':
+        if (!webhookOk(recipe, b)) L.push(`bool S_${b.id}(int i) { return false; } // TODO unsupported block ${b.type}: ${b.id}`);
+        break;
       case 'visual.plot': case 'alert.condition':
         break;
       default:
@@ -672,6 +680,7 @@ function renderMql5(recipe) {
         else L.push(`double V_${b.id}(int i) { return EMPTY_VALUE; } // TODO unsupported block ${b.type}: ${b.id}`);
     }
   }
+  if (tables.length) L.push('', 'string BsvNum(double v) { if (v == EMPTY_VALUE) return("n/a"); return(DoubleToString(v, 8)); } // value panels: n/a = no value yet');
   L.push('');
   L.push('int OnInit()');
   L.push('{');
@@ -698,6 +707,7 @@ function renderMql5(recipe) {
   L.push('void OnDeinit(const int reason)');
   L.push('{');
   for (const b of allInds) L.push(`   if (h_${b.id} != INVALID_HANDLE) IndicatorRelease(h_${b.id});`);
+  if (tables.length) L.push('   Comment(""); // remove the value panel');
   L.push('}');
   L.push('');
   L.push('int OnCalculate(const int rates_total, const int prev_calculated,');
@@ -722,6 +732,26 @@ function renderMql5(recipe) {
   for (const a of alerts) {
     L.push(`   // ${a.id}: alert once per closed bar.`);
     L.push(`   if (${bool(a.params?.when, '1')} && g_alert_${a.id} != iTime(${S}, 1)) { g_alert_${a.id} = iTime(${S}, 1); Alert(${q(String(a.params?.message || a.id).replace(/[\r\n]/g, ' '))}); }`);
+  }
+  const ph = { symbol: '_Symbol', timeframe: 'StringSubstr(EnumToString(_Period), 7)', time: `TimeToString(iTime(${S}, 1), TIME_DATE | TIME_MINUTES)`, open: `DoubleToString(iOpen(${S}, 1), _Digits)`, high: `DoubleToString(iHigh(${S}, 1), _Digits)`, low: `DoubleToString(iLow(${S}, 1), _Digits)`, close: `DoubleToString(iClose(${S}, 1), _Digits)` };
+  for (const h of hooks) {
+    const parts = []; let lit = '{';
+    Object.entries(h.params.payload).forEach(([k, x], n) => {
+      lit += `${n ? ',' : ''}"${k}":`;
+      if (typeof x !== 'string') { lit += JSON.stringify(x); return; }
+      lit += '"';
+      String(x).split(/(\{\{[^}]*\}\})/).forEach(seg => { const mm = /^\{\{([^}]*)\}\}$/.exec(seg); if (mm) { parts.push(q(lit), ph[mm[1]]); lit = ''; } else lit += seg; });
+      lit += '"';
+    });
+    parts.push(q(lit + '}'));
+    L.push(`   // ${h.id}: webhook JSON for the bar that just closed, once per bar. MT5 indicators cannot call WebRequest (MQL5 docs: only Expert Advisors and scripts),`,
+      '   // so this prints the JSON to the Experts journal; send it from your own EA with WebRequest (allowed URL list in Tools > Options). {{time}} = bar open time in broker server time.',
+      `   if (${bool(h.params.when, '1')} && g_hook_${h.id} != iTime(${S}, 1)) { g_hook_${h.id} = iTime(${S}, 1); Print("BSV webhook " + ${parts.filter(x => x !== '""').join(' + ')}); }`);
+  }
+  if (tables.length) {
+    const cell = (x) => { const [id, k] = x.id.split('.'); return x.bool ? `(S_${id}(1) ? "true" : "false")` : `BsvNum(V_${k ? `${id}_${k}` : id}(1))`; };
+    L.push('   // Value panel (visual.table): Comment() writes it to the top-left corner of the chart. Shift 1 = the bar that just closed (the newest bar may still be forming).',
+      `   Comment(${tables.map(t => [q(t.title + '\n'), ...t.fields.map((x, k) => `${q(x.id + ': ')} + ${cell(x)}${k < t.fields.length - 1 ? ' + "\\n"' : ''}`)].join(' + ')).join(' + "\\n\\n" + ')});`);
   }
   L.push('   return(rates_total);');
   L.push('}');
