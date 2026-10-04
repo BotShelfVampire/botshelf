@@ -204,6 +204,13 @@ def main():
                "requests: toolkit / mission-module prefill fills an empty job only, rejects bad ids, module needs kind=mission (node)")
         tkp = [(e["id"], rd(f"library/toolkit/{e['id']}/index.html")) for e in json.loads((bd.Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]]
         ok(all(f'data-tk-ask="{i}" href="/requests/?area=ai-workflows&amp;toolkit={i}#rq-form"' in h for i, h in tkp) and 'value="ai-workflows"' in t, f"AI toolkit pages: one ask-for-another-framework link each ({len(tkp)})")
+        _cp = json.loads((bd.Path(__file__).resolve().parents[2] / "scripts/site/toolkit-site-copy.json").read_text())
+        ok(all(i in _cp["ai"] and _cp["ai"][i]["job"] in _cp["ai_jobs"] for i, _ in tkp), "AI toolkit: every catalog entry has its own summary and job (no fallback copy)")
+        import zipfile, io
+        _rg = dict(tkp).get("ai-team-regression", ""); _rmd = (bd.Path(__file__).resolve().parents[2] / "ai-toolkit/common/ai-team-regression-checklist.md").read_bytes()
+        _rz = zipfile.ZipFile(io.BytesIO((s / "library/source/ai-team-regression.zip").read_bytes())) if (s / "library/source/ai-team-regression.zip").exists() else None
+        ok("Regression check before shipping" in _rg and "golden tasks" in _rg and 'href="/library/source/ai-team-regression.html"' in _rg and _rz is not None and _rmd in [_rz.read(n) for n in _rz.namelist()],
+           "AI toolkit: owner regression checklist listed with its job and summary, source gated, file byte-identical in the ZIP (batch 29)")
         rph = rd("robot-pilot/index.html")
         mids = [m["id"] for m in json.loads((bd.Path(__file__).resolve().parents[2] / "robot-pilot/curricula/isaac-teleop-so101-sim-v1.json").read_text())["modules"]]
         ok(re.findall(r'data-rp-ask="([a-z0-9-]+)" href="/requests/\?area=robot-pilot&amp;kind=mission&amp;module=\1#rq-form"', rph) == mids, f"robot pilot: one mission link per curriculum module ({len(mids)})")
