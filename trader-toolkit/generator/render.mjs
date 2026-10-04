@@ -70,6 +70,11 @@ function validateRecipe(recipe) {
       if (!Number.isInteger(p.bars) || p.bars < 1 || p.bars > 50) throw new Error(`Block ${block.id}: bars must be an integer from 1 to 50`);
       if (!sg || !isBoolType(sg.type) || /^(alert|scanner)\./.test(sg.type) || sg.type === 'signal.recent' || at(sg.id) > at(block.id)) throw new Error(`Block ${block.id}: signal must be an earlier signal or filter block (not another signal.recent)`);
     }
+    if (block.type === 'scanner.symbol_set') {  // symbols: optional fixed list (Pine needs it; MQL5 uses Market Watch when it is empty); signal: optional, default = the first alert.condition
+      const sy = p.symbols, sg = recipe.blocks.find(x => x.id === p.signal), at = (id) => recipe.blocks.findIndex(x => x.id === id);
+      if (sy !== undefined && (!Array.isArray(sy) || sy.length < 1 || sy.length > 40 || new Set(sy).size !== sy.length || !sy.every(x => typeof x === 'string' && /^[A-Za-z0-9_.:!&\/-]{1,40}$/.test(x)))) throw new Error(`Block ${block.id}: symbols must be 1 to 40 different symbol names (letters, digits and _ . : ! & / -)`);
+      if (p.signal !== undefined && (!sg || !isBoolType(sg.type) || /^(alert|scanner)\./.test(sg.type) || at(sg.id) > at(block.id))) throw new Error(`Block ${block.id}: signal must be an earlier signal or filter block`);
+    }
     if (['indicator.ema','indicator.sma','indicator.rsi','indicator.atr'].includes(block.type)) {
       if (!Number.isInteger(p.length) || p.length < 1 || p.length > 10000) {
         throw new Error(`Block ${block.id} has invalid length`);
@@ -137,7 +142,41 @@ function htfPrep(recipe, t) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6' || t === 'mql5'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeMql5 = t === 'mql5'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; return fn(r); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6' || t === 'mql5'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeMql5 = t === 'mql5'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; r.bsvScanTarget = scanRealTargets().includes(t) ? t : null; return scanNotice(fn(r)); }
+// scanner.symbol_set (batch 28): scan one signal on several symbols, each at its own bar that just closed. Rendered only on targets that
+// can read other symbols natively and where a BSV check runs the scan: Pine v6 (request.security per listed symbol, at most 40 unique
+// request.* calls per script), MQL5 (SymbolSelect + per-symbol indicator handles, or every Market Watch symbol), and the three Python
+// targets (a dict of symbol -> bars). Every other target gets an explicit notice instead of a silent TODO.
+function scanRealTargets() { return ['pine-v6', 'mql5', 'backtrader', 'backtesting-py', 'nautilus']; }
+function scanNotice(out) { return out.replace(/(TODO unsupported block scanner\.symbol_set: [a-z][a-z0-9_]*)(?![a-z0-9_]| - )/g, '$1 - unsupported for this target: run one chart per symbol (this script reads only the chart symbol)'); }
+function scanSignal(recipe, b) { const p = b.params || {}; if (p.signal) return p.signal; const a = recipe.blocks.find(x => x.type === 'alert.condition' && x.params && x.params.when); return a ? a.params.when : null; }
+function scanSymbols(b) { return Array.isArray(b?.params?.symbols) ? b.params.symbols : []; }
+function scanSigOk(recipe, id, seen = new Set()) {  // the scanned signal and everything it reads are rendered for real on this target
+  const b = blockMap(recipe).get(id);
+  if (!b) return isPrice(id);
+  if (seen.has(id)) return true;
+  seen.add(id);
+  const p = b.params || {}, all = () => referencesFor(b).every(x => scanSigOk(recipe, x, seen));
+  if (p.timeframeRef) return false;
+  if (/^indicator\.(ema|sma|rsi|atr)$/.test(b.type) || b.type === 'filter.session') return true;
+  if (/^signal\.(cross|threshold|combine|recent)$/.test(b.type)) return all();
+  if (b.type === 'structure.range') return rangeOk(recipe, b) && all();
+  if (b.type === 'signal.breakout') return breakoutOk(recipe, b) && all();
+  if (b.type === 'structure.pivot') return pivotOk(recipe, b);
+  if (b.type === 'signal.liquidity_sweep') return sweepOk(recipe, b) && all();
+  if (b.type === 'signal.divergence') return divergenceOk(recipe, b) && all();
+  return false;
+}
+function scanWhyNot(recipe, b) {  // empty string = rendered
+  const sig = scanSignal(recipe, b), sb = sig && blockMap(recipe).get(sig), n = scanSymbols(b).length;
+  if (!recipe.bsvScanTarget) return 'unsupported for this target: run one chart per symbol (this script reads only the chart symbol)';
+  if (!sb || !isBoolType(sb.type) || /^(alert|scanner)\./.test(sb.type)) return 'nothing to scan: set params.signal or add an alert.condition, or run one chart per symbol';
+  if (recipe.blocks.some(x => x.params && x.params.timeframeRef)) return 'not rendered with higher-timeframe blocks: run one chart per symbol';
+  if (recipe.bsvScanTarget === 'pine-v6' && (n < 1 || n > 40)) return 'TradingView scripts cannot read your watchlist: list 1 to 40 symbols in params.symbols (at most 40 unique request.* calls per script), or run one chart per symbol';
+  if (!scanSigOk(recipe, sig)) return `the scanned signal ${sig} is not fully rendered on this target: run one chart per symbol`;
+  return '';
+}
+function scanOk(recipe, b) { return !!b && b.type === 'scanner.symbol_set' && scanWhyNot(recipe, b) === ''; }
 // structure.range (high/low of each window where a session/signal is true; reset when a new window starts; after the
 // window the last window's values stay) and signal.breakout (first close beyond the finished window's high or low).
 // Rendered only where a BSV check runs them; elsewhere they stay TODO.
@@ -304,6 +343,7 @@ function referencesFor(block) {
     case 'alert.webhook': return [p.when].filter(Boolean);
     case 'signal.liquidity_sweep': return [p.pivot, p.atr].filter(Boolean);
     case 'signal.divergence': return [p.pivot, p.oscillator].filter(Boolean);
+    case 'scanner.symbol_set': return [p.signal].filter(Boolean);
     default: return [];
   }
 }
@@ -480,6 +520,17 @@ function renderPine(recipe) {
           `plot(${p.source}_high, title=${q(t + ' high')}, color=color.red)`, `plot(${p.source}_low, title=${q(t + ' low')}, color=color.green)`);
         break;
       }
+      case 'scanner.symbol_set': {
+        if (!scanOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id} - ${scanWhyNot(recipe, b)}`); break; }
+        const sig = scanSignal(recipe, b), sy = scanSymbols(b);
+        lines.push(`// ${b.id}: scan ${sig} on each listed symbol (chart timeframe) at that symbol's bar that just closed. request.security(symbol, timeframe.period, ${sig}[1],`,
+          '// lookahead = barmerge.lookahead_on) recomputes the signal on the requested symbol (Pine manual, Other timeframes and data: declared variables) and does not',
+          `// repaint. TradingView scripts cannot read your watchlist, so edit the symbol inputs. ${sy.length} request.security call${sy.length === 1 ? '' : 's'} here; at most 40 unique request.* calls per script (64 on Ultimate).`);
+        sy.forEach((x, k) => lines.push(`${b.id}_sym_${k + 1} = input.symbol(${q(x)}, ${q(`${b.id} ${k + 1}`)})`));
+        sy.forEach((x, k) => lines.push(`${b.id}_${k + 1} = request.security(${b.id}_sym_${k + 1}, timeframe.period, ${sig}[1], lookahead = barmerge.lookahead_on)`));
+        lines.push(`${b.id} = ${sy.map((x, k) => `${b.id}_${k + 1}`).join(' or ')}`, `${b.id}_list = ${sy.map((x, k) => `(${b.id}_${k + 1} ? ${b.id}_sym_${k + 1} + " " : "")`).join(' + ')}`);
+        break;
+      }
       case 'visual.table': break;  // value panels are drawn after all blocks (below)
       case 'alert.webhook':
         if (!webhookOk(recipe, b)) { lines.push(`// TODO unsupported block ${b.type}: ${b.id}`, `${b.id} = false`); break; }
@@ -524,6 +575,11 @@ function renderPine(recipe) {
       `if ${b.id}`, `    alert(${parts.filter(x => x !== '""').join(' + ')}, alert.freq_once_per_bar_close)`);
   }
 
+  for (const b of recipe.blocks.filter(x => x.type === 'scanner.symbol_set' && scanOk(recipe, x))) {
+    lines.push('', `// ${b.id}: one alert per bar listing the symbols whose ${scanSignal(recipe, b)} held on the bar that just closed (create an alert on this script with "Any alert() function call").`,
+      '// Once per bar: the values come from closed bars only, so the first tick of the new bar already has them. Not run by BSV on TradingView (UNTESTED_RUNTIME).',
+      `if ${b.id}`, `    alert(${q(`BSV scan ${b.id}: `)} + ${b.id}_list, alert.freq_once_per_bar)`);
+  }
   lines.push('');
   lines.push('// End BSV generated starter.');
   return lines.join('\n') + '\n';
@@ -539,7 +595,8 @@ function renderMql5(recipe) {
   const htfPeriods = [...new Set(htfInds.map(b => htfTfOf(recipe, b)))];
   const htfOk = (list, at) => list.filter(r => htfTfOf(recipe, map.get(r))).map(r => `${val(r, at)} != EMPTY_VALUE && `).join('');
   const appliedPrice = { open: 'PRICE_OPEN', high: 'PRICE_HIGH', low: 'PRICE_LOW', close: 'PRICE_CLOSE', hl2: 'PRICE_MEDIAN', hlc3: 'PRICE_TYPICAL' };
-  const S = '_Symbol, _Period';
+  const scans = recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && scanOk(recipe, b));
+  const S = scans.length ? 'g_sym, _Period' : '_Symbol, _Period', SC = '_Symbol, _Period';  // block functions read g_sym when a symbol scan switches the symbol; chart-only lines use _Symbol
   const priceExpr = { open: `iOpen(${S}, i)`, high: `iHigh(${S}, i)`, low: `iLow(${S}, i)`, close: `iClose(${S}, i)`,
     hl2: `(iHigh(${S}, i) + iLow(${S}, i)) / 2.0`, hlc3: `(iHigh(${S}, i) + iLow(${S}, i) + iClose(${S}, i)) / 3.0`,
     ohlc4: `(iOpen(${S}, i) + iHigh(${S}, i) + iLow(${S}, i) + iClose(${S}, i)) / 4.0` };
@@ -569,6 +626,13 @@ function renderMql5(recipe) {
   const hooks = recipe.blocks.filter(b => b.type === 'alert.webhook' && webhookOk(recipe, b)), tables = tableBlocks(recipe).filter(t => t.fields.length);
   for (const h of hooks) L.push(`datetime g_hook_${h.id} = 0;`);
   L.push(`#define BSV_WARMUP ${warmup(recipe)}`);
+  for (const b of scans) {
+    L.push(`input string InpScan_${b.id} = ${q(scanSymbols(b).join(','))}; // ${b.id}: symbols to scan, comma-separated without spaces; empty = every symbol in Market Watch`);
+    L.push(`string   g_scan_${b.id}[];`);
+    for (const x of inds) L.push(`int      g_scan_${b.id}_h_${x.id}[];`);
+    L.push(`datetime g_scan_${b.id}_t = 0;`);
+  }
+  if (scans.length) L.push('string   g_sym = ""; // the symbol the block functions read: the chart symbol, or the symbol being scanned', '#define BSV_SCAN_MAX 100');
   L.push('');
   if (htfInds.length) {
     L.push('// Higher timeframe: value of the last CLOSED higher-timeframe bar for chart bar i. iBarShift (exact=false) finds the');
@@ -673,6 +737,10 @@ function renderMql5(recipe) {
       case 'alert.webhook':
         if (!webhookOk(recipe, b)) L.push(`bool S_${b.id}(int i) { return false; } // TODO unsupported block ${b.type}: ${b.id}`);
         break;
+      case 'scanner.symbol_set':
+        if (!scanOk(recipe, b)) L.push(`double V_${b.id}(int i) { return EMPTY_VALUE; } // TODO unsupported block ${b.type}: ${b.id} - ${scanWhyNot(recipe, b)}`);
+        else L.push(`// ${b.id}: symbol scan of ${scanSignal(recipe, b)} (OnInit builds the list, OnCalculate scans once per closed chart bar)`);
+        break;
       case 'visual.plot': case 'alert.condition':
         break;
       default:
@@ -700,6 +768,21 @@ function renderMql5(recipe) {
     L.push(`   if (h_${b.id} == INVALID_HANDLE) return(INIT_FAILED);`);
     if (!htfTfOf(recipe, b)) L.push(`   ArraySetAsSeries(A_${b.id}, true);`);
   }
+  const hcall = (b, sym) => { const p = b.params || {}, ap = appliedPrice[b.type === 'indicator.atr' ? 'close' : sourceName(p.source)] || 'PRICE_CLOSE';
+    return b.type === 'indicator.ema' ? `iMA(${sym}, _Period, ${p.length}, 0, MODE_EMA, ${ap})` : b.type === 'indicator.sma' ? `iMA(${sym}, _Period, ${p.length}, 0, MODE_SMA, ${ap})` : b.type === 'indicator.rsi' ? `iRSI(${sym}, _Period, ${p.length}, ${ap})` : `iATR(${sym}, _Period, ${p.length})`; };
+  if (scans.length) L.push('   g_sym = _Symbol;');
+  for (const b of scans) {
+    const n = `ns_${b.id}`;
+    L.push(`   // ${b.id}: the scan list = InpScan_${b.id}, or every Market Watch symbol when it is empty (at most BSV_SCAN_MAX). SymbolSelect adds a listed symbol to Market Watch so its bars load.`,
+      `   int ${n} = 0;`,
+      `   if (StringLen(InpScan_${b.id}) > 0) ${n} = StringSplit(InpScan_${b.id}, ',', g_scan_${b.id});`,
+      `   else { ${n} = SymbolsTotal(true); ArrayResize(g_scan_${b.id}, ${n}); for (int k = 0; k < ${n}; k++) g_scan_${b.id}[k] = SymbolName(k, true); }`,
+      `   if (${n} < 0) ${n} = 0;`, `   if (${n} > BSV_SCAN_MAX) ${n} = BSV_SCAN_MAX;`, `   ArrayResize(g_scan_${b.id}, ${n});`);
+    for (const x of inds) L.push(`   ArrayResize(g_scan_${b.id}_h_${x.id}, ${n});`);
+    L.push(`   for (int k = 0; k < ${n}; k++)`, '   {', `      if (!SymbolSelect(g_scan_${b.id}[k], true)) Print(${q(`BSV scan ${b.id}: unknown symbol `)}, g_scan_${b.id}[k]);`);
+    for (const x of inds) L.push(`      g_scan_${b.id}_h_${x.id}[k] = ${hcall(x, `g_scan_${b.id}[k]`)};`);
+    L.push('   }');
+  }
   L.push(`   IndicatorSetString(INDICATOR_SHORTNAME, ${q('BSV — ' + safeTitle(recipe))});`);
   L.push('   return(INIT_SUCCEEDED);');
   L.push('}');
@@ -707,6 +790,7 @@ function renderMql5(recipe) {
   L.push('void OnDeinit(const int reason)');
   L.push('{');
   for (const b of allInds) L.push(`   if (h_${b.id} != INVALID_HANDLE) IndicatorRelease(h_${b.id});`);
+  for (const b of scans) for (const x of inds) L.push(`   for (int k = 0; k < ArraySize(g_scan_${b.id}_h_${x.id}); k++) if (g_scan_${b.id}_h_${x.id}[k] != INVALID_HANDLE) IndicatorRelease(g_scan_${b.id}_h_${x.id}[k]);`);
   if (tables.length) L.push('   Comment(""); // remove the value panel');
   L.push('}');
   L.push('');
@@ -731,9 +815,9 @@ function renderMql5(recipe) {
   L.push('   }');
   for (const a of alerts) {
     L.push(`   // ${a.id}: alert once per closed bar.`);
-    L.push(`   if (${bool(a.params?.when, '1')} && g_alert_${a.id} != iTime(${S}, 1)) { g_alert_${a.id} = iTime(${S}, 1); Alert(${q(String(a.params?.message || a.id).replace(/[\r\n]/g, ' '))}); }`);
+    L.push(`   if (${bool(a.params?.when, '1')} && g_alert_${a.id} != iTime(${SC}, 1)) { g_alert_${a.id} = iTime(${SC}, 1); Alert(${q(String(a.params?.message || a.id).replace(/[\r\n]/g, ' '))}); }`);
   }
-  const ph = { symbol: '_Symbol', timeframe: 'StringSubstr(EnumToString(_Period), 7)', time: `TimeToString(iTime(${S}, 1), TIME_DATE | TIME_MINUTES)`, open: `DoubleToString(iOpen(${S}, 1), _Digits)`, high: `DoubleToString(iHigh(${S}, 1), _Digits)`, low: `DoubleToString(iLow(${S}, 1), _Digits)`, close: `DoubleToString(iClose(${S}, 1), _Digits)` };
+  const ph = { symbol: '_Symbol', timeframe: 'StringSubstr(EnumToString(_Period), 7)', time: `TimeToString(iTime(${SC}, 1), TIME_DATE | TIME_MINUTES)`, open: `DoubleToString(iOpen(${SC}, 1), _Digits)`, high: `DoubleToString(iHigh(${SC}, 1), _Digits)`, low: `DoubleToString(iLow(${SC}, 1), _Digits)`, close: `DoubleToString(iClose(${SC}, 1), _Digits)` };
   for (const h of hooks) {
     const parts = []; let lit = '{';
     Object.entries(h.params.payload).forEach(([k, x], n) => {
@@ -746,12 +830,21 @@ function renderMql5(recipe) {
     parts.push(q(lit + '}'));
     L.push(`   // ${h.id}: webhook JSON for the bar that just closed, once per bar. MT5 indicators cannot call WebRequest (MQL5 docs: only Expert Advisors and scripts),`,
       '   // so this prints the JSON to the Experts journal; send it from your own EA with WebRequest (allowed URL list in Tools > Options). {{time}} = bar open time in broker server time.',
-      `   if (${bool(h.params.when, '1')} && g_hook_${h.id} != iTime(${S}, 1)) { g_hook_${h.id} = iTime(${S}, 1); Print("BSV webhook " + ${parts.filter(x => x !== '""').join(' + ')}); }`);
+      `   if (${bool(h.params.when, '1')} && g_hook_${h.id} != iTime(${SC}, 1)) { g_hook_${h.id} = iTime(${SC}, 1); Print("BSV webhook " + ${parts.filter(x => x !== '""').join(' + ')}); }`);
   }
   if (tables.length) {
     const cell = (x) => { const [id, k] = x.id.split('.'); return x.bool ? `(S_${id}(1) ? "true" : "false")` : `BsvNum(V_${k ? `${id}_${k}` : id}(1))`; };
     L.push('   // Value panel (visual.table): Comment() writes it to the top-left corner of the chart. Shift 1 = the bar that just closed (the newest bar may still be forming).',
       `   Comment(${tables.map(t => [q(t.title + '\n'), ...t.fields.map((x, k) => `${q(x.id + ': ')} + ${cell(x)}${k < t.fields.length - 1 ? ' + "\\n"' : ''}`)].join(' + ')).join(' + "\\n\\n" + ')});`);
+  }
+  for (const b of scans) {
+    const sig = scanSignal(recipe, b), cp = inds.map(x => ` || g_scan_${b.id}_h_${x.id}[k] == INVALID_HANDLE || CopyBuffer(g_scan_${b.id}_h_${x.id}[k], 0, 0, nb, A_${x.id}) < nb`).join('');
+    L.push(`   // ${b.id}: once per closed chart bar, ${sig} on each scanned symbol at that symbol's bar that just closed (shift 1). The block functions read g_sym;`,
+      '   // each symbol\'s indicator values are copied into the same arrays (the next call copies the chart values again), then the chart symbol is restored.',
+      `   if (g_scan_${b.id}_t != iTime(${SC}, 1))`, '   {', `      g_scan_${b.id}_t = iTime(${SC}, 1);`, '      string hits = "";', '      int skipped = 0;',
+      `      for (int k = 0; k < ArraySize(g_scan_${b.id}); k++)`, '      {', `         g_sym = g_scan_${b.id}[k];`, '         int nb = Bars(g_sym, _Period);',
+      `         if (nb <= BSV_WARMUP${cp}) { skipped++; continue; } // no data yet`, `         if (${bool(sig, '1')}) hits = hits + " " + g_sym;`, '      }', '      g_sym = _Symbol;',
+      `      if (skipped > 0) Print(${q(`BSV scan ${b.id}: `)}, skipped, " symbol(s) skipped, no data yet");`, `      if (hits != "") Alert(${q(`BSV scan ${b.id}:`)} + hits);`, '   }');
   }
   L.push('   return(rates_total);');
   L.push('}');
@@ -3027,6 +3120,10 @@ function renderBacktrader(recipe) {
       case 'signal.combine':
         L.push(`        s[${k}] = ${(q.signals || []).map(x => bool(x)).join(q.mode === 'any' ? ' or ' : ' and ') || 'False'}`);
         break;
+      case 'scanner.symbol_set':
+        if (scanOk(recipe, b)) { L.push(`        # ${tsNote(b.id)}: symbol scan of ${tsNote(scanSignal(recipe, b))}, see bsv_scan_${id(b.id)}() below`); break; }
+        L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)} - ${scanWhyNot(recipe, b)}`, `        s[${k}] = NAN`);
+        break;
       default:
         L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`);
         L.push(isBoolType(b.type) ? `        s[${k}] = False` : `        s[${k}] = NAN`);
@@ -3076,7 +3173,19 @@ function renderBacktrader(recipe) {
   }
   L.push('');
   L.push('');
+  const scans = recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && scanOk(recipe, b));
+  if (scans.length) {
+    L.push('def bsv_feed(path):  # a CSV in the format main() reads', '    return bt.feeds.GenericCSVData(dataname=path, dtformat="%Y-%m-%d %H:%M:%S", datetime=0, open=1, high=2, low=3, close=4, volume=5, openinterest=-1, timeframe=bt.TimeFrame.Minutes)', '', '');
+    for (const b of scans) { const n = id(b.id), sg = pyText(scanSignal(recipe, b));
+      L.push(`class BsvScan_${n}(bt.Strategy):  # ${tsNote(b.id)}: keeps ${tsNote(scanSignal(recipe, b))} of the bar that just completed (no orders, no ALERT lines)`, '    def __init__(self):', `        self.ind = ${cls}(self.data)`, '        self.hit, self.when = False, None', '',
+        '    def prenext(self):', '        self.next()', '', '    def next(self):', `        self.hit, self.when = bool(self.ind._prev.get(${sg})), self.data.datetime.datetime(0)`, '', '',
+        `def bsv_scan_${n}(data):  # ${tsNote(b.id)}: data = {symbol: backtrader data feed}; returns [(symbol, bar time)] for each symbol whose ${tsNote(scanSignal(recipe, b))} held on its last completed bar`,
+        '    hits = []', '    for sym, feed in data.items():', '        cerebro = bt.Cerebro(stdstats=False, runonce=False)  # one run per symbol, the same indicator code as the chart run', '        cerebro.adddata(feed, name=sym)',
+        `        cerebro.addstrategy(BsvScan_${n})`, '        st = cerebro.run()[0]', '        if st.hit:', '            hits.append((sym, st.when))', '    return hits', '', ''); }
+  }
   L.push('def main(argv):');
+  for (const b of scans) L.push(`    if len(argv) > 2 and argv[1] == "--scan":  # ${tsNote(b.id)}: python this_file.py --scan SYMBOL=bars.csv [SYMBOL=bars.csv ...]`, '        data = dict(x.split("=", 1) for x in argv[2:])',
+    `        for sym, when in bsv_scan_${id(b.id)}({k: bsv_feed(v) for k, v in data.items()}):`, `            print("SCAN", ${pyText(b.id)}, sym, when.strftime("%Y-%m-%dT%H:%M:%S"))`, `        print("SCAN", ${pyText(b.id)}, "done", len(data))`, '        return');
   L.push('    if len(argv) < 2:');
   L.push('        sys.exit("usage: python this_file.py bars.csv [--plot]  (CSV with a header row: datetime,open,high,low,close,volume; datetime as %Y-%m-%d %H:%M:%S in UTC)")');
   L.push('    cerebro = bt.Cerebro(stdstats=False, runonce=False)  # step bar by bar: the indicator logic lives in next()');
@@ -3277,7 +3386,8 @@ function renderBacktestingPy(recipe) {
         break;
       }
       default:
-        L.push(`            # TODO unsupported block ${b.type}: ${tsNote(b.id)}`);
+        if (b.type === 'scanner.symbol_set' && scanOk(recipe, b)) { L.push(`            # ${tsNote(b.id)}: symbol scan of ${tsNote(scanSignal(recipe, b))}, see bsv_scan_${String(b.id).replace(/[^A-Za-z0-9_]/g, '_')}() below`); break; }
+        L.push(`            # TODO unsupported block ${b.type}: ${tsNote(b.id)}${b.type === 'scanner.symbol_set' ? ' - ' + scanWhyNot(recipe, b) : ''}`);
         L.push(isBoolType(b.type) ? `            s[${k}] = np.zeros(len(c), bool)` : `            s[${k}] = NANS`);
     }
   }
@@ -3321,7 +3431,18 @@ function renderBacktestingPy(recipe) {
     L.push('');
     L.push('');
   }
+  const scans = recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && scanOk(recipe, b)), sid = (x) => String(x).replace(/[^A-Za-z0-9_]/g, '_');
+  if (scans.length) {
+    L.push('def bsv_frame(path):  # a CSV in the format main() reads', '    df = pd.read_csv(path)', '    df.index = pd.to_datetime(df.pop("datetime"), format="%Y-%m-%d %H:%M:%S")',
+      '    return df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})', '', '');
+    for (const b of scans) L.push(`def bsv_scan_${sid(b.id)}(data):  # ${tsNote(b.id)}: data = {symbol: DataFrame with Open, High, Low, Close, Volume}; returns [(symbol, bar time)] for each symbol whose ${tsNote(scanSignal(recipe, b))} held on its last completed bar`,
+      `    class Quiet(${cls}):`, '        def next(self):', '            pass  # no ALERT lines while scanning', '', '    hits = []', '    for sym, df in data.items():',
+      '        strategy = Backtest(df, Quiet, cash=1_000_000, commission=0.0).run()._strategy  # one run per symbol, the same init() as the chart run',
+      `        if len(df) and bool(strategy.bsv_signals[${pyText(scanSignal(recipe, b))}][-1]):`, '            hits.append((sym, df.index[-1]))', '    return hits', '', '');
+  }
   L.push('def main(argv):');
+  for (const b of scans) L.push(`    if len(argv) > 2 and argv[1] == "--scan":  # ${tsNote(b.id)}: python this_file.py --scan SYMBOL=bars.csv [SYMBOL=bars.csv ...]`, '        data = dict(x.split("=", 1) for x in argv[2:])',
+    `        for sym, when in bsv_scan_${sid(b.id)}({k: bsv_frame(v) for k, v in data.items()}):`, `            print("SCAN", ${pyText(b.id)}, sym, when.strftime("%Y-%m-%dT%H:%M:%S"))`, `        print("SCAN", ${pyText(b.id)}, "done", len(data))`, '        return');
   L.push('    if len(argv) < 2:');
   L.push('        sys.exit("usage: python this_file.py bars.csv [--plot]  (CSV with a header row: datetime,open,high,low,close,volume; datetime as %Y-%m-%d %H:%M:%S in UTC)")');
   L.push('    df = pd.read_csv(argv[1])');
@@ -3356,7 +3477,7 @@ function renderNautilus(recipe) {
     : `${prev ? 'pv' : 'v'}.get(${pyText(ref)}, NAN)`;
   const bool = (ref) => map.has(ref) && isBoolType(map.get(ref).type) ? `bool(s.get(${pyText(ref)}))` : `bsv_true(${val(ref)})`;
   const htf = pyHtfUses(recipe), htfIds = new Set(htf.map(u => u.block.id)), htfSrc = [...new Set(htf.map(u => u.src.id))];
-  const cls = 'Bsv' + className(recipe);
+  const cls = 'Bsv' + className(recipe), nScans = recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && scanOk(recipe, b));
   const tzs = [];
   for (const b of recipe.blocks) if (b.type === 'filter.session') {
     const tz = String(b.params?.timezone || 'Etc/UTC');
@@ -3470,6 +3591,7 @@ function renderNautilus(recipe) {
   L.push('');
   L.push(`class ${cls}(Strategy):`);
   L.push(`    messages = (${alerts.map(b => pyText(b.params?.message || b.id)).join(', ')}${alerts.length === 1 ? ',' : ''})`);
+  if (nScans.length) L.push('    bsv_quiet = False  # True inside bsv_scan_*(): no ALERT lines while scanning');
   L.push('');
   L.push('    def __init__(self, config):');
   L.push('        super().__init__(config)');
@@ -3540,6 +3662,10 @@ function renderNautilus(recipe) {
         L.push(`        s[${k}] = ${xs.length ? xs.join(q.mode === 'any' ? ' or ' : ' and ') : 'False'}`);
         break;
       }
+      case 'scanner.symbol_set':
+        if (scanOk(recipe, b)) { L.push(`        # ${tsNote(b.id)}: symbol scan of ${tsNote(scanSignal(recipe, b))}, see bsv_scan_${String(b.id).replace(/[^A-Za-z0-9_]/g, '_')}() below`); break; }
+        L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)} - ${scanWhyNot(recipe, b)}`, `        v[${k}] = NAN`);
+        break;
       default:
         L.push(`        # TODO unsupported block ${b.type}: ${tsNote(b.id)}`);
         L.push(isBoolType(b.type) ? `        s[${k}] = False` : `        v[${k}] = NAN`);
@@ -3547,7 +3673,7 @@ function renderNautilus(recipe) {
   }
   if (alerts.length) {
     L.push(`        for msg, hit in zip(self.messages, (${alerts.map(b => bool(b.params?.when)).join(', ')}${alerts.length === 1 ? ',' : ''})):`);
-    L.push('            if hit:');
+    L.push(nScans.length ? '            if hit and not self.bsv_quiet:' : '            if hit:');
     L.push('                print("ALERT", when.strftime("%Y-%m-%dT%H:%M:%S"), msg)');
   }
   if (hooks.length) {
@@ -3599,7 +3725,13 @@ function renderNautilus(recipe) {
   L.push('    return strategy');
   L.push('');
   L.push('');
+  const sid = (x) => String(x).replace(/[^A-Za-z0-9_]/g, '_');
+  for (const b of nScans) L.push(`def bsv_scan_${sid(b.id)}(data):  # ${tsNote(b.id)}: data = {symbol: rows as load_csv returns}; returns [(symbol, bar time)] for each symbol whose ${tsNote(scanSignal(recipe, b))} held on its last completed bar`,
+    `    class Quiet(${cls}):`, '        bsv_quiet = True  # no ALERT lines while scanning', '', '    hits = []', '    for sym, rows in data.items():', '        st = run_backtest(rows, Quiet)  # one engine run per symbol, the same on_bar() as the chart run',
+    `        if rows and st._ps.get(${pyText(scanSignal(recipe, b))}):`, '            hits.append((sym, rows[-1][0]))', '    return hits', '', '');
   L.push('def main(argv):');
+  for (const b of nScans) L.push(`    if len(argv) > 2 and argv[1] == "--scan":  # ${tsNote(b.id)}: python this_file.py --scan SYMBOL=bars.csv [SYMBOL=bars.csv ...]`, '        data = dict(x.split("=", 1) for x in argv[2:])',
+    `        for sym, when in bsv_scan_${sid(b.id)}({k: load_csv(v) for k, v in data.items()}):`, `            print("SCAN", ${pyText(b.id)}, sym, when.strftime("%Y-%m-%dT%H:%M:%S"))`, `        print("SCAN", ${pyText(b.id)}, "done", len(data))`, '        return');
   L.push('    if len(argv) < 2:');
   L.push('        sys.exit("usage: python this_file.py bars.csv  (CSV with a header row: datetime,open,high,low,close,volume; datetime as %Y-%m-%d %H:%M:%S in UTC)")');
   L.push('    run_backtest(load_csv(argv[1]))');

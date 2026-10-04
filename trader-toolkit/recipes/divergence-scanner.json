@@ -35,7 +35,12 @@
       "id": "symbols",
       "type": "scanner.symbol_set",
       "params": {
-        "source": "watchlist"
+        "source": "watchlist",
+        "symbols": [
+          "EURUSD",
+          "GBPUSD",
+          "USDJPY"
+        ]
       }
     },
     {
