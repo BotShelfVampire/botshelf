@@ -12,9 +12,10 @@ import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
 const FN = { 'ta.ema': [2, 2], 'ta.sma': [2, 2], 'ta.rsi': [2, 2], 'ta.atr': [1, 1], 'ta.crossover': [2, 2], 'ta.crossunder': [2, 2], time: [3, 3], na: [1, 1],
-  'request.security': [3, 4], 'timeframe.in_seconds': [0, 1], 'runtime.error': [1, 1], plot: [1, 2], alertcondition: [1, 3], indicator: [1, 2] };
-const NAMED = new Set(['title', 'message', 'overlay', 'lookahead']);
-const CONSTS = new Set(['na', 'open', 'high', 'low', 'close', 'hl2', 'hlc3', 'ohlc4', 'true', 'false', 'syminfo.tickerid', 'timeframe.period', 'barmerge.lookahead_on']);
+  'request.security': [3, 4], 'timeframe.in_seconds': [0, 1], 'runtime.error': [1, 1], plot: [1, 2], alertcondition: [1, 3], indicator: [1, 2],
+  'ta.highest': [2, 2], 'ta.lowest': [2, 2], 'ta.barssince': [1, 1], 'ta.valuewhen': [3, 3] };
+const NAMED = new Set(['title', 'message', 'overlay', 'lookahead', 'color']);
+const CONSTS = new Set(['na', 'bar_index', 'color.red', 'color.green', 'open', 'high', 'low', 'close', 'hl2', 'hlc3', 'ohlc4', 'true', 'false', 'syminfo.tickerid', 'timeframe.period', 'barmerge.lookahead_on']);
 const KW = new Set(['and', 'or', 'not', 'if', 'else', 'for', 'while', 'var', 'varip', 'import', 'export', 'switch', 'true', 'false', 'method', 'type', 'continue', 'break', 'in', 'to', 'by', 'enum']);
 let checks = 0, failures = 0, files = 0, QUIET = false;
 const fail = (f, m) => { failures++; if (!QUIET) console.error('FAIL', f, m); };
@@ -117,7 +118,7 @@ function evalPine(stmts, bars, sink) {
         if (local && env.has(k)) throw new Error('chart variable inside request.security');
         if (env.has(k)) return env.get(k); if (px[k]) return px[k];
         if (k === 'hl2') return px.high.map((h, i) => (h + px.low[i]) / 2); if (k === 'hlc3') return px.high.map((h, i) => (h + px.low[i] + px.close[i]) / 3); if (k === 'ohlc4') return px.open.map((o, i) => (o + px.high[i] + px.low[i] + px.close[i]) / 4);
-        if (k === 'true') return 1; if (k === 'false') return 0; if (k === 'na') return NaN; return k; }
+        if (k === 'true') return 1; if (k === 'false') return 0; if (k === 'na') return NaN; if (k === 'bar_index') return c.bars.map((_, i) => i); return k; }
       case 'off': { const x = arr(r(e.e)); return x.map((_, i) => i - e.n >= 0 ? x[i - e.n] : NaN); }
       case 'neg': return arr(r(e.e)).map(v => -v);
       case 'not': return arr(r(e.e)).map(v => fin(v) ? +!v : NaN);
@@ -136,6 +137,9 @@ function evalPine(stmts, bars, sink) {
         if (f === 'ta.crossover' || f === 'ta.crossunder') { const a = arr(A[0]), b = arr(A[1]), up = f === 'ta.crossover'; return a.map((v, i) => i && fin(v) && fin(b[i]) && fin(a[i - 1]) && fin(b[i - 1]) ? +(up ? v > b[i] && a[i - 1] <= b[i - 1] : v < b[i] && a[i - 1] >= b[i - 1]) : 0); }
         if (f === 'time') { const [s0, s1] = A[1].split('-').map(x => +x.slice(0, 2) * 60 + +x.slice(2, 4)); return c.bars.map(b => { const m = minuteIn(b.time, A[2]); return (s0 <= s1 ? m >= s0 && m < s1 : m >= s0 || m < s1) ? b.time : NaN; }); }
         if (f === 'na') return arr(A[0]).map(v => +!fin(v));
+        if (f === 'ta.highest' || f === 'ta.lowest') { const x = arr(A[0]), L = arr(A[1]), g = f === 'ta.highest' ? Math.max : Math.min; return x.map((_, i) => { const p = L[i]; if (!fin(p) || p < 1 || i - p + 1 < 0) return NaN; const w = x.slice(i - p + 1, i + 1); return w.every(fin) ? g(...w) : NaN; }); } // series length allowed (v6)
+        if (f === 'ta.barssince') { const x = arr(A[0]); let last = -1; return x.map((v, i) => { if (v && fin(v)) last = i; return last < 0 ? NaN : i - last; }); }
+        if (f === 'ta.valuewhen') { const cnd = arr(A[0]), src = arr(A[1]), occ = A[2], hits = []; return cnd.map((v, i) => { if (v && fin(v)) hits.push(i); const j = hits[hits.length - 1 - occ]; return j === undefined ? NaN : src[j]; }); }
         if (f === 'runtime.error') throw new PineRuntimeError(A[0]);
         if (f === 'plot') { sink.plots.push({ v: arr(A[0]) }); return 0; }
         if (f === 'alertcondition') { sink.alerts.push({ cond: arr(A[0]), message: (e.args.find(a => a.t === 'named' && a.n === 'message') || {}).e?.v }); return 0; }
@@ -164,11 +168,11 @@ const refInd = (bs, b) => { const p = b.params || {}, x = srcOf(bs, p.source);
   if (b.type === 'indicator.rsi') { const G = refRma(x.slice(1).map((w, i) => Math.max(w - x[i], 0)), p.length), L = refRma(x.slice(1).map((w, i) => Math.max(x[i] - w, 0)), p.length); return [NaN, ...G.map((u, i) => 100 * u / (u + L[i]))]; }
   const tr = bs.map((h, i) => i === 0 ? h.high - h.low : Math.max(h.high, bs[i - 1].close) - Math.min(h.low, bs[i - 1].close)); return [NaN, ...refRma(tr.slice(1), p.length)]; };
 const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b)) || Math.abs(a - b) < 1e-9, tr = (v) => !!(v && fin(v));
-let indChecked = 0, sigChecked = 0, htfChecked = 0, mutantsCaught = 0, alertsSeen = 0;
+let todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, mutantsCaught = 0, alertsSeen = 0, rangeChecked = 0, breakoutsSeen = 0, zonesSeen = 0, pivSigSeen = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'pine-v6'], { encoding: 'utf8' });
-  files++;
+  files++; todoLines += (code.match(/TODO unsupported block /g) || []).length;
   let stmts; try { stmts = parse(code); checks++; } catch (e) { fail(f, 'parse: ' + e.message); continue; }
   const before = failures; statics(f, stmts); if (failures > before) continue;
   const htf = recipe.blocks.filter(b => b.params?.timeframeRef && new RegExp(`^${b.id} = request\\.security\\(`, 'm').test(code));
@@ -202,7 +206,40 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   }
   for (const b of recipe.blocks.filter(b => code.includes(`// TODO unsupported block ${b.type}: ${b.id}\n`) && env.has(b.id))) ok(env.get(b.id) === 0 || Number.isNaN(env.get(b.id)), f, `${b.id}: TODO stub is never true / na`);
   const plotsB = recipe.blocks.filter(b => b.type === 'visual.plot'), alertsB = recipe.blocks.filter(b => b.type === 'alert.condition');
-  ok(sink.plots.length === plotsB.length && plotsB.every((b, k) => sink.plots[k].v.every((x, i) => same(x, (env.get(b.params.source) || srcOf(bs, b.params.source))[i]))), f, 'one plot per visual.plot, plotting its source');
+  const zoneB = recipe.blocks.filter(b => b.type === 'visual.zone' && code.includes(`plot(${b.params?.source}_high, `));
+  ok(sink.plots.length === plotsB.length + 2 * zoneB.length, f, 'one plot per visual.plot, two per rendered zone');
+  zoneB.forEach((z, k) => { const n0 = sink.plots.length - 2 * zoneB.length + 2 * k, hv = env.get(`${z.params.source}_high`), lv = env.get(`${z.params.source}_low`);
+    ok(sink.plots[n0].v.every((x, i) => same(x, hv[i])) && sink.plots[n0 + 1].v.every((x, i) => same(x, lv[i])) && hv.some(fin), f, `${z.id}: zone lines are the source high / low (not vacuous)`); zonesSeen++; });
+  recipe.blocks.filter(b => b.type === 'visual.zone' && !zoneB.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block visual.zone: ${b.id}`), f, `${b.id}: zone left as TODO`));
+  // ranges / breakouts: an independent window reference from the recipe session (its own time zone), every bar compared
+  const inside = (sb) => { const q = sb.params || {}, [a, z] = String(q.session || '0000-2359').split('-').map(x => +x.slice(0, 2) * 60 + +x.slice(2, 4)), tz = String(q.timezone || 'Etc/UTC'); return bs.map(b => { const d = new Date(b.time).toLocaleString('en-US', { timeZone: tz, hour12: false, hour: 'numeric', minute: 'numeric' }).split(':').map(Number), m = (d[0] % 24) * 60 + d[1]; return a <= z ? m >= a && m < z : m >= a || m < z; }); };
+  const rngB = recipe.blocks.filter(b => b.type === 'structure.range' && new RegExp(`^${b.id}_in = `, 'm').test(code)), bos = recipe.blocks.filter(x => x.type === 'signal.breakout' && rngB.some(r => r.id === x.params?.range));
+  const refRange = (rb) => { const R = inside(by[rb.params.during]), H = [], Lo = []; let h = NaN, l = NaN; bs.forEach((b, i) => { if (R[i]) { const fresh = i === 0 || !R[i - 1]; h = fresh ? b.high : Math.max(h, b.high); l = fresh ? b.low : Math.min(l, b.low); } H.push(h); Lo.push(l); }); return { R, H, Lo }; };
+  const badR = (e) => { let n = 0; for (const rb of rngB) { const q = refRange(rb); for (const k of rb.params.track) { const v = e.get(`${rb.id}_${k}`), w = k === 'high' ? q.H : q.Lo; for (let i = 0; i < bs.length; i++) if (!same(v[i], w[i])) n++; } }
+    for (const bb of bos) { const q = refRange(by[bb.params.range]), d = bb.params.direction || 'either', v = e.get(bb.id); for (let i = 0; i < bs.length; i++) { const c = bs[i].close, pc = i ? bs[i - 1].close : NaN, okb = !q.R[i] && fin(q.H[i]) && i > 0, up = okb && c > q.H[i] && pc <= q.H[i], dn = okb && c < q.Lo[i] && pc >= q.Lo[i]; if (tr(v[i]) !== (d === 'either' ? up || dn : d === 'above' ? up : dn)) n++; } }
+    return n; };
+  if (rngB.length) { for (const rb of rngB) ok(refRange(rb).H.some(fin), f, `${rb.id}: windows occur on the test bars (not vacuous)`); ok(badR(env) === 0, f, `range / breakout equal the reference on every bar (${badR(env)} differ)`); rangeChecked += rngB.length;
+    for (const bb of bos) { const c = env.get(bb.id).filter(tr).length; ok(c > 0, f, `${bb.id}: breakouts fire (${c})`); breakoutsSeen += c; }
+    for (const [mn, from, to, need] of [['window never resets', /ta\.barssince\(\w+_new\) \+ 1/g, 'bar_index + 1', 0], ['breakout without the close before', / and close\[1\] <= \w+_high$/m, '', 1]]) { if (need && !bos.length) continue;
+      const mc = code.replace(from, to), caught = mc !== code && badR(evalPine(parse(mc), bs, { plots: [], alerts: [] })) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; } }
+  // pivots / sweeps / divergences: independent bar-by-bar pivot reference; sweep and divergence use the evaluator's ATR / oscillator (checked above) after warm-up
+  const pivB = recipe.blocks.filter(b => b.type === 'structure.pivot' && new RegExp(`^${b.id}_ph = `, 'm').test(code)), sigB = recipe.blocks.filter(b => /^signal\.(liquidity_sweep|divergence)$/.test(b.type) && pivB.some(x => x.id === b.params?.pivot));
+  const refPiv = (pb) => { const q = pb.params, [hk, lk] = (q.source || 'close') === 'high_low' ? ['high', 'low'] : ['close', 'close'], H = bs.map(b => b[hk]), Lo = bs.map(b => b[lk]), out = { h: [], l: [], ph: [], pl: [], H, Lo }; let vh = NaN, vl = NaN;
+    for (let i = 0; i < bs.length; i++) { const j = i - q.right; let up = false, dn = false; if (j - q.left >= 0) { up = true; dn = true; for (let n = j - q.left; n <= i; n++) { if (n === j) continue; if (n < j ? !(H[j] > H[n]) : !(H[j] >= H[n])) up = false; if (n < j ? !(Lo[j] < Lo[n]) : !(Lo[j] <= Lo[n])) dn = false; } }
+      if (up) { vh = H[j]; out.ph.push(j); } if (dn) { vl = Lo[j]; out.pl.push(j); } out.h.push(vh); out.l.push(vl); } return out; };
+  const badP = (e) => { let n = 0; for (const pb of pivB) { const q = refPiv(pb); for (let i = 0; i < bs.length; i++) { if (!same(e.get(`${pb.id}_high`)[i], q.h[i])) n++; if (!same(e.get(`${pb.id}_low`)[i], q.l[i])) n++; } }
+    for (const sb of sigB) { const pb = by[sb.params.pivot], q = refPiv(pb), v = e.get(sb.id), from = 400;
+      if (sb.type === 'signal.liquidity_sweep') { const A = e.get(sb.params.atr), fr = Number(sb.params.minAtrFraction || 0); for (let i = from; i < bs.length; i++) { const b = bs[i], ph = q.h[i - 1], pl = q.l[i - 1], w = fin(A[i]) && ((fin(ph) && b.high > ph && b.high - ph >= fr * A[i] && b.close < ph) || (fin(pl) && b.low < pl && pl - b.low >= fr * A[i] && b.close > pl)); if (tr(v[i]) !== w) n++; } }
+      else { const O = e.get(sb.params.oscillator), d = sb.params.direction || 'both', w = N(bs.length, false), R = pb.params.right;
+        if (d !== 'bullish') for (let k = 1; k < q.ph.length; k++) { const a = q.ph[k - 1], j = q.ph[k]; if (q.H[j] > q.H[a] && O[j] < O[a]) w[j + R] = true; }
+        if (d !== 'bearish') for (let k = 1; k < q.pl.length; k++) { const a = q.pl[k - 1], j = q.pl[k]; if (q.Lo[j] < q.Lo[a] && O[j] > O[a]) w[j + R] = true; }
+        for (let i = from; i < bs.length; i++) if (tr(v[i]) !== w[i]) n++; } }
+    return n; };
+  if (pivB.length) { ok(badP(env) === 0, f, `pivot / sweep / divergence equal the reference (${badP(env)} differ)`); for (const pb of pivB) ok(refPiv(pb).ph.length > 0 && refPiv(pb).pl.length > 0, f, `${pb.id}: pivots occur (not vacuous)`);
+    for (const sb of sigB) { const c = env.get(sb.id).slice(400).filter(tr).length; ok(c > 0, f, `${sb.id}: fires (${c}; not vacuous)`); pivSigSeen += c; }
+    for (const [mn, from, to, need] of [['pivot without the right-side test', / and (\w+)\[(\d+)\] >= ta\.highest\(\1, \2\)$/m, '', null], ['sweep without the close back inside', / and close < \w+_high\[1\]\)/, ')', 'signal.liquidity_sweep'], ['divergence oscillator test flipped', /\] < ta\.valuewhen\((\w+)_ph, (\w+)\[(\d+)\], 1\)/, '] > ta.valuewhen($1_ph, $2[$3], 1)', 'signal.divergence']]) {
+      if (need && !sigB.some(b => b.type === need)) continue; const mc = code.replace(from, to), caught = mc !== code && badP(evalPine(parse(mc), bs, { plots: [], alerts: [] })) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; } }
+  ok(sink.plots.length >= plotsB.length && plotsB.every((b, k) => sink.plots[k].v.every((x, i) => same(x, (env.get(b.params.source) || srcOf(bs, b.params.source))[i]))), f, 'one plot per visual.plot, plotting its source');
   ok(sink.alerts.length === alertsB.length && alertsB.every((b, k) => sink.alerts[k].cond.every((x, i) => tr(x) === tr(env.get(b.params.when)[i])) && sink.alerts[k].message === (b.params.message || b.id)), f, 'one alertcondition per alert.condition, on its signal, with its message');
   sink.alerts.forEach(a => { alertsSeen += a.cond.filter(tr).length; });
   // prefix runs: every variable's last value equals the full run (nothing reads future bars)
@@ -218,5 +255,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     const caught = mc !== code && e2.get(cx.id).some((x, i) => tr(x) !== tr(env.get(cx.id)[i])); ok(caught, f, `flipped-cross mutant caught (${cx.id})`); if (caught) mutantsCaught++; }
   else if (recipe.blocks.some(b => b.type === 'signal.cross' && env.get(b.id))) ok(false, f, 'crosses never fire on the test bars (vacuous)');
 }
-console.log(JSON.stringify({ target: 'pine-v6', recipes: files, checks, failures, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, alert_bars: alertsSeen, mutants_caught: mutantsCaught, note: "BSV Pine-subset parser/evaluator, not TradingView" }));
+console.log(JSON.stringify({ target: 'pine-v6', recipes: files, checks, failures, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, alert_bars: alertsSeen, ranges: rangeChecked, breakouts: breakoutsSeen, zones: zonesSeen, sweep_divergence: pivSigSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, note: "BSV Pine-subset parser/evaluator, not TradingView" }));
 process.exit(failures ? 1 : 0);
