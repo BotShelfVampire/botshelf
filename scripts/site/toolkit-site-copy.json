@@ -371,6 +371,10 @@
   "handoff": {
    "en": "Handoff between workers",
    "ja": "作業の引き継ぎ"
+  },
+  "regression": {
+   "en": "Regression check before shipping",
+   "ja": "変更後の回帰確認"
   }
  },
  "ai_frameworks": {
@@ -572,6 +576,13 @@
    "summary": {
     "en": "Plain-text packet for handing a job between AI workers, frameworks or human reviewers without repeating finished work: scope and approval boundaries, current state, completed work, evidence, one next action and a do-not-repeat list.",
     "ja": "AIの作業役・フレームワーク・人のレビュー担当のあいだで、終わった作業を繰り返さずに仕事を引き継ぐためのテキストです。範囲と承認の境界、現在の状態、終わった作業、根拠、次の一手（1つ）、繰り返さないことの一覧をまとめます。"
+   }
+  },
+  "ai-team-regression": {
+   "job": "regression",
+   "summary": {
+    "en": "Framework-neutral checklist to run before shipping a changed AI team, workflow or agent configuration: 3 to 10 golden tasks with exact pass conditions, tool-routing checks, handoff integrity, at least three negative tests, an evidence check that keeps verification labels honest, the regression rule and a compact SHIP / FIX / HOLD result.",
+    "ja": "変更したAIチーム・ワークフロー・エージェント設定を出す前に使う、フレームワークに依存しないチェックリストです。合格条件を明確にした代表タスク（3〜10件）、ツールの使い分け、引き継ぎの欠落、3件以上の失敗ケース、検証ラベルを根拠以上に上げないための証拠確認、回帰の判定基準、SHIP / FIX / HOLD の短い結果欄をまとめます。"
    }
   }
  },
