@@ -103,6 +103,7 @@ function submit(ev){ev.preventDefault();var f=ev.target;var doms=[].slice.call(f
   else if(x.s===429){msg('err','Daily limit reached (5 requests per day).','1日の上限（5件）に達しました。')}
   else{msg('err','Not sent: '+(x.j.reason||x.s),'送信できませんでした: '+(x.j.reason||x.s))}}).catch(function(){btn.disabled=false;msg('err','Not sent: network error','送信できませんでした（通信エラー）')})}
 function prefill(){var q;try{q=new URL(location.href).searchParams}catch(e){return}var a=q.get('area');if(a){var c=document.querySelector('input[name=domain][value="'+a.replace(/[^a-z-]/g,'')+'"]');if(c)c.checked=true}
+ var pl=q.get('platform');if(pl){var ch=[].filter.call(document.querySelectorAll('[data-rq-plat]'),function(b){return b.getAttribute('data-rq-plat')===pl})[0],ip=$('#rq-platforms');if(ch&&ip)ip.value=addPlat(ip.value,pl)}
  var bk=q.get('block');if(bk&&/^[a-z]+\.[a-z_]+$/.test(bk)){var jb=$('#rq-job');if(jb&&!jb.value)jb.value='Generator block '+bk+': please render it for my platform (which: ...). Recipe or use case: ...'}
  var tk=q.get('toolkit');if(tk&&/^[a-z0-9-]{1,60}$/.test(tk)){var jt=$('#rq-job');if(jt&&!jt.value)jt.value='AI toolkit item '+tk+': please make a version for my framework or runtime (which: ...). What it should do: ...'}
  var md=q.get('module');if(q.get('kind')==='mission'&&md&&/^[a-z0-9-]{1,40}$/.test(md)){var jm=$('#rq-job');if(jm&&!jm.value)jm.value='Mission like Robot Pilot module '+md+': task to demonstrate: ...; robot / embodiment: ...; teleop interface: ...; simulation or real hardware: ...; episode target: ...; quality criteria: ...'}
@@ -302,7 +303,8 @@ def coverage_page(site: Path, cov: dict) -> str:
     trows = "".join(
         f'<tr id="cov-{blt.esc(x["id"])}"><td>{blt.esc(x["label"])}</td><td data-kind="{x["check"]["kind"]}">{both(*KIND_TEXT[x["check"]["kind"]])}</td>'
         f'<td><code>{blt.esc(x["check"]["script"])}</code></td><td data-htf="{x["higherTimeframe"]["status"]}">{both("Closed bars, checked", "確定足・確認済み") if x["higherTimeframe"]["status"] == "CLOSED_BARS_CHECKED" else (both("Closed bars, documented idiom (static check)", "確定足・公式の方法（静的確認）") if x["higherTimeframe"]["status"] == "CLOSED_BAR_IDIOM_STATIC" else both("TODO stub", "TODOのスタブ"))}</td>'
-        f'<td class="small">{blt.esc(x["check"]["note"])}{"".join(f' <a class="small" data-doc href="{blt.esc(u)}" rel="noopener">{blt.esc(u.split("//", 1)[1].split("/", 1)[0])}</a>' for u in x["higherTimeframe"].get("docs", []))}</td></tr>' for x in T)
+        f'<td class="small">{blt.esc(x["check"]["note"])}{"".join(f' <a class="small" data-doc href="{blt.esc(u)}" rel="noopener">{blt.esc(u.split("//", 1)[1].split("/", 1)[0])}</a>' for u in x["higherTimeframe"].get("docs", []))}</td>'
+        f'<td><a class="small" data-ask-plat="{blt.esc(x["id"])}" href="/requests/?area=trading&amp;platform={blt.esc(urllib.parse.quote(x["label"].split(" · ")[0]))}#rq-form">{both("Ask", "リクエスト")}</a></td></tr>' for x in T)
     head = "".join(f'<th title="{blt.esc(x["label"])}"><code>{blt.esc(x["id"])}</code></th>' for x in T)
     mrows = "".join(f'<tr id="todo-{blt.esc(r["id"])}"><th><code>{blt.esc(r["id"])}</code></th>' + "".join(f'<td data-n="{r["todoLines"][x["id"]]}">{r["todoLines"][x["id"]]}</td>' for x in T) + "</tr>" for r in cov["recipes"])
     kinds = " · ".join(f'{KIND_TEXT[k][0]} {n}' for k, n in c["byCheckKind"].items())
@@ -312,7 +314,7 @@ def coverage_page(site: Path, cov: dict) -> str:
             f'<p>{both(desc, f"BSVジェネレーターの{nT}種類の出力先それぞれについて、どのBSVチェックで確かめているか、レシピ×出力先ごとのTODO行の数を示します。BSVが実際の環境で動かして確かめた出力先はありません。")}</p>'
             f'<p class="small">{blt.esc(kinds)} · runtimeTestedByBSV: {c["runtimeTestedByBSV"]} · <a href="/trading/build/coverage.json">coverage.json</a> · <a href="/trading/build/coverage.csv" download>coverage.csv</a></p>'
             f'<div class="rp-box"><p class="small">{both(cov["higherTimeframeDisclosure"], HTF_DISCLOSURE_JA)}</p></div>'
-            f'<h2 id="targets">{both("Targets", "出力先")}</h2><div class="bb-table-wrap"><table class="qa-table" id="cov-targets"><thead><tr><th>{both("Target", "出力先")}</th><th>{both("BSV check", "BSVのチェック")}</th><th>{both("Script", "スクリプト")}</th><th>{both("Higher timeframe", "上位足")}</th><th>{both("What it is not", "これは何でないか")}</th></tr></thead><tbody>{trows}</tbody></table></div>'
+            f'<h2 id="targets">{both("Targets", "出力先")}</h2><div class="bb-table-wrap"><table class="qa-table" id="cov-targets"><thead><tr><th>{both("Target", "出力先")}</th><th>{both("BSV check", "BSVのチェック")}</th><th>{both("Script", "スクリプト")}</th><th>{both("Higher timeframe", "上位足")}</th><th>{both("What it is not", "これは何でないか")}</th><th>{both("Request", "リクエスト")}</th></tr></thead><tbody>{trows}</tbody></table></div>'
             f'<h2 id="todo">{both("TODO lines per recipe and target", "レシピ×出力先ごとのTODO行")}</h2>'
             f'<p class="small">{both(f"0 means the generator rendered every block of that recipe for that target ({nP} pairs). It does not mean the output was run on the platform.", "0は、その出力先でレシピのすべてのブロックを出力できたという意味です。プラットフォームで動かしたという意味ではありません。")}</p>'
             f'<div class="bb-table-wrap"><table class="qa-table" id="cov-todo"><thead><tr><th>{both("Recipe", "レシピ")}</th>{head}</tr></thead><tbody>{mrows}</tbody></table></div></section>')
