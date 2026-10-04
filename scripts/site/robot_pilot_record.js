@@ -219,7 +219,9 @@
           }); })
         .catch(function () { m.className = 'rq-msg err'; m.textContent = 'Could not import the file(s).'; });
     });
-    var clr = $('#rp-log-clear'); if (clr) clr.addEventListener('click', function () { try { root.localStorage.removeItem(KEY); } catch (e) {} $('#rp-saved').textContent = ''; renderLog(); });
+    var clr = $('#rp-log-clear'); if (clr) clr.addEventListener('click', function () { var n = 0; try { n = JSON.parse(root.localStorage.getItem(KEY) || '[]').length; } catch (e) {}
+      if (n && typeof root.confirm === 'function' && !root.confirm('Delete the ' + n + ' session(s) saved in this browser? Download the CSV or JSON backup first if you want to keep them. This cannot be undone.')) return;
+      try { root.localStorage.removeItem(KEY); } catch (e) {} $('#rp-saved').textContent = ''; renderLog(); });
     var API = '/.netlify/functions/pilot-record';
     var cf = $('#rp-check-file');
     if (cf) cf.addEventListener('change', function () {
