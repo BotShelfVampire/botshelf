@@ -142,7 +142,7 @@ function htfPrep(recipe, t) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6' || t === 'mql5'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeMql5 = t === 'mql5'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; r.bsvScanTarget = scanRealTargets().includes(t) ? t : null; r.bsvScanCs = (t === 'ninjatrader' || t === 'ctrader') && recipe.blocks.some(b => b.type === 'scanner.symbol_set'); return scanNotice(fn(r)); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6' || t === 'mql5'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeMql5 = t === 'mql5'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; r.bsvScanTarget = scanRealTargets().includes(t) ? t : null; r.bsvScanCs = (t === 'ninjatrader' || t === 'ctrader' || t === 'mql4') && recipe.blocks.some(b => b.type === 'scanner.symbol_set'); return scanNotice(fn(r)); }
 // scanner.symbol_set (batch 28): scan one signal on several symbols, each at its own bar that just closed. Rendered only on targets that
 // can read other symbols natively and where a BSV check runs the scan: Pine v6 (request.security per listed symbol, at most 40 unique
 // request.* calls per script), MQL5 (SymbolSelect + per-symbol indicator handles, or every Market Watch symbol), and the three Python
@@ -150,7 +150,9 @@ function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal
 // Batch 30: NinjaTrader 8 (AddDataSeries per listed symbol, evaluated in each symbol's own OnBarUpdate) and cTrader (MarketData.GetBars per
 // symbol, once per new chart bar). On these two, pivots and divergence are generated only inside recipes with a symbol scan (bsvScanCs),
 // so every other recipe's output stays byte-identical; both are run in the BSV C# evaluators (check_cs_scan.py), not on the platforms.
-function scanRealTargets() { return ['pine-v6', 'mql5', 'backtrader', 'backtesting-py', 'nautilus', 'ninjatrader', 'ctrader']; }
+// Batch 32: MQL4 the same way (iRSI / iMA / iClose on each listed symbol, or every Market Watch symbol, once per closed chart bar; pivots and
+// divergence only inside scan recipes), run in the BSV MQL4 model (check_mql4.mjs), not on MetaTrader 4.
+function scanRealTargets() { return ['pine-v6', 'mql5', 'backtrader', 'backtesting-py', 'nautilus', 'ninjatrader', 'ctrader', 'mql4']; }
 function scanNotice(out) { return out.replace(/(TODO unsupported block scanner\.symbol_set: [a-z][a-z0-9_]*)(?![a-z0-9_]| - )/g, '$1 - unsupported for this target: run one chart per symbol (this script reads only the chart symbol)'); }
 function scanSignal(recipe, b) { const p = b.params || {}; if (p.signal) return p.signal; const a = recipe.blocks.find(x => x.type === 'alert.condition' && x.params && x.params.when); return a ? a.params.when : null; }
 function scanSymbols(b) { return Array.isArray(b?.params?.symbols) ? b.params.symbols : []; }
@@ -1104,8 +1106,10 @@ function renderMql4(recipe) {
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot');
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const appliedPrice = { open: 'PRICE_OPEN', high: 'PRICE_HIGH', low: 'PRICE_LOW', close: 'PRICE_CLOSE', hl2: 'PRICE_MEDIAN', hlc3: 'PRICE_TYPICAL' };
-  const priceExpr = { open: 'Open[i]', high: 'High[i]', low: 'Low[i]', close: 'Close[i]', hl2: '(High[i]+Low[i])/2.0', hlc3: '(High[i]+Low[i]+Close[i])/3.0', ohlc4: '(Open[i]+High[i]+Low[i]+Close[i])/4.0' };
-  const val = (ref, at) => isPrice(ref) ? priceExpr[ref].replace(/\[i\]/g, `[${at}]`) : (isBoolType(map.get(ref)?.type) ? `(S_${ref}(${at}) ? 1.0 : 0.0)` : `V_${ref}(${at})`);
+  const scans = recipe.blocks.filter(b => b.type === 'scanner.symbol_set' && scanOk(recipe, b)), SY = scans.length ? 'g_sym' : 'NULL';  // a symbol scan: block functions read g_sym (the chart symbol, or the symbol being scanned)
+  const priceExpr = scans.length ? { open: 'iOpen(g_sym, 0, i)', high: 'iHigh(g_sym, 0, i)', low: 'iLow(g_sym, 0, i)', close: 'iClose(g_sym, 0, i)', hl2: '(iHigh(g_sym, 0, i)+iLow(g_sym, 0, i))/2.0', hlc3: '(iHigh(g_sym, 0, i)+iLow(g_sym, 0, i)+iClose(g_sym, 0, i))/3.0', ohlc4: '(iOpen(g_sym, 0, i)+iHigh(g_sym, 0, i)+iLow(g_sym, 0, i)+iClose(g_sym, 0, i))/4.0' }
+    : { open: 'Open[i]', high: 'High[i]', low: 'Low[i]', close: 'Close[i]', hl2: '(High[i]+Low[i])/2.0', hlc3: '(High[i]+Low[i]+Close[i])/3.0', ohlc4: '(Open[i]+High[i]+Low[i]+Close[i])/4.0' };
+  const val = (ref, at) => isPrice(ref) ? (scans.length ? priceExpr[ref].replace(/, i\)/g, `, ${at})`) : priceExpr[ref].replace(/\[i\]/g, `[${at}]`)) : (isBoolType(map.get(ref)?.type) ? `(S_${ref}(${at}) ? 1.0 : 0.0)` : `V_${ref}(${at})`);
   const bool = (ref, at) => isBoolType(map.get(ref)?.type) ? `S_${ref}(${at})` : `(${val(ref, at)} != 0.0 && ${val(ref, at)} != EMPTY_VALUE)`;
   const colors = ['clrDodgerBlue','clrOrange','clrLimeGreen','clrMagenta','clrGold','clrAqua'];
   const htfPeriods = [...new Set(recipe.blocks.map(b => htfTfOf(recipe, b)).filter(Boolean))];
@@ -1124,6 +1128,9 @@ function renderMql4(recipe) {
   for (const p of plots) L.push(`double Buf_${p.id}[];`);
   for (const a of alerts) L.push(`datetime g_alert_${a.id} = 0;`);
   L.push(`#define BSV_WARMUP ${warmup(recipe)}`);
+  for (const b of scans) L.push(`input string InpScan_${b.id} = ${q(scanSymbols(b).join(','))}; // ${b.id}: symbols to scan, comma-separated without spaces; empty = every symbol in Market Watch`,
+    `string   g_scan_${b.id}[];`, `datetime g_scan_${b.id}_t = 0;`);
+  if (scans.length) L.push('string   g_sym = ""; // the symbol the block functions read: the chart symbol, or the symbol being scanned', '#define BSV_SCAN_MAX 100');
   L.push('');
   if (htfPeriods.length) {
     L.push('// Higher timeframe: shift of the last CLOSED higher-timeframe bar for chart bar i. iBarShift (exact=false) finds the');
@@ -1141,18 +1148,18 @@ function renderMql4(recipe) {
       case 'indicator.sma': {
         const mode = b.type === 'indicator.ema' ? 'MODE_EMA' : 'MODE_SMA';
         const src = sourceName(p.source);
-        if (appliedPrice[src]) L.push(fn(b, `iMA(NULL, ${tfOf(b)}, ${p.length}, 0, ${mode}, ${appliedPrice[src]}, i)`, ''));
-        else L.push(fn(b, `iMA(NULL, ${tfOf(b)}, ${p.length}, 0, ${mode}, PRICE_CLOSE, i)`, ' // TODO ohlc4 has no MQL4 applied price; using close'));
+        if (appliedPrice[src]) L.push(fn(b, `iMA(${SY}, ${tfOf(b)}, ${p.length}, 0, ${mode}, ${appliedPrice[src]}, i)`, ''));
+        else L.push(fn(b, `iMA(${SY}, ${tfOf(b)}, ${p.length}, 0, ${mode}, PRICE_CLOSE, i)`, ' // TODO ohlc4 has no MQL4 applied price; using close'));
         break;
       }
       case 'indicator.rsi': {
         const src = sourceName(p.source);
-        if (appliedPrice[src]) L.push(fn(b, `iRSI(NULL, ${tfOf(b)}, ${p.length}, ${appliedPrice[src]}, i)`, ''));
-        else L.push(fn(b, `iRSI(NULL, ${tfOf(b)}, ${p.length}, PRICE_CLOSE, i)`, ' // TODO ohlc4 has no MQL4 applied price; using close'));
+        if (appliedPrice[src]) L.push(fn(b, `iRSI(${SY}, ${tfOf(b)}, ${p.length}, ${appliedPrice[src]}, i)`, ''));
+        else L.push(fn(b, `iRSI(${SY}, ${tfOf(b)}, ${p.length}, PRICE_CLOSE, i)`, ' // TODO ohlc4 has no MQL4 applied price; using close'));
         break;
       }
       case 'indicator.atr':
-        L.push(fn(b, `iATR(NULL, ${tfOf(b)}, ${p.length}, i)`, ''));
+        L.push(fn(b, `iATR(${SY}, ${tfOf(b)}, ${p.length}, i)`, ''));
         break;
       case 'data.higher_timeframe':
         if (htfDataUsed(recipe, b)) { L.push(`// ${b.id}: higher timeframe ${b.params.timeframe} (read through BsvHtfShift, closed bars only)`); break; }
@@ -1161,7 +1168,8 @@ function renderMql4(recipe) {
       case 'filter.session': {
         const ss = parseSession(p);
         L.push(`// TODO ${b.id}: session ${p.session || ''} is evaluated in broker server time; convert from ${p.timezone || 'Etc/UTC'} for your broker.`);
-        L.push(`bool S_${b.id}(int i) { int m = TimeHour(Time[i]) * 60 + TimeMinute(Time[i]); return ${ss.start <= ss.end ? `m >= ${ss.start} && m < ${ss.end}` : `m >= ${ss.start} || m < ${ss.end}`}; }`);
+        L.push(scans.length ? `bool S_${b.id}(int i) { datetime t = iTime(g_sym, 0, i); int m = TimeHour(t) * 60 + TimeMinute(t); return ${ss.start <= ss.end ? `m >= ${ss.start} && m < ${ss.end}` : `m >= ${ss.start} || m < ${ss.end}`}; }`
+          : `bool S_${b.id}(int i) { int m = TimeHour(Time[i]) * 60 + TimeMinute(Time[i]); return ${ss.start <= ss.end ? `m >= ${ss.start} && m < ${ss.end}` : `m >= ${ss.start} || m < ${ss.end}`}; }`);
         break;
       }
       case 'signal.cross': {
@@ -1179,6 +1187,30 @@ function renderMql4(recipe) {
       case 'signal.combine':
         L.push(`bool S_${b.id}(int i) { return ${(p.signals || []).map(x => bool(x, 'i')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
         break;
+      case 'structure.pivot': {  // rendered only inside scan recipes (bsvScanCs), so other MQL4 outputs are unchanged
+        if (!pivotOk(recipe, b)) { L.push(`double V_${b.id}(int i) { return EMPTY_VALUE; } // TODO unsupported block ${b.type}: ${b.id}`); break; }
+        const [xh, xl] = (p.source || 'close') === 'high_low' ? ['iHigh', 'iLow'] : ['iClose', 'iClose'], R = p.right, Lf = p.left;
+        L.push(`// ${b.id}: bar i confirms a pivot at bar i + ${R} (series index: larger = older): above the ${Lf} bars before it and at least as high as the ${R} after it`,
+          `// (a flat top counts once); known only at bar i, so no lookahead. The last confirmed pivot is found by scanning back (EMPTY_VALUE before the first).`,
+          `bool S_${b.id}_ph(int i) { int c = i + ${R}; if (c + ${Lf} >= iBars(g_sym, 0)) return(false); double v = ${xh}(g_sym, 0, c); for (int k = 1; k <= ${Lf}; k++) if (${xh}(g_sym, 0, c + k) >= v) return(false); for (int k = 1; k <= ${R}; k++) if (${xh}(g_sym, 0, c - k) > v) return(false); return(true); }`,
+          `bool S_${b.id}_pl(int i) { int c = i + ${R}; if (c + ${Lf} >= iBars(g_sym, 0)) return(false); double v = ${xl}(g_sym, 0, c); for (int k = 1; k <= ${Lf}; k++) if (${xl}(g_sym, 0, c + k) <= v) return(false); for (int k = 1; k <= ${R}; k++) if (${xl}(g_sym, 0, c - k) < v) return(false); return(true); }`,
+          `double V_${b.id}_high(int i) { int n = iBars(g_sym, 0); for (int k = i; k + ${R + Lf} < n; k++) if (S_${b.id}_ph(k)) return(${xh}(g_sym, 0, k + ${R})); return(EMPTY_VALUE); }`,
+          `double V_${b.id}_low(int i) { int n = iBars(g_sym, 0); for (int k = i; k + ${R + Lf} < n; k++) if (S_${b.id}_pl(k)) return(${xl}(g_sym, 0, k + ${R})); return(EMPTY_VALUE); }`);
+        break;
+      }
+      case 'signal.divergence': {
+        if (!divergenceOk(recipe, b)) { L.push(`bool S_${b.id}(int i) { return false; } // TODO unsupported block ${b.type}: ${b.id}`); break; }
+        const pb = map.get(p.pivot), pq = pb.params, R = pq.right, Lf = pq.left, [xh, xl] = (pq.source || 'close') === 'high_low' ? ['iHigh', 'iLow'] : ['iClose', 'iClose'], o = p.oscillator, d = p.direction || 'both', v = pb.id;
+        L.push(`// ${b.id}: regular divergence, true on the bar that confirms the new pivot (bar i + ${R}), compared with the pivot before it (scanning back).`,
+          `bool S_${b.id}_bear(int i) { if (!S_${v}_ph(i)) return(false); int n = iBars(g_sym, 0); for (int k = i + 1; k + ${R + Lf} < n; k++) if (S_${v}_ph(k)) { double o1 = ${val(o, `i + ${R}`)}; double o0 = ${val(o, `k + ${R}`)}; return o1 != EMPTY_VALUE && o0 != EMPTY_VALUE && ${xh}(g_sym, 0, i + ${R}) > ${xh}(g_sym, 0, k + ${R}) && o1 < o0; } return(false); }`,
+          `bool S_${b.id}_bull(int i) { if (!S_${v}_pl(i)) return(false); int n = iBars(g_sym, 0); for (int k = i + 1; k + ${R + Lf} < n; k++) if (S_${v}_pl(k)) { double o1 = ${val(o, `i + ${R}`)}; double o0 = ${val(o, `k + ${R}`)}; return o1 != EMPTY_VALUE && o0 != EMPTY_VALUE && ${xl}(g_sym, 0, i + ${R}) < ${xl}(g_sym, 0, k + ${R}) && o1 > o0; } return(false); }`,
+          `bool S_${b.id}(int i) { return ${d === 'both' ? `S_${b.id}_bear(i) || S_${b.id}_bull(i)` : d === 'bearish' ? `S_${b.id}_bear(i)` : `S_${b.id}_bull(i)`}; }`);
+        break;
+      }
+      case 'scanner.symbol_set':
+        if (!scanOk(recipe, b)) L.push(`double V_${b.id}(int i) { return EMPTY_VALUE; } // TODO unsupported block ${b.type}: ${b.id} - ${scanWhyNot(recipe, b)}`);
+        else L.push(`// ${b.id}: symbol scan of ${scanSignal(recipe, b)} (OnInit builds the list, OnCalculate scans once per closed chart bar)`);
+        break;
       case 'visual.plot':
       case 'alert.condition':
         break;
@@ -1191,6 +1223,14 @@ function renderMql4(recipe) {
   L.push('int OnInit()');
   L.push('{');
   for (const tf of htfPeriods) L.push(`   if (PeriodSeconds(${tf}) <= PeriodSeconds()) { Alert(${q(`BSV: the higher timeframe ${tf} must be higher than the chart timeframe. Use a lower chart timeframe.`)}); return(INIT_FAILED); }`);
+  if (scans.length) L.push('   g_sym = Symbol();');
+  for (const b of scans) { const n = `ns_${b.id}`;
+    L.push(`   // ${b.id}: the scan list = InpScan_${b.id}, or every Market Watch symbol when it is empty (at most BSV_SCAN_MAX). SymbolSelect adds a listed symbol to Market Watch so its history loads.`,
+      `   int ${n} = 0;`,
+      `   if (StringLen(InpScan_${b.id}) > 0) ${n} = StringSplit(InpScan_${b.id}, ',', g_scan_${b.id});`,
+      `   else { ${n} = SymbolsTotal(true); ArrayResize(g_scan_${b.id}, ${n}); for (int k = 0; k < ${n}; k++) g_scan_${b.id}[k] = SymbolName(k, true); }`,
+      `   if (${n} < 0) ${n} = 0;`, `   if (${n} > BSV_SCAN_MAX) ${n} = BSV_SCAN_MAX;`, `   ArrayResize(g_scan_${b.id}, ${n});`,
+      `   for (int k = 0; k < ${n}; k++) if (!SymbolSelect(g_scan_${b.id}[k], true)) Print(${q(`BSV scan ${b.id}: unknown symbol `)}, g_scan_${b.id}[k]);`); }
   L.push(`   IndicatorShortName(${q('BSV — ' + safeTitle(recipe))});`);
   plots.forEach((p, k) => {
     L.push(`   SetIndexBuffer(${k}, Buf_${p.id});`);
@@ -1216,6 +1256,15 @@ function renderMql4(recipe) {
   for (const a of alerts) {
     L.push(`   // ${a.id}: alert once per closed bar.`);
     L.push(`   if (${bool(a.params?.when, '1')} && g_alert_${a.id} != Time[1]) { g_alert_${a.id} = Time[1]; Alert(${q(String(a.params?.message || a.id).replace(/[\r\n]/g, ' '))}); }`);
+  }
+  for (const b of scans) { const sig = scanSignal(recipe, b);
+    L.push(`   // ${b.id}: once per closed chart bar, ${sig} on each scanned symbol at that symbol's bar that just closed (shift 1). The block functions read g_sym,`,
+      '   // so the built-in calls (iRSI, iMA, iClose ...) read the scanned symbol; then the chart symbol is restored. A symbol whose history is not',
+      '   // loaded yet (iBars too small) is skipped and counted; the terminal starts loading it on that request, so it is scanned once loaded.',
+      `   if (g_scan_${b.id}_t != Time[1])`, '   {', `      g_scan_${b.id}_t = Time[1];`, '      string hits = "";', '      int skipped = 0;',
+      `      for (int k = 0; k < ArraySize(g_scan_${b.id}); k++)`, '      {', `         g_sym = g_scan_${b.id}[k];`,
+      '         if (iBars(g_sym, 0) <= BSV_WARMUP) { skipped++; continue; } // no data yet', `         if (${bool(sig, '1')}) hits = hits + " " + g_sym;`, '      }', '      g_sym = Symbol();',
+      `      if (skipped > 0) Print(${q(`BSV scan ${b.id}: `)}, skipped, " symbol(s) skipped, no data yet");`, `      if (hits != "") Alert(${q(`BSV scan ${b.id}:`)} + hits);`, '   }');
   }
   L.push('   return(rates_total);');
   L.push('}');
