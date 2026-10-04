@@ -1,4 +1,5 @@
 # Progress 2026-10-04 00:00 JST (New Bobby) — P0 tranches
+- 11:17 batch 17 LIVE 6ac1b720 (QA disc 3988/0, libgate 879/0; comments #4 5975738360 #8 5975738417 #6 5975738500 #7 5975738556). Next: email 28, then batch 18 (AmiBroker pivot/zone/sweep/div in worktree).
 - 11:02 JST LIVE 6ac1b3b5 (batch 16; comments #4 c5975638173, #8 c5975638294, #6 c5975638369, #7 c5975638454). Not yet emailed: batch 16 (next email). Next: batch 17 = AmiBroker structure.range + signal.breakout (HighestSince/ValueWhen; checker on 15-min bars) + AI/t17.
 - 10:49 JST LIVE 6ac1b08c (batch 15; comments #4 c5975557281, #8 c5975557412, #6 c5975557547, #7 c5975557597). Email 27 sent 10:54 (covers 6ac1a328..6ac1b08c). Batch 16 (Tradovate panels, AI framework links, t16) pushed, stage68 building. Next: deploy stage68, one comment per Issue; next email covers batch 16+.
 - 10:35 JST LIVE 6ac1ad44 (batch 14) after 6ac1ab4d (batch 13); comments b13+14: #4 c5975496804, #8 c5975497359, #6 c5975497505, #7 c5975497589. Batch 15 (Tradovate webhook, hub URL filters, t15) pushed, stage67 building. Next: deploy stage67, one comment per Issue, email 27 (6ac1a328..stage67).
