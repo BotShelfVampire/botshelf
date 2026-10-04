@@ -131,14 +131,14 @@ function htfPrep(recipe, t) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; return fn(r); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeMql5 = t === 'mql5'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; return fn(r); }
 // structure.range (high/low of each window where a session/signal is true; reset when a new window starts; after the
 // window the last window's values stay) and signal.breakout (first close beyond the finished window's high or low).
 // Rendered only where a BSV check runs them; elsewhere they stay TODO.
 function rangeRealTargets() { return ['backtrader', 'backtesting-py', 'nautilus']; }
 function rangeKeys(b) { const t = Array.isArray(b?.params?.track) ? b.params.track : []; return t.filter((x, i) => (x === 'high' || x === 'low') && t.indexOf(x) === i); }
 function rangeOk(recipe, b) {
-  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangeAfl || recipe.bsvRangeTs || recipe.bsvRangePine) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm) + AmiBroker (HighestSince / ValueWhen, checked in the BSV AFL evaluator) + thinkScript (CompoundValue + self reference [1], checked in the BSV thinkScript evaluator)
+  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs || recipe.bsvRangeAfl || recipe.bsvRangeTs || recipe.bsvRangePine || recipe.bsvRangeMql5) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm) + AmiBroker (HighestSince / ValueWhen, checked in the BSV AFL evaluator) + thinkScript (CompoundValue + self reference [1], checked in the BSV thinkScript evaluator)
   const d = blockMap(recipe).get(b.params?.during), t = Array.isArray(b.params?.track) ? b.params.track : [];
   return !!d && isBoolType(d.type) && t.length > 0 && rangeKeys(b).length === t.length;
 }
@@ -598,6 +598,23 @@ function renderMql5(recipe) {
       case 'signal.combine':
         L.push(`bool S_${b.id}(int i) { return ${(p.signals || []).map(x => bool(x, 'i')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
         break;
+      case 'structure.range': {
+        if (!rangeOk(recipe, b)) { L.push(`double V_${b.id}(int i) { return EMPTY_VALUE; } // TODO unsupported block ${b.type}: ${b.id}`); break; }
+        L.push(`// ${b.id}: high / low so far inside the window (a new window resets), then the finished window held; EMPTY_VALUE before the first window.`,
+          `// Scans back from bar i (series index: larger = older): first to the latest window bar, then to the start of that window. Checked in the BSV MQL5 model, not MT5.`);
+        for (const k of rangeKeys(b)) { const P = k === 'high' ? 'iHigh' : 'iLow', F = k === 'high' ? 'MathMax' : 'MathMin';
+          L.push(`double V_${b.id}_${k}(int i) { int n = Bars(${S}); int k = i; while (k < n && !S_${p.during}(k)) k++; if (k >= n) return(EMPTY_VALUE); double v = ${P}(${S}, k); while (k + 1 < n && S_${p.during}(k + 1)) { k++; v = ${F}(v, ${P}(${S}, k)); } return(v); }`); }
+        break;
+      }
+      case 'signal.breakout': {
+        if (!breakoutOk(recipe, b)) { L.push(`bool S_${b.id}(int i) { return false; } // TODO unsupported block ${b.type}: ${b.id}`); break; }
+        const r = p.range, d = p.direction || 'either', inn = `S_${map.get(r).params.during}(i)`;
+        L.push(`// ${b.id}: first close beyond the finished window, on a bar outside it (the close before was at or inside)`,
+          `bool S_${b.id}_up(int i) { double h = V_${r}_high(i); return !${inn} && h != EMPTY_VALUE && iClose(${S}, i) > h && iClose(${S}, i + 1) <= h; }`,
+          `bool S_${b.id}_dn(int i) { double l = V_${r}_low(i); return !${inn} && l != EMPTY_VALUE && iClose(${S}, i) < l && iClose(${S}, i + 1) >= l; }`,
+          `bool S_${b.id}(int i) { return ${d === 'either' ? `S_${b.id}_up(i) || S_${b.id}_dn(i)` : d === 'above' ? `S_${b.id}_up(i)` : `S_${b.id}_dn(i)`}; }`);
+        break;
+      }
       case 'visual.plot': case 'alert.condition':
         break;
       default:
