@@ -64,6 +64,12 @@ function validateRecipe(recipe) {
         throw new Error(`Block ${block.id} references missing id: ${ref}`);
       }
     }
+    if (block.type === 'signal.threshold' && p.right !== undefined && (typeof p.right !== 'string' || !p.right)) throw new Error(`Block ${block.id}: right must be a block id or price`);
+    if (block.type === 'signal.recent') {  // true if `signal` was true on one of the `bars` bars before this one (the current bar is not counted)
+      const sg = recipe.blocks.find(x => x.id === p.signal), at = (id) => recipe.blocks.findIndex(x => x.id === id);
+      if (!Number.isInteger(p.bars) || p.bars < 1 || p.bars > 50) throw new Error(`Block ${block.id}: bars must be an integer from 1 to 50`);
+      if (!sg || !isBoolType(sg.type) || /^(alert|scanner)\./.test(sg.type) || sg.type === 'signal.recent' || at(sg.id) > at(block.id)) throw new Error(`Block ${block.id}: signal must be an earlier signal or filter block (not another signal.recent)`);
+    }
     if (['indicator.ema','indicator.sma','indicator.rsi','indicator.atr'].includes(block.type)) {
       if (!Number.isInteger(p.length) || p.length < 1 || p.length > 10000) {
         throw new Error(`Block ${block.id} has invalid length`);
@@ -286,7 +292,8 @@ function referencesFor(block) {
   const p = block.params || {};
   switch (block.type) {
     case 'signal.cross': return [p.left, p.right].filter(Boolean);
-    case 'signal.threshold': return [p.left].filter(Boolean);
+    case 'signal.threshold': return [p.left, p.right].filter(x => typeof x === 'string' && x);
+    case 'signal.recent': return [p.signal].filter(Boolean);
     case 'signal.combine': return Array.isArray(p.signals) ? p.signals : [];
     case 'visual.plot': return [p.source].filter(Boolean);
     case 'alert.condition': return [p.when].filter(Boolean);
@@ -414,10 +421,13 @@ function renderPine(recipe) {
         break;
       case 'signal.threshold': {
         const op = ['>','>=','<','<=','==','!='].includes(p.op) ? p.op : '>=';
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        lines.push(`${b.id} = ${p.left} ${op} ${Number(p.value)}`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        lines.push(`${b.id} = ${p.left} ${op} ${p.right !== undefined ? p.right : Number(p.value)}`);
         break;
       }
+      case 'signal.recent':
+        lines.push(`// ${b.id}: ${p.signal} was true on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before this one`, `${b.id} = ${orOf(p.bars, k => `${p.signal}[${k}]`, ' or ')}`);
+        break;
       case 'signal.combine': {
         const op = p.mode === 'any' ? ' or ' : ' and ';
         lines.push(`${b.id} = ${(p.signals || []).map(x => '(' + x + ')').join(op) || 'false'}`);
@@ -592,8 +602,11 @@ function renderMql5(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`bool S_${b.id}(int i) { return ${htfOk([p.left], 'i')}${val(p.left, 'i')} ${thresholdOp(p)} ${Number(p.value)}; }`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`bool S_${b.id}(int i) { return ${htfOk([p.left, p.right].filter(x => typeof x === 'string'), 'i')}${val(p.left, 'i')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'i') : Number(p.value)}; }`);
+        break;
+      case 'signal.recent':
+        L.push(`bool S_${b.id}(int i) { return ${orOf(p.bars, k => bool(p.signal, `i+${k}`), ' || ')}; } // ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before i`);
         break;
       case 'signal.combine':
         L.push(`bool S_${b.id}(int i) { return ${(p.signals || []).map(x => bool(x, 'i')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
@@ -659,7 +672,7 @@ function renderMql5(recipe) {
   L.push('   int limit = rates_total - prev_calculated;');
   L.push('   if (prev_calculated > 0) limit++;');
   L.push('   if (limit > rates_total - BSV_WARMUP) limit = rates_total - BSV_WARMUP;');
-  L.push('   int need = MathMin(rates_total, MathMax(limit + 2, 3));');
+  L.push(maxRecent(recipe) ? `   int need = MathMin(rates_total, MathMax(limit + ${2 + maxRecent(recipe)}, ${3 + maxRecent(recipe)})); // + ${maxRecent(recipe)} bars for signal.recent` : '   int need = MathMin(rates_total, MathMax(limit + 2, 3));');
   for (const b of inds) L.push(`   if (CopyBuffer(h_${b.id}, 0, 0, need, A_${b.id}) < need) return(0); // data not ready yet`);
   for (const b of htfInds) L.push(`   if (BarsCalculated(h_${b.id}) <= 0) return(0); // higher-timeframe data not ready yet`);
   L.push('   for (int i = limit - 1; i >= 0; i--)');
@@ -794,8 +807,11 @@ function renderCTrader(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push('', `        private bool S_${b.id}(int i) { return ${htfOk([p.left], 'i')}${val(p.left, 'i')} ${thresholdOp(p)} ${Number(p.value)}; }`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push('', `        private bool S_${b.id}(int i) { return ${htfOk([p.left, p.right].filter(x => typeof x === 'string'), 'i')}${val(p.left, 'i')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'i') : Number(p.value)}; }`);
+        break;
+      case 'signal.recent':
+        L.push('', `        private bool S_${b.id}(int i) { return ${orOf(p.bars, k => `(i >= ${k} && ${bool(p.signal, `i - ${k}`)})`, ' || ')}; } // ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before i`);
         break;
       case 'signal.combine':
         L.push('', `        private bool S_${b.id}(int i) { return ${(p.signals || []).map(x => bool(x, 'i')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
@@ -837,8 +853,11 @@ function thresholdOp(p) {
 function warmup(recipe) {
   let n = 2;
   for (const b of recipe.blocks) if (Number.isInteger(b.params?.length)) n = Math.max(n, b.params.length * 3 + 2);
-  return n;
+  return n + maxRecent(recipe);
 }
+// signal.recent lookback: the most bars any signal.recent block looks back (0 when the recipe has none, so other outputs are unchanged)
+function maxRecent(recipe) { return Math.max(0, ...recipe.blocks.filter(b => b.type === 'signal.recent').map(b => b.params.bars)); }
+function orOf(n, f, op) { return Array.from({ length: n }, (_, k) => f(k + 1)).join(op); }
 
 function renderMql4(recipe) {
   const map = blockMap(recipe);
@@ -911,8 +930,11 @@ function renderMql4(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`bool S_${b.id}(int i) { return ${htfOk([p.left], 'i')}${val(p.left, 'i')} ${thresholdOp(p)} ${Number(p.value)}; }`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`bool S_${b.id}(int i) { return ${htfOk([p.left, p.right].filter(x => typeof x === 'string'), 'i')}${val(p.left, 'i')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'i') : Number(p.value)}; }`);
+        break;
+      case 'signal.recent':
+        L.push(`bool S_${b.id}(int i) { return ${orOf(p.bars, k => bool(p.signal, `i+${k}`), ' || ')}; } // ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before i`);
         break;
       case 'signal.combine':
         L.push(`bool S_${b.id}(int i) { return ${(p.signals || []).map(x => bool(x, 'i')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
@@ -1042,8 +1064,11 @@ function renderCTraderPython(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push('', `    def s_${b.id}(self, i):`, `        return ${val(p.left, 'i')} ${thresholdOp(p)} ${Number(p.value)}`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push('', `    def s_${b.id}(self, i):`, `        return ${val(p.left, 'i')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'i') : Number(p.value)}`);
+        break;
+      case 'signal.recent':
+        L.push('', `    def s_${b.id}(self, i):  # ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before i`, `        return ${orOf(p.bars, k => `(i >= ${k} and ${bool(p.signal, `i - ${k}`)})`, ' or ')}`);
         break;
       case 'signal.combine':
         L.push('', `    def s_${b.id}(self, i):`, `        return ${(p.signals || []).map(x => bool(x, 'i')).join(p.mode === 'any' ? ' or ' : ' and ') || 'False'}`);
@@ -1159,9 +1184,12 @@ function renderBookmapPython(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`    v = ${R(p.left)}`);
-        L.push(`    vals[${q(b.id)}] = v is not None and v ${thresholdOp(p)} ${Number(p.value)}`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(p.right !== undefined ? `    v, r = ${R(p.left)}, ${R(p.right)}` : `    v = ${R(p.left)}`);
+        L.push(`    vals[${q(b.id)}] = v is not None and ${p.right !== undefined ? 'r is not None and ' : ''}v ${thresholdOp(p)} ${p.right !== undefined ? 'r' : Number(p.value)}`);
+        break;
+      case 'signal.recent':
+        L.push(`    ps = prev.get(${q('~since:' + b.id)})  # bars since ${p.signal} was last true, as of the bar before`, `    vals[${q(b.id)}] = ps is not None and ps < ${p.bars}`, `    vals[${q('~since:' + b.id)}] = 0 if bool(${R(p.signal)}) else (None if ps is None else ps + 1)`);
         break;
       case 'signal.combine':
         L.push(`    vals[${q(b.id)}] = ${(p.signals || []).map(x => `bool(${R(x)})`).join(p.mode === 'any' ? ' or ' : ' and ') || 'False'}`);
@@ -1368,8 +1396,11 @@ function renderNinja(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push('', `        private bool S_${b.id}(int ago) { return ${val(p.left, 'ago')} ${thresholdOp(p)} ${Number(p.value)}; }`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push('', `        private bool S_${b.id}(int ago) { return ${val(p.left, 'ago')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'ago') : Number(p.value)}; }`);
+        break;
+      case 'signal.recent':
+        L.push('', `        private bool S_${b.id}(int ago) { return ${orOf(p.bars, k => bool(p.signal, `ago + ${k}`), ' || ')}; } // ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before`);
         break;
       case 'signal.combine':
         L.push('', `        private bool S_${b.id}(int ago) { return ${(p.signals || []).map(x => bool(x, 'ago')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
@@ -1472,8 +1503,11 @@ function renderQuantower(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push('', `        private bool S_${b.id}(int offset) { return ${val(p.left, 'offset')} ${thresholdOp(p)} ${Number(p.value)}; }`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push('', `        private bool S_${b.id}(int offset) { return ${val(p.left, 'offset')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'offset') : Number(p.value)}; }`);
+        break;
+      case 'signal.recent':
+        L.push('', `        private bool S_${b.id}(int offset) { return ${orOf(p.bars, k => bool(p.signal, `offset + ${k}`), ' || ')}; } // ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before`);
         break;
       case 'signal.combine':
         L.push('', `        private bool S_${b.id}(int offset) { return ${(p.signals || []).map(x => bool(x, 'offset')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
@@ -1526,8 +1560,11 @@ function renderLipi(recipe) {
         L.push(`bool ${n} = ${p.direction === 'below' ? 'talib.crossunder' : 'talib.crossover'}(${ref(p.left)}, ${ref(p.right)})`);
         break;
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`bool ${n} = ${ref(p.left)} ${thresholdOp(p)} ${Number(p.value)}`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`bool ${n} = ${ref(p.left)} ${thresholdOp(p)} ${p.right !== undefined ? ref(p.right) : Number(p.value)}`);
+        break;
+      case 'signal.recent':
+        L.push(`bool ${n} = ${orOf(p.bars, k => `${bool(p.signal)}[${k}]`, ' or ')}`);
         break;
       case 'signal.combine':
         L.push(`bool ${n} = ${(p.signals || []).length ? p.signals.map(x => bool(x)).join(p.mode === 'any' ? ' or ' : ' and ') : 'false'}`);
@@ -1669,8 +1706,11 @@ function renderMotiveWave(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`    private boolean S_${b.id}(int i) { return ${val(p.left, 'i')} ${thresholdOp(p)} ${Number(p.value)}; }`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`    private boolean S_${b.id}(int i) { return ${val(p.left, 'i')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'i') : Number(p.value)}; }`);
+        break;
+      case 'signal.recent':
+        L.push(`    private boolean S_${b.id}(int i) { return ${orOf(p.bars, k => `(i >= ${k} && ${bool(p.signal, `i - ${k}`)})`, ' || ')}; } // ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before i`);
         break;
       case 'signal.combine':
         L.push(`    private boolean S_${b.id}(int i) { return ${(p.signals || []).map(x => bool(x, 'i')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
@@ -1736,8 +1776,11 @@ function renderVela(recipe) {
       }
       case 'signal.cross': L.push(`  const ${n} = cross(${num(p.left)}, ${num(p.right)}, ${p.direction === 'below' ? 'false' : 'true'});`); break;
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`  const ${n} = ${num(p.left)}.map(x => x ${thresholdOp(p) === '==' ? '===' : thresholdOp(p) === '!=' ? '!==' : thresholdOp(p)} ${Number(p.value)});`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`  const ${n} = ${num(p.left)}.map(${p.right !== undefined ? '(x, i)' : 'x'} => x ${thresholdOp(p) === '==' ? '===' : thresholdOp(p) === '!=' ? '!==' : thresholdOp(p)} ${p.right !== undefined ? `${num(p.right)}[i]` : Number(p.value)});`);
+        break;
+      case 'signal.recent':
+        L.push(`  const ${n} = bars.map((_, i) => ${orOf(p.bars, k => `(i >= ${k} && !!${bool(p.signal)}[i - ${k}])`, ' || ')});`);
         break;
       case 'signal.combine': {
         const sigs = (p.signals || []).map(bool);
@@ -1899,8 +1942,11 @@ function renderJForex(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`    private boolean S_${b.id}(int s) throws JFException { return ${val(p.left, 's')} ${thresholdOp(p)} ${Number(p.value)}; }`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`    private boolean S_${b.id}(int s) throws JFException { return ${val(p.left, 's')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 's') : Number(p.value)}; }`);
+        break;
+      case 'signal.recent':
+        L.push(`    private boolean S_${b.id}(int s) throws JFException { return ${orOf(p.bars, k => bool(p.signal, `s + ${k}`), ' || ')}; } // ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before`);
         break;
       case 'signal.combine':
         L.push(`    private boolean S_${b.id}(int s) throws JFException { return ${(p.signals || []).map(x => bool(x, 's')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; }`);
@@ -1963,11 +2009,14 @@ function renderEasyLanguage(recipe) {
         break;
       }
       case 'signal.threshold': {
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
         const op = { '==': '=', '!=': '<>' }[thresholdOp(p)] || thresholdOp(p);
-        L.push(`S_${b.id} = ${val(p.left)} ${op} ${Number(p.value)};`);
+        L.push(`S_${b.id} = ${val(p.left)} ${op} ${p.right !== undefined ? val(p.right) : Number(p.value)};`);
         break;
       }
+      case 'signal.recent':
+        L.push(`S_${b.id} = ${orOf(p.bars, k => `S_${p.signal}[${k}]`, ' or ')};`);
+        break;
       case 'signal.combine':
         L.push(`S_${b.id} = ${(p.signals || []).map(x => bool(x)).join(p.mode === 'any' ? ' or ' : ' and ') || 'false'};`);
         break;
@@ -2067,8 +2116,11 @@ function renderAtas(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`            Put(S_${b.id}, bar, ${val(p.left, 'bar')} ${thresholdOp(p)} ${Number(p.value)});`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`            Put(S_${b.id}, bar, ${val(p.left, 'bar')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'bar') : Number(p.value)});`);
+        break;
+      case 'signal.recent':
+        L.push(`            Put(S_${b.id}, bar, ${orOf(p.bars, k => `(bar >= ${k} && ${bool(p.signal, `bar - ${k}`)})`, ' || ')});`);
         break;
       case 'signal.combine':
         L.push(`            Put(S_${b.id}, bar, ${(p.signals || []).map(x => bool(x, 'bar')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'});`);
@@ -2182,8 +2234,11 @@ function renderAmiBroker(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`S_${b.id} = ${htfOk([p.left])}${val(p.left)} ${thresholdOp(p)} ${Number(p.value)};`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`S_${b.id} = ${htfOk([p.left, p.right].filter(x => typeof x === 'string'))}${val(p.left)} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right) : Number(p.value)};`);
+        break;
+      case 'signal.recent':
+        L.push(`S_${b.id} = ${orOf(p.bars, k => `Nz(Ref(${bool(p.signal)}, -${k}))`, ' OR ')}; // ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before (Nz: Null before the first bar = false)`);
         break;
       case 'signal.combine':
         L.push(`S_${b.id} = ${(p.signals || []).map(x => bool(x)).join(p.mode === 'any' ? ' OR ' : ' AND ') || 'False'};`);
@@ -2342,8 +2397,11 @@ function renderThinkScript(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`def S_${b.id} = ${val(p.left)} ${thresholdOp(p)} ${Number(p.value)};`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`def S_${b.id} = ${val(p.left)} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right) : Number(p.value)};`);
+        break;
+      case 'signal.recent':
+        L.push(`def S_${b.id} = ${orOf(p.bars, k => bool(p.signal, `[${k}]`), ' or ')}; # ${p.signal} on ${p.bars === 1 ? 'the bar' : `one of the ${p.bars} bars`} before`);
         break;
       case 'signal.combine':
         L.push(`def S_${b.id} = ${(p.signals || []).map(x => bool(x)).join(p.mode === 'any' ? ' or ' : ' and ') || 'no'};`);
@@ -2530,11 +2588,14 @@ function renderTradovate(recipe) {
         break;
       }
       case 'signal.threshold': {
-        if (!Number.isFinite(Number(q.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        if (q.right === undefined && !Number.isFinite(Number(q.value))) throw new Error(`Invalid threshold in ${b.id}`);
         const op = { '==': '===', '!=': '!==' }[thresholdOp(q)] || thresholdOp(q);
-        L.push(`    s.S_${k} = Number.isFinite(${val(q.left)}) && ${val(q.left)} ${op} ${Number(q.value)};`);
+        L.push(`    s.S_${k} = Number.isFinite(${val(q.left)}) && ${val(q.left)} ${op} ${q.right !== undefined ? val(q.right) : Number(q.value)};`);
         break;
       }
+      case 'signal.recent':
+        L.push(`    s.S_${k} = ${orOf(q.bars, j => `(i >= ${j} && !!this.bars[i - ${j}].S_${id(q.signal)})`, ' || ')}; // ${q.signal} on ${q.bars === 1 ? 'the bar' : `one of the ${q.bars} bars`} before this one`);
+        break;
       case 'signal.combine':
         L.push(`    s.S_${k} = ${(q.signals || []).map(x => bool(x)).join(q.mode === 'any' ? ' || ' : ' && ') || 'false'};`);
         break;
@@ -2886,10 +2947,13 @@ function renderBacktrader(recipe) {
         break;
       }
       case 'signal.threshold': {
-        if (!Number.isFinite(Number(q.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`        s[${k}] = ${val(q.left)} ${thresholdOp(q)} ${Number(q.value)}`);
+        if (q.right === undefined && !Number.isFinite(Number(q.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`        s[${k}] = ${val(q.left)} ${thresholdOp(q)} ${q.right !== undefined ? val(q.right) : Number(q.value)}`);
         break;
       }
+      case 'signal.recent':
+        L.push(`        ps = p.get(${pyText('~since:' + b.id)})  # bars since ${q.signal} was last true, as of the bar before`, `        s[${k}] = ps is not None and ps < ${q.bars}`, `        s[${pyText('~since:' + b.id)}] = 0 if ${bool(q.signal)} else (None if ps is None else ps + 1)`);
+        break;
       case 'signal.combine':
         L.push(`        s[${k}] = ${(q.signals || []).map(x => bool(x)).join(q.mode === 'any' ? ' or ' : ' and ') || 'False'}`);
         break;
@@ -3034,6 +3098,7 @@ function renderBacktestingPy(recipe) {
   L.push('    return np.concatenate(([np.nan], bsv_rma(tr, n)))');
   L.push('');
   L.push('');
+  if (recipe.blocks.some(b => b.type === 'signal.recent')) L.push('def bsv_recent(a, n):  # true if a was true on one of the n bars before this one (the current bar is not counted)', '    a = np.asarray(a, dtype=bool)', '    out = np.zeros(len(a), dtype=bool)', '    for k in range(1, n + 1):', '        out[k:] |= a[:len(a) - k]', '    return out', '', '');
   L.push('def bsv_prev(a):');
   L.push('    return np.concatenate(([np.nan], np.asarray(a, float)[:-1]))');
   L.push('');
@@ -3129,10 +3194,13 @@ function renderBacktestingPy(recipe) {
         break;
       }
       case 'signal.threshold': {
-        if (!Number.isFinite(Number(q.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`            s[${k}] = np.isfinite(${val(q.left)}) & (${val(q.left)} ${thresholdOp(q)} ${Number(q.value)})`);
+        if (q.right === undefined && !Number.isFinite(Number(q.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`            s[${k}] = np.isfinite(${val(q.left)}) & (${val(q.left)} ${thresholdOp(q)} ${q.right !== undefined ? val(q.right) : Number(q.value)})`);
         break;
       }
+      case 'signal.recent':
+        L.push(`            s[${k}] = bsv_recent(${bool(q.signal)}, ${q.bars})  # ${q.signal} on ${q.bars === 1 ? 'the bar' : `one of the ${q.bars} bars`} before`);
+        break;
       case 'signal.combine': {
         const xs = (q.signals || []).map(x => bool(x));
         L.push(`            s[${k}] = ${xs.length ? `np.logical_${q.mode === 'any' ? 'or' : 'and'}.reduce([${xs.join(', ')}])` : 'np.zeros(len(c), bool)'}`);
@@ -3390,10 +3458,13 @@ function renderNautilus(recipe) {
         break;
       }
       case 'signal.threshold': {
-        if (!Number.isFinite(Number(q.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`        s[${k}] = bsv_fin(${val(q.left)}) and ${val(q.left)} ${thresholdOp(q)} ${Number(q.value)}`);
+        if (q.right === undefined && !Number.isFinite(Number(q.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`        s[${k}] = bsv_fin(${val(q.left)}) and ${val(q.left)} ${thresholdOp(q)} ${q.right !== undefined ? val(q.right) : Number(q.value)}`);
         break;
       }
+      case 'signal.recent':
+        L.push(`        ps = self._ps.get(${pyText('~since:' + b.id)})  # bars since ${q.signal} was last true, as of the bar before`, `        s[${k}] = ps is not None and ps < ${q.bars}`, `        s[${pyText('~since:' + b.id)}] = 0 if ${bool(q.signal)} else (None if ps is None else ps + 1)`);
+        break;
       case 'signal.combine': {
         const xs = (q.signals || []).map(x => bool(x));
         L.push(`        s[${k}] = ${xs.length ? xs.join(q.mode === 'any' ? ' or ' : ' and ') : 'False'}`);
@@ -3570,8 +3641,11 @@ function renderSierra(recipe) {
         break;
       }
       case 'signal.threshold':
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
-        L.push(`    auto S_${b.id} = [&](int i) -> bool { return ${val(p.left, 'i')} ${thresholdOp(p)} ${Number(p.value)}; };`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        L.push(`    auto S_${b.id} = [&](int i) -> bool { return ${val(p.left, 'i')} ${thresholdOp(p)} ${p.right !== undefined ? val(p.right, 'i') : Number(p.value)}; };`);
+        break;
+      case 'signal.recent':
+        L.push(`    auto S_${b.id} = [&](int i) -> bool { return ${orOf(p.bars, k => `(i >= ${k} && ${bool(p.signal, `i - ${k}`)})`, ' || ')}; };`);
         break;
       case 'signal.combine':
         L.push(`    auto S_${b.id} = [&](int i) -> bool { return ${(p.signals || []).map(x => bool(x, 'i')).join(p.mode === 'any' ? ' || ' : ' && ') || 'false'}; };`);
@@ -3646,11 +3720,14 @@ function renderProRealTime(recipe) {
         L.push(`${n} = (${ref(p.left)} CROSSES ${p.direction === 'below' ? 'UNDER' : 'OVER'} ${ref(p.right)})`);
         break;
       case 'signal.threshold': {
-        if (!Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
+        if (p.right === undefined && !Number.isFinite(Number(p.value))) throw new Error(`Invalid threshold in ${b.id}`);
         const op = { '==': '=', '!=': '<>' }[thresholdOp(p)] || thresholdOp(p);
-        L.push(`${n} = (${ref(p.left)} ${op} ${Number(p.value)})`);
+        L.push(`${n} = (${ref(p.left)} ${op} ${p.right !== undefined ? ref(p.right) : Number(p.value)})`);
         break;
       }
+      case 'signal.recent':
+        L.push(`${n} = (${orOf(p.bars, k => `${bool(p.signal)}[${k}]`, ' OR ')})`);
+        break;
       case 'signal.combine':
         L.push(`${n} = ${(p.signals || []).length ? '(' + p.signals.map(bool).join(p.mode === 'any' ? ' OR ' : ' AND ') + ')' : '0'}`);
         break;

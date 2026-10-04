@@ -36,13 +36,14 @@ var FIELDS={
  'indicator.rsi':[['source','price'],['length','int']],'indicator.atr':[['length','int']],
  'filter.session':[['session','text'],['timezone','text']],
  'signal.cross':[['left','ref'],['right','ref'],['direction','sel:above|below']],
- 'signal.threshold':[['left','ref'],['op','sel:>|>=|<|<=|==|!='],['value','num']],
+ 'signal.threshold':[['left','ref'],['op','sel:>|>=|<|<=|==|!='],['value','num'],['right','oref']],
  'signal.combine':[['mode','sel:all|any'],['signals','list']],
+ 'signal.recent':[['signal','ref'],['bars','int']],
  'visual.plot':[['source','ref'],['title','text']],
  'alert.condition':[['when','ref'],['message','text']]};
 var DEFAULTS={'indicator.ema':{source:'close',length:20},'indicator.sma':{source:'close',length:50},'indicator.rsi':{source:'close',length:14},'indicator.atr':{length:14},
  'filter.session':{session:'0800-1200',timezone:'Europe/London'},'signal.cross':{left:'',right:'',direction:'above'},'signal.threshold':{left:'',op:'>=',value:50},
- 'signal.combine':{mode:'all',signals:[]},'visual.plot':{source:'',title:''},'alert.condition':{when:'',message:'BSV recipe alert'}};
+ 'signal.combine':{mode:'all',signals:[]},'signal.recent':{signal:'',bars:5},'visual.plot':{source:'',title:''},'alert.condition':{when:'',message:'BSV recipe alert'}};
 var EXT=__EXT__;
 var KEY='bsv-rb-draft-v1';
 function $(s){return document.querySelector(s)}
@@ -55,9 +56,9 @@ function idsList(){var dl=$('#rb-ids');dl.textContent='';state.recipe.blocks.map
 function field(b,f){var key=f[0],kind=f[1],val=b.params[key],id='rb-'+b.id+'-'+key,inp;
  if(kind==='price'){inp=el('select',{id:id});PRICE.forEach(function(p){var o=el('option',{value:p,text:p});if(p===(val||'close'))o.selected=true;inp.appendChild(o)})}
  else if(kind.indexOf('sel:')===0){inp=el('select',{id:id});kind.slice(4).split('|').forEach(function(p){var o=el('option',{value:p,text:p});if(p===String(val))o.selected=true;inp.appendChild(o)})}
- else{inp=el('input',{id:id,type:(kind==='int'||kind==='num')?'number':'text'});if(kind==='ref')inp.setAttribute('list','rb-ids');if(kind==='int')inp.setAttribute('step','1');if(kind==='num')inp.setAttribute('step','any');
+ else{inp=el('input',{id:id,type:(kind==='int'||kind==='num')?'number':'text'});if(kind==='ref'||kind==='oref')inp.setAttribute('list','rb-ids');if(kind==='oref')inp.setAttribute('placeholder','optional');if(kind==='int')inp.setAttribute('step','1');if(kind==='num')inp.setAttribute('step','any');
   inp.value=kind==='list'?(val||[]).join(', '):(val==null?'':String(val));if(kind==='list')inp.setAttribute('placeholder','id_a, id_b')}
- inp.addEventListener('change',function(){var v=inp.value;if(kind==='int')v=parseInt(v,10);else if(kind==='num')v=Number(v);else if(kind==='list')v=v.split(',').map(function(s){return s.trim()}).filter(Boolean);b.params[key]=v;update()});
+ inp.addEventListener('change',function(){var v=inp.value;if(kind==='int')v=parseInt(v,10);else if(kind==='num')v=Number(v);else if(kind==='list')v=v.split(',').map(function(s){return s.trim()}).filter(Boolean);if(kind==='oref'&&!v.trim())delete b.params[key];else b.params[key]=v;update()});
  return el('label',{'class':'rb-field'},[el('span',{text:key}),inp])}
 function blockRow(b,i){var box=el('fieldset',{'class':'rb-block',id:'rb-blk-'+b.id});
  var idIn=el('input',{type:'text',value:b.id,'aria-label':'block id',pattern:'[a-z][a-z0-9_]*'});idIn.value=b.id;
@@ -88,7 +89,8 @@ var SHARE_MAX=6000,PENDING='bsv-rb-pending-share',PREV=KEY+'-prev';
 var HINTS={
  'filter.session':['Session windows depend on timezone: MT4/MT5 use broker server time; the cTrader Python and Bookmap outputs use UTC; NinjaTrader, Sierra Chart and ProRealTime use the platform or chart time zone; the GoCharting output converts with hour()/minute(), the MotiveWave output with java.time the Vela output with Intl and the JForex output with java.time, all in the recipe time zone; the TradeStation output uses Time (bar close, chart time zone); the ATAS output reads the candle open time as UTC and converts it with TimeZoneInfo; the AmiBroker output uses TimeNum() in the database time zone the thinkorswim output uses SecondsFromTime/SecondsTillTime in US Eastern time, and the Tradovate output converts the bar time to the recipe time zone with Intl.DateTimeFormat, the backtrader output reads the CSV bar time as UTC and converts it with zoneinfo, the Backtesting.py output reads it as UTC and converts it with pandas, and the NautilusTrader output reads it as UTC and converts it with zoneinfo. Convert the session before relying on alerts.','時間帯の判定はタイムゾーン次第です。MT4・MT5はブローカーのサーバー時間、cTrader PythonとBookmapの出力はUTC、NinjaTrader・Sierra Chart・ProRealTimeはプラットフォームまたはチャートのタイムゾーン、GoChartingの出力はhour()・minute()、MotiveWaveの出力はjava.time、Velaの出力はIntl、JForexの出力はjava.timeを使い、いずれもレシピのタイムゾーンで判定します。TradeStationの出力は、チャートのタイムゾーンでの足の終了時刻（Time）で判定します。ATASの出力は、足の開始時刻をUTCとして読み、TimeZoneInfoでレシピのタイムゾーンに変換します。AmiBrokerの出力はデータベースのタイムゾーンのTimeNum()、thinkorswimの出力は米国東部時間のSecondsFromTime/SecondsTillTimeで判定し、Tradovateの出力はIntl.DateTimeFormatで足の時刻をレシピのタイムゾーンに換算し、backtraderの出力はCSVの足の時刻をUTCとして読みzoneinfoで換算し、Backtesting.pyの出力はUTCとして読みpandasで換算し、NautilusTraderの出力はUTCとして読みzoneinfoで換算します。アラートに使う前に時間帯を換算してください。'],
  'signal.cross':['Cross = left is above (or below) right on this bar but was not on the previous bar. Where a target leaves it as TODO, compare current and previous values of both inputs.','クロスは「この足で左が右を上抜け（下抜け）し、1本前はそうでなかった」状態です。TODOが残る出力先では、両方の値の現在と1本前を比べて判定します。'],
- 'signal.threshold':['Compares one value with a fixed number. Check the value range on your platform (for example RSI 0-100).','1つの値を固定の数値と比べます。プラットフォームでの値の範囲（例：RSIは0〜100）を確認してください。'],
+ 'signal.threshold':['Compares one value with a fixed number, or with another value when right is set (for example EMA 21 above EMA 89 as a trend state). Check the value range on your platform (for example RSI 0-100).','1つの値を固定の数値と比べます。right を指定すると別の値と比べます（例：トレンド状態として EMA 21 が EMA 89 より上）。プラットフォームでの値の範囲（例：RSIは0〜100）を確認してください。'],
+ 'signal.recent':['True when the signal was true on one of the previous bars (bars = how many, 1-50); the current bar is not counted. Use it for a pullback that happened shortly before a trigger.','直前の何本か（bars、1〜50）のどこかでシグナルが成立していれば真です。今の足は数えません。トリガーの少し前に起きた押し目などに使います。'],
  'signal.combine':['all = every listed signal is true on the same bar; any = at least one. Referenced ids must exist above this block.','all は列挙したシグナルが同じ足ですべて成立、any は1つ以上成立。参照するidはこのブロックより上に必要です。'],
  'indicator.ema':['If the source is ohlc4, some targets fall back to close (see the TODO); compute (open+high+low+close)/4 or pick hl2 / hlc3.','sourceがohlc4の場合、一部の出力先はcloseで代用します（TODO参照）。(始値+高値+安値+終値)/4を自分で計算するか、hl2・hlc3を選んでください。'],
  'indicator.sma':['If the source is ohlc4, some targets fall back to close (see the TODO).','sourceがohlc4の場合、一部の出力先はcloseで代用します（TODO参照）。'],
