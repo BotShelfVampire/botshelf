@@ -550,6 +550,7 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
            f'<p class="section-label">Browse by framework</p><div class="lib-chip-row">{fchips}</div>'
            f'<p class="section-label">Existing Library platforms</p><div class="lib-chip-row">{ex}</div>'
            f'<div class="lib-filters tk-filters" aria-label="Toolkit filters"><div class="row"><label for="tk-q">Search</label><input id="tk-q" type="search" placeholder="Filter: memory, MCP, local, guardrails…" autocomplete="off"><span class="muted" id="tk-count"></span> <button type="button" class="lib-chip" id="tk-clear" hidden>Clear filters</button></div>'
+           f'<p class="muted" id="tk-empty" hidden>No toolkit item matches these filters. <a data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form">Ask for it</a> or clear the filters.</p>'
            f'<div class="row"><label for="tk-f-framework">Framework</label><select id="tk-f-framework"><option value="">Any</option>{fopt}</select><label for="tk-f-job">Job</label><select id="tk-f-job"><option value="">Any</option>{jopt}</select><label for="tk-f-status">Status</label><select id="tk-f-status"><option value="">Any</option>{sopt}</select></div></div>'
            f'{by_job}<section class="section"><p class="section-label">By framework / runtime</p></section>{by_fw}'
            + '<section class="section" id="tk-matrix"><p class="section-label">Jobs covered, by framework<span data-lang-show="ja" hidden> · フレームワークごとの対応する仕事</span></p><ul class="tk-list">'
@@ -681,7 +682,7 @@ var sels=['framework','job','status'].map(function(k){return document.getElement
 function apply(){if(!cards.length)return;var t=(q&&q.value||'').toLowerCase().trim(),n=0;
 cards.forEach(function(c){var ok=!t||c.getAttribute('data-search').indexOf(t)>-1;
 sels.forEach(function(s){if(s&&s.value&&c.getAttribute('data-'+s.id.replace('tk-f-',''))!==s.value)ok=false});
-c.hidden=!ok;if(ok)n++});if(cnt)cnt.textContent=n+' shown';}
+c.hidden=!ok;if(ok)n++});if(cnt)cnt.textContent=n+' of '+cards.length+' shown';var em=document.getElementById('tk-empty');if(em)em.hidden=n>0;}
 var keys=['framework','job','status'];
 function fromUrl(){var u;try{u=new URL(location.href).searchParams}catch(e){return}
 sels.forEach(function(s,i){var v=u.get(keys[i]);if(s&&v!==null&&[].some.call(s.options,function(o){return o.value===v}))s.value=v});
