@@ -206,6 +206,14 @@ def main():
         rph = rd("robot-pilot/index.html")
         mids = [m["id"] for m in json.loads((bd.Path(__file__).resolve().parents[2] / "robot-pilot/curricula/isaac-teleop-so101-sim-v1.json").read_text())["modules"]]
         ok(re.findall(r'data-rp-ask="([a-z0-9-]+)" href="/requests/\?area=robot-pilot&amp;kind=mission&amp;module=\1#rq-form"', rph) == mids, f"robot pilot: one mission link per curriculum module ({len(mids)})")
+        # tranche 12: AI toolkit section in llms.txt; AI framework picks on the request form
+        tv = json.loads(rd("library/toolkit/toolkit.v1.json"))["entries"]
+        lt = rd("llms.txt"); sec = lt[lt.find("## AI agent toolkits"):lt.find("<!-- BSV-DISCOVERY:END -->")] if "## AI agent toolkits" in lt else ""
+        ok(all(f"- {e['title']} ({e['framework']}; {e['status']}): {ORIGIN}{e['url']}" in sec for e in tv) and len(re.findall(r"^- .*: https://", sec, re.M)) == len(tv) + 2 and "/library/source/" not in sec and "runtime-tested by BSV" in sec,
+           f"llms: AI toolkit section, one line per entry with catalog status, no gated URLs ({len(tv)})")
+        aicat = json.loads((bd.Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]
+        aip = re.findall(r'data-rq-plat="([^"]+)"', t[t.find('id="rq-ai-picks"'):t.find("</p>", t.find('id="rq-ai-picks"'))])
+        ok(aip == [blt.esc(p) for p in dict.fromkeys(e["platform"] for e in aicat) if p != "Any framework"] and len(aip) >= 9, f"requests: AI framework picks = ai-toolkit catalog frameworks ({len(aip)})")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
@@ -232,7 +240,7 @@ def main():
         ok(all(g["targetsWithIt"] == len(g["targetsRenderingIt"]) and set(g["targetsRenderingIt"]) <= set(tids) for g in gg["gaps"]), "opportunities: targets rendering each gap listed by id, count matches")
         ok(cv["counts"]["recipeTargetPairsWithoutTodo"] == sum(1 for r in cv["recipes"] for v in r["todoLines"].values() if v == 0), "coverage.json: pairs-without-TODO count matches rows")
         ok(f"{ORIGIN}/trading/build/coverage.json" in (s / "llms.txt").read_text() and json.loads((s / ".well-known/bsv-trust.json").read_text())["generatorCoverage"]["url"].endswith("/trading/build/coverage.json"), "coverage.json: linked from llms.txt and trust manifest")
-        pk = re.findall(r'data-rq-plat="([^"]+)"', t); want_pk = list(dict.fromkeys(l.split(" · ")[0] for _, l, _ in blt.TARGETS))
+        pk = re.findall(r'data-rq-plat="([^"]+)"', t[t.find('id="rq-plat-picks"'):t.find("</p>", t.find('id="rq-plat-picks"'))]); want_pk = list(dict.fromkeys(l.split(" · ")[0] for _, l, _ in blt.TARGETS))
         ok(pk == want_pk and len(pk) == 21 and "function addPlat" in "".join(p.read_text() for p in (s / "requests").glob("request-market.*.js")), f"requests: platform picks = the builder's {len(want_pk)} platforms ({len(pk)})")
         ok('id="heatmap"' in t and 'id="rq-heat"' in t and not re.search(r'id="rq-heat"[^>]*>[^<]', t), "requests: demand heatmap present, no seeded cells")
         ok('id="builders"' in t and 'id="rq-areas"' in t and not re.search(r"projected|forecast|potential revenue|\$\d", bd.visible_text(rq), re.I), "opportunities: section present, no revenue projections")
