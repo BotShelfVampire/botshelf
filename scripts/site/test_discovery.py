@@ -214,6 +214,16 @@ def main():
         aicat = json.loads((bd.Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]
         aip = re.findall(r'data-rq-plat="([^"]+)"', t[t.find('id="rq-ai-picks"'):t.find("</p>", t.find('id="rq-ai-picks"'))])
         ok(aip == [blt.esc(p) for p in dict.fromkeys(e["platform"] for e in aicat) if p != "Any framework"] and len(aip) >= 9, f"requests: AI framework picks = ai-toolkit catalog frameworks ({len(aip)})")
+        # batch 13: related items on AI toolkit pages, toolkit.v1.json facts, hub ask link
+        ok(all(e.get("runtimeTestedByBSV") is False and e.get("license") == "MIT" and e.get("capabilityId") == "bsv.ai-toolkit." + e["id"] and e.get("sourceAccess") == "free email verification" for e in tv)
+           and json.loads(rd("library/toolkit/toolkit.v1.json"))["counts"] == {"entries": len(tv), "frameworks": len({e["framework"] for e in tv}), "runtimeTestedByBSV": 0}, "toolkit.v1.json: per-entry license / runtimeTestedByBSV false / capabilityId; counts")
+        relok = True
+        for e in tv:
+            h = rd(f"library/toolkit/{e['id']}/index.html"); got = re.findall(r'data-tk-rel="([a-z0-9-]+)"', h)
+            want = [x["id"] for x in tv if x["id"] != e["id"] and x["job"] == e["job"]] + [x["id"] for x in tv if x["id"] != e["id"] and x["framework"] == e["framework"] and x["job"] != e["job"]]
+            relok = relok and got == want
+        ok(relok, "AI toolkit pages: related items = same job (other items), then same framework, in catalog order")
+        ok('data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form"' in rd("library/toolkit/index.html"), "AI toolkit hub: ask for a framework or tool not listed")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
@@ -221,7 +231,7 @@ def main():
         ok(sum(cv["counts"]["byCheckKind"].values()) == 22 and cv["counts"]["byCheckKind"].get("PARITY_ONLY") == 22 - sum(1 for x in cv["targets"] if x["check"]["kind"] != "PARITY_ONLY"), "coverage.json: check-kind counts add up")
         ok(len(cv["recipes"]) == gg["recipes"] and all(set(r["todoLines"]) == {x["id"] for x in cv["targets"]} for r in cv["recipes"]) and {b for r in cv["recipes"] for b in r["unsupportedBlocks"]} == {g["blockType"] for g in gg["gaps"]}, "coverage.json: recipes x targets complete; unsupported blocks equal generator gaps")
         hs = {x["id"]: x["higherTimeframe"]["status"] for x in cv["targets"]}
-        ok({k for k, v in hs.items() if v == "CLOSED_BARS_CHECKED"} == {"backtrader", "backtesting-py", "nautilus", "tradovate"} and {k for k, v in hs.items() if v == "CLOSED_BAR_IDIOM_STATIC"} == {"pine-v6", "mql5", "mql4", "ninjatrader", "ctrader", "amibroker", "thinkscript"} and all(v in ("CLOSED_BARS_CHECKED", "CLOSED_BAR_IDIOM_STATIC", "UNSUPPORTED_TODO") for v in hs.values()) and cv["counts"]["higherTimeframeReal"] == 3 and cv["counts"]["higherTimeframeDocumentedIdiom"] == 7 and "chart timeframe" in cv["higherTimeframeDisclosure"], "coverage.json: higher-timeframe status per target + correction disclosed")
+        ok({k for k, v in hs.items() if v == "CLOSED_BARS_CHECKED"} == {"backtrader", "backtesting-py", "nautilus", "tradovate"} and {k for k, v in hs.items() if v == "CLOSED_BAR_IDIOM_STATIC"} == {"pine-v6", "mql5", "mql4", "ninjatrader", "ctrader", "amibroker", "thinkscript"} and all(v in ("CLOSED_BARS_CHECKED", "CLOSED_BAR_IDIOM_STATIC", "UNSUPPORTED_TODO") for v in hs.values()) and cv["counts"]["higherTimeframeReal"] == 4 and cv["counts"]["higherTimeframeDocumentedIdiom"] == 7 and "chart timeframe" in cv["higherTimeframeDisclosure"], "coverage.json: higher-timeframe status per target + correction disclosed")
         ok(all(x["higherTimeframe"].get("docs") and all(u.startswith(("https://www.tradingview.com/pine-script-docs/", "https://www.mql5.com/en/docs/", "https://docs.mql4.com/", "https://ninjatrader.com/support/helpGuides/nt8/", "https://help.ctrader.com/ctrader-algo/references/", "https://www.amibroker.com/guide/", "https://toslc.thinkorswim.com/center/reference/thinkScript/")) for u in x["higherTimeframe"]["docs"]) and "UNTESTED_RUNTIME" in x["higherTimeframe"]["note"] and x["runtimeTestedByBSV"] is False for x in cv["targets"] if hs[x["id"]] == "CLOSED_BAR_IDIOM_STATIC"), "coverage.json: documented-idiom targets cite official docs and stay UNTESTED_RUNTIME")
         mp = s / "trading/tools/bsv-recipe-mtf-confirmation-panel.html"
         ok(mp.exists() and ('id="higher-timeframe"' in mp.read_text() and "Correction (2026-10-04)" in mp.read_text()), "recipe page: higher-timeframe notice on mtf-confirmation-panel")
