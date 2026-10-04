@@ -283,7 +283,7 @@ def main():
         _pn = next(x for x in json.loads(rd("trading/build/coverage.json"))["targets"] if x["id"] == "pine-v6")["check"]
         ok(_pn["kind"] == "SUBSET_EVALUATOR" and _pn["script"] == "scripts/site/check_pine.mjs" and "not TradingView" in _pn["note"], "coverage.json: pine-v6 is checked by the BSV Pine-subset evaluator, not TradingView (Trader t21)")
         _pb = next(x for x in json.loads(rd("trading/build/coverage.json"))["targets"] if x["id"] == "pine-v6")["blockSupport"]
-        ok({"structure.range", "signal.breakout", "structure.pivot", "visual.zone", "signal.liquidity_sweep", "signal.divergence"} <= set(_pb["rendered"]) and set(_pb["unsupportedTodo"]) <= {"visual.table", "alert.webhook", "scanner.symbol_set"}, "coverage.json: Pine renders range, breakout, pivot, zone, sweep and divergence; only table / webhook / symbol set stay TODO (Trader t22)")
+        ok({"structure.range", "signal.breakout", "structure.pivot", "visual.zone", "signal.liquidity_sweep", "signal.divergence"} <= set(_pb["rendered"]) and {"visual.table", "alert.webhook"} <= set(_pb["rendered"]) and set(_pb["unsupportedTodo"]) <= {"scanner.symbol_set"}, "coverage.json: Pine renders range, breakout, pivot, zone, sweep, divergence, value panels and webhooks; only symbol set stays TODO (Trader t22, t23)")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
