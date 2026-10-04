@@ -1,6 +1,6 @@
 // BSV compile stubs for the cTrader Algo (cAlgo.API) members the generator's `ctrader` target uses.
 // Signatures follow the official API reference (https://help.ctrader.com/ctrader-algo/references/): Indicator, Bars,
-// DataSeries, TimeSeries (GetIndexByTime), MarketData.GetBars(TimeFrame), TimeFrame fields, IIndicatorsAccessor
+// DataSeries, TimeSeries (GetIndexByTime), MarketData.GetBars(TimeFrame) and GetBars(TimeFrame, symbolName), Parameter attribute, TimeFrame fields, IIndicatorsAccessor
 // (ExponentialMovingAverage/SimpleMovingAverage/RelativeStrengthIndex(DataSeries, int), AverageTrueRange(int, MovingAverageType)
 // and AverageTrueRange(Bars, int, MovingAverageType)). No behaviour: this only proves the output type-checks. Not a cTrader build.
 using System;
@@ -11,6 +11,7 @@ namespace cAlgo.API
     public enum MovingAverageType { Simple, Exponential, WilderSmoothing }
     [AttributeUsage(AttributeTargets.Class)] public sealed class IndicatorAttribute : Attribute { public bool IsOverlay { get; set; } public TimeZones TimeZone { get; set; } public AccessRights AccessRights { get; set; } }
     [AttributeUsage(AttributeTargets.Property)] public sealed class OutputAttribute : Attribute { public OutputAttribute(string name) { } }
+    [AttributeUsage(AttributeTargets.Property)] public sealed class ParameterAttribute : Attribute { public ParameterAttribute(string name) { } public object DefaultValue { get; set; } }
     public interface DataSeries { double this[int index] { get; } double LastValue { get; } int Count { get; } }
     public interface IndicatorDataSeries : DataSeries { new double this[int index] { get; set; } }
     public interface TimeSeries { DateTime this[int index] { get; } DateTime LastValue { get; } int Count { get; } int GetIndexByTime(DateTime dateTime); int GetIndexByExactTime(DateTime dateTime); }
