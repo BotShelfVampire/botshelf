@@ -178,6 +178,27 @@ LLMS_LINKS = [
 ]
 
 
+def ai_toolkit_lines(site: Path, locs: set, today: str) -> list:
+    """llms.txt section for the AI toolkit (#8 tranche 12): the hub, its JSON and one line per public summary page, with
+    framework and catalog status as published in /library/toolkit/toolkit.v1.json. Each URL must be an indexable sitemap page."""
+    j = site / "library/toolkit/toolkit.v1.json"
+    if not j.exists():
+        return []
+    out = ["", f"## AI agent toolkits ({today})",
+           "Original BSV templates and starters by framework. Summaries are public; the source needs free email verification. None is runtime-tested by BSV; the status after each item is the catalog status."]
+    for label, rel in [("AI toolkits hub (by job and by framework)", "library/toolkit/")] + [(None, e["url"].lstrip("/")) for e in json.loads(j.read_text())["entries"]]:
+        u = ORIGIN + "/" + rel
+        f = url_to_file(site, u)
+        if not f.exists() or "noindex" in head_meta(f.read_text(errors="ignore"))[0] or u not in locs:
+            raise SystemExit(f"llms: {rel} is not an indexable sitemap URL")
+        if label:
+            out.append(f"- {label}: {u}")
+    for e in json.loads(j.read_text())["entries"]:
+        out.append(f"- {e['title']} ({e['framework']}; {e['status']}): {ORIGIN}{e['url']}")
+    out.append(f"- AI toolkit index (JSON, bsv-ai-toolkit/v1): {ORIGIN}/library/toolkit/toolkit.v1.json")
+    return out
+
+
 def llms(site: Path, today: str) -> dict:
     p = site / "llms.txt"
     t = p.read_text()
@@ -200,6 +221,7 @@ def llms(site: Path, today: str) -> dict:
              *([f"- Recent material changes (the dated list in the Transparency Center; JSON, also an Atom feed at {ORIGIN}/transparency/changes.atom): {ORIGIN}/transparency/changes.json"] if (site / "transparency/changes.json").exists() else []),
              f"- Sitemap: {ORIGIN}/sitemap.xml",
              "- Gated source is not listed here and needs a verified email session; this file does not replace robots.txt, sitemap.xml or canonical URLs.",
+             *ai_toolkit_lines(site, locs, today),
              "", LL_END]
     p.write_text(t + "\n" + "\n".join(block) + "\n")
     return {"llms_links": len(lines)}
