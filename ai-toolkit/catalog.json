@@ -146,6 +146,14 @@
       "type": "copy-paste-template",
       "status": "SOURCE_PREPARED",
       "path": "ai-toolkit/common/ai-team-handoff-packet.md"
+    },
+    {
+      "id": "ai-team-regression",
+      "title": "AI Team Regression Checklist",
+      "platform": "Any framework",
+      "type": "checklist",
+      "status": "SOURCE_PREPARED",
+      "path": "ai-toolkit/common/ai-team-regression-checklist.md"
     }
   ]
 }
