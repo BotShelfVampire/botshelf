@@ -206,11 +206,11 @@ HTF_REAL = blt.HTF_REAL  # must match htfRealTargets() in render.mjs (checked by
 HTF_IDIOM = blt.HTF_IDIOM  # must match htfIdiomTargets() in render.mjs (checked by check_htf.py)
 HTF_DISCLOSURE = ("Correction (2026-10-04): before this date every BSV generator target computed indicators marked with a higher "
                   "timeframe (timeframeRef) on the chart timeframe, with no warning. This affected the recipe mtf-confirmation-panel. "
-                  "Now 3 targets compute real higher-timeframe values from closed bars (checked inside their libraries), 7 more (Pine v6, MQL5, MQL4, NinjaTrader 8, cTrader, AmiBroker, thinkorswim) "
+                  "Now 4 targets compute real higher-timeframe values from closed bars (backtrader, Backtesting.py and NautilusTrader checked inside their libraries; Tradovate checked in a BSV stub of its documented API, not run on Tradovate), 7 more (Pine v6, MQL5, MQL4, NinjaTrader 8, cTrader, AmiBroker, thinkorswim) "
                   "read the last closed higher-timeframe bar with the platform's officially documented idiom (pattern checked statically; not run by BSV), "
-                  "and the other 12 leave those blocks as TODO stubs.")
+                  "and the other 11 leave those blocks as TODO stubs.")
 HTF_DISCLOSURE_JA = ("訂正（2026-10-04）：この日より前は、BSVジェネレーターのすべての出力先で、上位足を指定した指標（timeframeRef）を、注記なしで表示中の足で計算していました。"
-                     "影響したのはレシピ mtf-confirmation-panel です。現在は3つの出力先で確定した上位足から計算し（ライブラリ内で確認）、Pine v6・MQL5・MQL4・NinjaTrader 8・cTrader・AmiBroker・thinkorswimの7つでは各プラットフォームの公式ドキュメントにある方法で直前に確定した上位足を読みます（形を静的に確認。BSVは実行していません）。ほかの12ではそのブロックをTODOのスタブにしています。")
+                     "影響したのはレシピ mtf-confirmation-panel です。現在は4つの出力先で確定した上位足から計算し（backtrader・Backtesting.py・NautilusTraderはライブラリ内で確認、Tradovateは公式APIのBSVスタブで確認しTradovate上では未実行）、Pine v6・MQL5・MQL4・NinjaTrader 8・cTrader・AmiBroker・thinkorswimの7つでは各プラットフォームの公式ドキュメントにある方法で直前に確定した上位足を読みます（形を静的に確認。BSVは実行していません）。ほかの11ではそのブロックをTODOのスタブにしています。")
 HTF_IDIOM_DOCS = {
     "pine-v6": ["https://www.tradingview.com/pine-script-docs/concepts/repainting/", "https://www.tradingview.com/pine-script-docs/concepts/other-timeframes-and-data/"],
     "mql5": ["https://www.mql5.com/en/docs/series/ibarshift", "https://www.mql5.com/en/docs/series/copybuffer", "https://www.mql5.com/en/docs/constants/chartconstants/enum_timeframes"],
