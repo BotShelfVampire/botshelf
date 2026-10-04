@@ -176,12 +176,12 @@ function pivotOk(recipe, b) {
   return n(q.left) && n(q.right) && ['close', 'high_low'].includes(q.source || 'close');
 }
 function zoneOk(recipe, b) {
-  if (!(recipe.bsvRangeReal || recipe.bsvPivotReal) || !b || b.type !== 'visual.zone') return false;  // Tradovate: pivot zones only (rangeOk needs bsvRangeReal)
+  if (!(recipe.bsvRangeReal || recipe.bsvPivotReal) || !b || b.type !== 'visual.zone') return false;  // Tradovate: pivot and range zones (rangeOk accepts bsvRangeJs)
   const d = blockMap(recipe).get(b.params?.source);
   return !!d && (pivotOk(recipe, d) || (rangeOk(recipe, d) && rangeKeys(d).length === 2));
 }
 function webhookOk(recipe, b) {
-  if (!recipe.bsvRangeReal || !b || b.type !== 'alert.webhook') return false;
+  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs) || !b || b.type !== 'alert.webhook') return false;  // Tradovate: built per bar, drawn as W dots, never sent
   const q = b.params || {}, w = blockMap(recipe).get(q.when), pl = q.payload;
   if (!w || !isBoolType(w.type) || w.type === 'alert.webhook' || !pl || typeof pl !== 'object' || Array.isArray(pl) || !Object.keys(pl).length) return false;
   return Object.values(pl).every(x => ['number', 'boolean'].includes(typeof x) || (typeof x === 'string' && [...x.matchAll(/\{\{([^}]*)\}\}/g)].every(m => ['symbol', 'timeframe', 'time', 'open', 'high', 'low', 'close'].includes(m[1]))));
@@ -2246,6 +2246,7 @@ function renderTradovate(recipe) {
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot');
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const zones = recipe.blocks.filter(b => zoneOk(recipe, b)); // zones: two lines, the source's high and low (pivot or range)
+  const hooks = recipe.blocks.filter(b => webhookOk(recipe, b)); // webhooks: W dots + the JSON payload built per bar (never sent)
   const id = (x) => String(x).replace(/[^A-Za-z0-9_]/g, '_');
   const px = { open: 's.o', high: 's.h', low: 's.l', close: 's.c', hl2: '(s.h + s.l) / 2', hlc3: '(s.h + s.l + s.c) / 3', ohlc4: '(s.o + s.h + s.l + s.c) / 4' };
   const at = (expr, who) => who === 's' ? expr : expr.replace(/\bs\./g, who + '.');
@@ -2262,8 +2263,10 @@ function renderTradovate(recipe) {
   L.push(`// ${recipe.overlay ? 'Overlay recipe: the indicator draws on the price chart.' : 'Separate-pane recipe: areaChoice "new" puts it in a new area.'}`);
   L.push('// Indicator only: it plots values. It places no orders and makes no network calls.');
   if (alerts.length) L.push('// Alerts: the published custom-indicator API has no alert call, so each alert condition is drawn as dots on the bar that just closed (A1, A2, …). Set up notifications in Tradovate yourself if your version offers them.');
+  if (hooks.length) L.push('// Webhooks: this indicator makes no network calls. Each webhook condition is drawn as dots on the bar that just closed (W1, W2, …), and its JSON payload for that bar is built in this.bars[i - 1].J_<id> with {{...}} filled in, for you to copy into your own Tradovate alert or automation. It is never sent. Never put secrets in a payload.');
   L.push('');
   L.push('const predef = require("./tools/predef");');
+  if (hooks.length) L.push('const BSV_SYMBOL = "SYMBOL"; // set your symbol for {{symbol}}', 'const BSV_TIMEFRAME = "TIMEFRAME"; // set your bar timeframe for {{timeframe}}');
   L.push('');
   L.push('class bsvRecipe {');
   L.push('  init() {');
@@ -2341,6 +2344,11 @@ function renderTradovate(recipe) {
         break;
       case 'visual.plot': case 'alert.condition':
         break;
+      case 'alert.webhook':
+        if (!webhookOk(recipe, b)) { L.push(`    // TODO unsupported block ${b.type}: ${k}`, `    s.S_${k} = false;`); break; }
+        L.push(`    s.S_${k} = ${bool(q.when)}; // webhook condition on this bar`,
+          `    s.J_${k} = s.S_${k} ? this.bsvWebhook(${JSON.stringify(q.payload)}, d.timestamp(), s) : null; // JSON text for this bar, rebuilt if the forming bar changes; built here, never sent`);
+        break;
       case 'visual.zone':
         if (zoneOk(recipe, b)) { L.push(`    // zone ${k}: drawn as Z lines from ${id(q.source)} (${map.get(q.source).type === 'structure.range' ? 'the window high / low' : 'last confirmed pivot high / low'})`); break; }
         L.push(`    // TODO unsupported block ${b.type}: ${k}`, `    s.V_${k} = NaN;`);
@@ -2395,8 +2403,12 @@ function renderTradovate(recipe) {
   plots.forEach((b, k) => ret.push(`P${k + 1}: out(${val(b.params?.source)})`));
   zones.forEach((b, n) => ret.push(`Z${n + 1}H: out(s.V_${id(b.params.source)}_high)`, `Z${n + 1}L: out(s.V_${id(b.params.source)}_low)`));
   alerts.forEach((b, k) => ret.push(`A${k + 1}: p && ${bool(b.params?.when, 'p')} ? ${recipe.overlay ? 'p.c' : '1'} : undefined`));
+  hooks.forEach((b, n) => ret.push(`W${n + 1}: p && p.S_${id(b.id)} ? ${recipe.overlay ? 'p.c' : '1'} : undefined`));
   L.push(`    return { ${ret.join(', ')} };`);
   L.push('  }');
+  if (hooks.length) L.push('', '  bsvWebhook(payload, t, s) { // {{symbol}} {{timeframe}} {{time}} (UTC, YYYY-MM-DDTHH:MM:SS) {{open}} {{high}} {{low}} {{close}} filled in; returns JSON text',
+    '    const g = (v) => String(Number(v.toPrecision(10))), f = { symbol: BSV_SYMBOL, timeframe: BSV_TIMEFRAME, time: new Date(+t).toISOString().slice(0, 19), open: g(s.o), high: g(s.h), low: g(s.l), close: g(s.c) };',
+    '    const out = {};', '    for (const k of Object.keys(payload)) out[k] = typeof payload[k] === "string" ? payload[k].replace(/\\{\\{([^}]*)\\}\\}/g, (m, n) => f[n]) : payload[k];', '    return JSON.stringify(out);', '  }');
   if (usesPivot) L.push('', '  bsvPivot(s, i, left, right, hk, lk) { // bar j = i - right: strictly beyond the left bars, at least as far as the right bars (a flat top counts once)',
     '    const j = i - right;', '    if (j - left < 0) return [false, false];', '    const x = this.bars[j], at = (n) => (n === i ? s : this.bars[n]);', '    let up = true, dn = true;',
     '    for (let n = j - left; n <= i; n++) {', '      if (n === j) continue;', '      const y = at(n);', '      if (n < j ? !(x[hk] > y[hk]) : !(x[hk] >= y[hk])) up = false;', '      if (n < j ? !(x[lk] < y[lk]) : !(x[lk] <= y[lk])) dn = false;', '    }', '    return [up, dn];', '  }');
@@ -2425,8 +2437,8 @@ function renderTradovate(recipe) {
   L.push('}');
   L.push('');
   const zt = (b, x) => jsText(String(b.params?.title || b.id).slice(0, 50) + ' ' + x, 60);
-  const plotEntries = [...plots.map((b, k) => `    P${k + 1}: { title: ${jsText(b.params?.title || b.params?.source || b.id, 60)} }`), ...zones.flatMap((b, n) => [`    Z${n + 1}H: { title: ${zt(b, 'high')} }`, `    Z${n + 1}L: { title: ${zt(b, 'low')} }`]), ...alerts.map((b, k) => `    A${k + 1}: { title: ${jsText('Alert: ' + (b.params?.message || b.id), 80)} }`)];
-  const styles = [...plots.map((b, k) => `      P${k + 1}: { color: "${colors[k % colors.length]}" }`), ...zones.flatMap((b, n) => [`      Z${n + 1}H: { color: "salmon" }`, `      Z${n + 1}L: { color: "lightgreen" }`]), ...alerts.map((b, k) => `      A${k + 1}: { color: "${k % 2 ? 'salmon' : 'lightgreen'}" }`)];
+  const plotEntries = [...plots.map((b, k) => `    P${k + 1}: { title: ${jsText(b.params?.title || b.params?.source || b.id, 60)} }`), ...zones.flatMap((b, n) => [`    Z${n + 1}H: { title: ${zt(b, 'high')} }`, `    Z${n + 1}L: { title: ${zt(b, 'low')} }`]), ...alerts.map((b, k) => `    A${k + 1}: { title: ${jsText('Alert: ' + (b.params?.message || b.id), 80)} }`), ...hooks.map((b, n) => `    W${n + 1}: { title: ${jsText('Webhook: ' + b.id, 80)} }`)];
+  const styles = [...plots.map((b, k) => `      P${k + 1}: { color: "${colors[k % colors.length]}" }`), ...zones.flatMap((b, n) => [`      Z${n + 1}H: { color: "salmon" }`, `      Z${n + 1}L: { color: "lightgreen" }`]), ...alerts.map((b, k) => `      A${k + 1}: { color: "${k % 2 ? 'salmon' : 'lightgreen'}" }`), ...hooks.map((b, n) => `      W${n + 1}: { color: "yellow" }`)];
   L.push('module.exports = {');
   L.push(`  name: "${name}",`);
   L.push(`  description: ${jsText(safeTitle(recipe), 80)},`);
@@ -2436,8 +2448,8 @@ function renderTradovate(recipe) {
   L.push(`  areaChoice: "${recipe.overlay ? 'overlay' : 'new'}",`);
   L.push('  tags: ["BSV starters"],');
   L.push(`  plots: {${plotEntries.length ? '\n' + plotEntries.join(',\n') + '\n  ' : ''}},`);
-  L.push(`  plotter: [${[...plots.map((b, k) => `predef.plotters.singleline("P${k + 1}")`), ...zones.flatMap((b, n) => [`predef.plotters.singleline("Z${n + 1}H")`, `predef.plotters.singleline("Z${n + 1}L")`]), ...alerts.map((b, k) => `predef.plotters.dots("A${k + 1}")`)].join(', ')}],`);
-  if (alerts.length) L.push(`  shifts: { ${alerts.map((b, k) => `A${k + 1}: -1`).join(', ')} }, // alert dots sit on the bar that just closed`);
+  L.push(`  plotter: [${[...plots.map((b, k) => `predef.plotters.singleline("P${k + 1}")`), ...zones.flatMap((b, n) => [`predef.plotters.singleline("Z${n + 1}H")`, `predef.plotters.singleline("Z${n + 1}L")`]), ...alerts.map((b, k) => `predef.plotters.dots("A${k + 1}")`), ...hooks.map((b, n) => `predef.plotters.dots("W${n + 1}")`)].join(', ')}],`);
+  if (alerts.length || hooks.length) L.push(`  shifts: { ${[...alerts.map((b, k) => `A${k + 1}: -1`), ...hooks.map((b, n) => `W${n + 1}: -1`)].join(', ')} }, // alert and webhook dots sit on the bar that just closed`);
   L.push(`  schemeStyles: { dark: {${styles.length ? '\n' + styles.join(',\n') + '\n    ' : ''}} }`);
   L.push('};');
   L.push('');
