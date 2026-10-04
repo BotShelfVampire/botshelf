@@ -16,7 +16,7 @@ const EMPTY = 1.7976931348623157e308, PER = { PERIOD_CURRENT: 0, PERIOD_M1: 1, P
 const perSec = (p) => ({ 1: 60, 5: 300, 15: 900, 30: 1800, 16385: 3600, 16388: 14400, 16408: 86400 })[p];
 const API = new Set(['_Symbol', '_Period', ...Object.keys(PER), 'INVALID_HANDLE', 'INIT_SUCCEEDED', 'INIT_FAILED', 'EMPTY_VALUE', 'MODE_EMA', 'MODE_SMA', 'PRICE_CLOSE', 'PRICE_OPEN', 'PRICE_HIGH', 'PRICE_LOW', 'PRICE_MEDIAN', 'PRICE_TYPICAL',
   'INDICATOR_DATA', 'INDICATOR_SHORTNAME', 'iMA', 'iRSI', 'iATR', 'CopyBuffer', 'BarsCalculated', 'IndicatorRelease', 'IndicatorSetString', 'ArraySetAsSeries', 'SetIndexBuffer', 'iTime', 'iOpen', 'iHigh', 'iLow', 'iClose', 'iBarShift',
-  'PeriodSeconds', 'Bars', 'TimeToStruct', 'Alert', 'Print', 'MathMin', 'MathMax', 'MathAbs']);
+  'PeriodSeconds', 'Bars', 'TimeToStruct', 'Alert', 'Print', 'MathMin', 'MathMax', 'MathAbs', 'Comment', 'DoubleToString', 'EnumToString', 'StringSubstr', 'TimeToString', 'TIME_DATE', 'TIME_MINUTES', '_Digits']);
 const JSKW = new Set(['function', 'let', 'var', 'return', 'if', 'else', 'for', 'while', 'true', 'false', 'mqlArr']);
 function stripComment(line) { let s = false; for (let i = 0; i < line.length; i++) { if (line[i] === '"' && line[i - 1] !== '\\') s = !s; if (!s && line[i] === '/' && line[i + 1] === '/') return line.slice(0, i); } return line; }
 const noStr = (s) => s.replace(/"(?:[^"\\]|\\.)*"/g, '""');
@@ -49,7 +49,7 @@ function mt5Values(h, bs) { const n = bs.length, px = bs.map(b => h.price === 'm
   throw new Error('handle kind ' + h.kind); }
 class MqlRangeError extends Error {}
 function makeRuntime(chartMin) {
-  const st = { cur: [], ver: 0 }, handles = [], buffers = [], alerts = [], prints = [], cache = new Map();
+  const st = { cur: [], ver: 0 }, handles = [], buffers = [], alerts = [], prints = [], comments = [], cache = new Map();
   const tfOf = (tf) => tf === 0 || tf === chartMin ? 0 : tf;
   const tfBars = (tf) => { tf = tfOf(tf); if (tf === 0) return st.cur; const k = 'b' + tf; if (cache.get(k)?.ver !== st.ver) cache.set(k, { ver: st.ver, v: compress(st.cur, perSec(tf) * 1000) }); return cache.get(k).v; };
   const vals = (id) => { const k = 'h' + id; if (cache.get(k)?.ver !== st.ver) cache.set(k, { ver: st.ver, v: mt5Values(handles[id], tfBars(handles[id].tf)) }); return cache.get(k).v; };
@@ -68,13 +68,17 @@ function makeRuntime(chartMin) {
     iTime: (s, tf, i) => at(tf, i, 'time'), iOpen: (s, tf, i) => at(tf, i, 'open'), iHigh: (s, tf, i) => at(tf, i, 'high'), iLow: (s, tf, i) => at(tf, i, 'low'), iClose: (s, tf, i) => at(tf, i, 'close'),
     iBarShift: (s, tf, t, exact) => { const b = tfBars(tf); let j = -1; for (let k = b.length - 1; k >= 0; k--) if (b[k].time / 1000 <= t) { j = k; break; } return j < 0 ? -1 : b.length - 1 - j; },
     Bars: (s, tf) => tfBars(tf).length, PeriodSeconds: (tf) => tfOf(tf) === 0 ? chartMin * 60 : perSec(tf), TimeToStruct: (t, o) => { const d = new Date(t * 1000); Object.assign(o, { year: d.getUTCFullYear(), mon: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), min: d.getUTCMinutes(), sec: d.getUTCSeconds(), day_of_week: d.getUTCDay() }); return true; },
-    Alert: (...a) => { alerts.push({ len: st.cur.length, msg: a.join('') }); }, Print: (...a) => { prints.push(a.join('')); }, MathMin: Math.min, MathMax: Math.max, MathAbs: Math.abs, mqlArr };
-  return { st, api, buffers, alerts, prints, handles };
+    Alert: (...a) => { alerts.push({ len: st.cur.length, msg: a.join('') }); }, Print: (...a) => { prints.push(a.join('')); }, Comment: (...a) => { comments.push({ len: st.cur.length, text: a.join('') }); }, // Comment / DoubleToString / EnumToString / StringSubstr / TimeToString per the MQL5 reference
+    DoubleToString: (v, d = 8) => v.toFixed(Number.isInteger(d) && d >= 0 && d <= 16 ? d : 8), EnumToString: (p) => Object.keys(PER).find(k => PER[k] === p && p !== 0) || ({ 60: 'PERIOD_H1', 240: 'PERIOD_H4', 1440: 'PERIOD_D1' })[p] || String(p),
+    StringSubstr: (s, a, len = -1) => len < 0 ? String(s).slice(a) : String(s).substr(a, len), TIME_DATE: 1, TIME_MINUTES: 2, _Digits: 5,
+    TimeToString: (t, fl = 3) => { const d = new Date(t * 1000), p2 = (x) => String(x).padStart(2, '0'); return [(fl & 1) ? `${d.getUTCFullYear()}.${p2(d.getUTCMonth() + 1)}.${p2(d.getUTCDate())}` : '', (fl & 2) ? `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}` : ''].filter(Boolean).join(' '); },
+    MathMin: Math.min, MathMax: Math.max, MathAbs: Math.abs, mqlArr };
+  return { st, api, buffers, alerts, prints, comments, handles };
 }
 const firstTick = (b) => ({ time: b.time, open: b.open, high: b.open, low: b.open, close: b.open });
 function run(js, bars, chartMin, n0) { // n0 = bars on the first call; then each new bar arrives as a first tick and then its final tick
   const rt = makeRuntime(chartMin), ctx = vm.createContext({ ...rt.api });
-  vm.runInContext('"use strict";\n' + js + '\n;globalThis.__bsv = { OnInit, OnCalculate, call: (n, i) => globalThis[n](i) };', ctx, { timeout: 20000 });
+  vm.runInContext('"use strict";\n' + js + '\n;globalThis.__bsv = { OnInit, OnCalculate, OnDeinit: typeof OnDeinit === "function" ? OnDeinit : null, call: (n, i) => globalThis[n](i) };', ctx, { timeout: 20000 });
   for (const [k, v] of Object.entries(rt.api)) if (k !== 'mqlArr' && typeof v !== 'function' && ctx[k] !== v) throw new Error('documented constant overwritten: ' + k);
   const F = ctx.__bsv, init = F.OnInit(); if (init !== 0) return { init, rt, F };
   let prev = 0; const call = (cur) => { rt.st.cur = cur; rt.st.ver++; for (const b of rt.buffers) if (b) { const t = b.__t, add = cur.length - t.store.length; if (add > 0) { const fresh = new Array(add).fill(NaN); t.store = t.series ? [...fresh.slice(0, 0), ...t.store, ...fresh] : [...t.store, ...fresh]; } } const T = cur.map(b => b.time / 1000), r = F.OnCalculate(cur.length, prev, T, cur.map(b => b.open), cur.map(b => b.high), cur.map(b => b.low), cur.map(b => b.close), [], [], []); prev = r; };
@@ -95,7 +99,7 @@ const srcOf = (bs, s) => bs.map(b => s === 'hl2' ? (b.high + b.low) / 2 : s === 
 const refInd = (bs, b) => { const p = b.params || {}, x = srcOf(bs, p.source); if (b.type === 'indicator.sma') return refSma(x, p.length); if (b.type === 'indicator.ema') return refEma(x, p.length);
   if (b.type === 'indicator.rsi') { const G = refRma(x.slice(1).map((w, i) => Math.max(w - x[i], 0)), p.length), L = refRma(x.slice(1).map((w, i) => Math.max(x[i] - w, 0)), p.length); return [NaN, ...G.map((u, i) => 100 * u / (u + L[i]))]; }
   const trs = bs.map((h, i) => i === 0 ? NaN : Math.max(h.high, bs[i - 1].close) - Math.min(h.low, bs[i - 1].close)); return [NaN, ...refSma(trs.slice(1), p.length)]; }; // MT5 ATR: simple average of the true range
-const vacuous = []; let pivChecked = 0, pivSigSeen = 0, zonesSeen = 0, rangeChecked = 0, breakoutsSeen = 0, todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, plotsChecked = 0, alertsSeen = 0, mutantsCaught = 0, files = 0, auditNames = 0;
+const vacuous = []; let panelsSeen = 0, hooksSeen = 0, pivChecked = 0, pivSigSeen = 0, zonesSeen = 0, rangeChecked = 0, breakoutsSeen = 0, todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, plotsChecked = 0, alertsSeen = 0, mutantsCaught = 0, files = 0, auditNames = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'mql5'], { encoding: 'utf8' });
@@ -104,7 +108,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   // undeclared-name audit: every identifier is declared in the file or is a documented MQL5 name the BSV model implements
   const used = names(T.js), unknown = [...used].filter(n => !T.declared.has(n) && !API.has(n) && !JSKW.has(n)); auditNames += used.size;
   ok(unknown.length === 0, f, `undeclared or undocumented names: ${unknown.join(', ')}`);
-  ok(!/\b(OrderSend|CTrade|PositionOpen|OrderCalcMargin|WebRequest|FileOpen)\b/.test(code), f, 'no trade, web or file calls (indicator only)');
+  ok(!/\b(OrderSend|CTrade|PositionOpen|OrderCalcMargin|WebRequest|FileOpen)\b/.test(code.split('\n').map(stripComment).join('\n')), f, 'no trade, web or file calls (indicator only; comments may name them)');
   ok(T.props.indicator_buffers !== undefined && +T.props.indicator_buffers === (code.match(/SetIndexBuffer\(/g) || []).length && +T.props.indicator_plots === (code.match(/^#property indicator_type\d+/gm) || []).length, f, '#property indicator_buffers / indicator_plots match SetIndexBuffer calls and plot types');
   if (unknown.length) continue;
   const htfB = recipe.blocks.filter(b => b.params?.timeframeRef && new RegExp(`^double V_${b.id}\\(int i\\) \\{ return BsvHtfAt\\(`, 'm').test(code));
@@ -193,6 +197,36 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     if (mc !== code && want.length) { const r = run(translate(mc).js, bs, chartMin, n0), g2 = alertsOf(r).sort(); const caught = !(g2.length === want.length && g2.every((x, k) => x === want[k])); ok(caught, f, 'mutant caught: alert from the forming bar (0 instead of 1)'); if (caught) mutantsCaught++; } }
   if (plotB.length) { const mc = code.replace('   if (prev_calculated > 0) limit++;\n', ''), r = run(translate(mc).js, bs, chartMin, n0); let binc = 0; plotB.forEach((b, k) => { const fb = full.rt.buffers[k].__t, ib = r.rt.buffers[k].__t; for (let i = 0; i < top; i++) if (!same(val(ib.store[n - 1 - i]), val(fb.store[n - 1 - i]))) binc++; });
     ok(mc !== code && binc > 0, f, 'mutant caught: the bar that just closed is not recalculated (no limit++)'); if (mc !== code && binc > 0) mutantsCaught++; }
+  // value panels (batch 27): one Comment() per call; the text after the last call = title + "id: value" per field at shift 1 (the bar that just
+  // closed), built here from the series checked above (independent of the generator's expression); fields are chosen independently
+  const tabB = recipe.blocks.filter(b => b.type === 'visual.table');
+  if (tabB.length) { const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine|breakout)|filter\.session|structure\.range)$/, PXN = new Set(['open', 'high', 'low', 'close', 'hl2', 'hlc3', 'ohlc4']);
+    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left, typeof q.right === 'string' ? q.right : null] : b.type === 'signal.combine' ? (q.signals || []) : b.type === 'structure.range' ? [q.during] : b.type === 'signal.breakout' ? [q.range] : []; };
+    const shown = (r, seen = new Set()) => { if (!by[r]) return PXN.has(r); if (seen.has(r)) return true; seen.add(r); return OKT.test(by[r].type) && deps(by[r]).filter(Boolean).every(x => shown(x, seen)); };
+    const num = (v) => fin(v) ? v.toFixed(8) : 'n/a'; let skipped = 0, nPanels = 0;
+    const wantAt = (j) => { const blocks = []; skipped = 0; nPanels = 0;
+    for (const t of tabB) { const fs2 = (t.params?.fields || []).filter(x => shown(x)); skipped += (t.params?.fields || []).length - fs2.length; if (!fs2.length) { skipped++; continue; }
+      const lines = [String(t.params?.title || t.id).replace(/[\r\n]/g, ' ').trim().slice(0, 80)];
+      for (const x of fs2) { const b = by[x]; if (b.type === 'structure.range') { const q = refRange(b); for (const k of b.params.track) lines.push(`${x}.${k}: ${num(k === 'high' ? q.H[j] : q.Lo[j])}`); }
+        else if (/^(signal|filter)\./.test(b.type)) lines.push(`${x}: ${env.get(x)[j] === 1 ? 'true' : 'false'}`); else lines.push(`${x}: ${num(env.get(x)[j])}`); }
+      blocks.push(lines.join('\n')); nPanels++; }
+    return blocks.join('\n\n'); };
+    const want = wantAt(n - 2), last = (r) => r.rt.comments[r.rt.comments.length - 1]?.text, badC = (r) => r.rt.comments.filter(c => c.len >= n0 && c.text !== wantAt(c.len - 2)).length;
+    ok((code.match(/\/\/ TODO \w+: visual\.table /g) || []).length === skipped && !code.includes('TODO unsupported block visual.table'), f, `panel TODO lines (${skipped})`);
+    if (nPanels) { const bc = badC(inc); ok(last(full) === want && bc === 0, f, `value panel text = the fields at the bar that just closed, on every incremental call (${bc} differ; last ${JSON.stringify(last(full))})`); panelsSeen += nPanels;
+      { const r0 = run(T.js, bs, chartMin, n); r0.F.OnDeinit && r0.F.OnDeinit(0); ok(!!r0.F.OnDeinit && last(r0) === '', f, 'OnDeinit removes the panel (Comment(""))'); }
+      const mc = code.replace(/^(   Comment\((?!""\)).*)$/m, (l) => l.replace(/\(1\)/g, '(0)')), r = run(translate(mc).js, bs, chartMin, n0); const caught = mc !== code && badC(r) > 0; ok(caught, f, 'mutant caught: panel shows the forming bar (shift 0)'); if (caught) mutantsCaught++; } }
+  // webhooks (batch 27): MT5 indicators cannot call WebRequest, so the JSON is printed once per closed bar where the condition holds;
+  // expected JSON = the recipe payload with {{...}} filled from that bar (written here, independent of the generator)
+  const hookB = recipe.blocks.filter(b => b.type === 'alert.webhook' && code.includes(`g_hook_${b.id} = iTime`));
+  recipe.blocks.filter(b => b.type === 'alert.webhook' && !hookB.includes(b)).forEach(b => ok(code.includes(`TODO unsupported block alert.webhook: ${b.id}`), f, `${b.id}: webhook left as TODO`));
+  if (hookB.length) { const tfName = { 1: 'M1', 5: 'M5', 15: 'M15', 30: 'M30', 60: 'H1' }[chartMin], p2 = (x) => String(x).padStart(2, '0');
+    const wantH = () => { const out = []; for (const h of hookB) { const w = env.get(h.params.when); for (let jj = n0 - 2; jj <= n - 2; jj++) if (w && w[jj] === 1) { const b = bs[jj], d = new Date(b.time), fx = { symbol: 'BSVTEST', timeframe: tfName, time: `${d.getUTCFullYear()}.${p2(d.getUTCMonth() + 1)}.${p2(d.getUTCDate())} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`, open: b.open.toFixed(5), high: b.high.toFixed(5), low: b.low.toFixed(5), close: b.close.toFixed(5) };
+      out.push('BSV webhook ' + JSON.stringify(Object.fromEntries(Object.entries(h.params.payload).map(([k, x]) => [k, typeof x === 'string' ? x.replace(/\{\{(\w+)\}\}/g, (m0, nm) => fx[nm]) : x])))); } } return out; };
+    const hooksOf = (r) => r.rt.prints.filter(x => x.startsWith('BSV webhook ')), want = wantH(), got = hooksOf(inc), same2 = (a, b) => a.length === b.length && a.every((x, k) => x === b[k]);
+    ok(want.length > 0 && same2(got, want), f, `webhook JSON printed once per closed bar on the condition (${got.length} printed, ${want.length} expected)`); hooksSeen += got.length;
+    for (const [mn, from, to] of [['price from the open', /DoubleToString\(iClose\(_Symbol, _Period, 1\), _Digits\)/, 'DoubleToString(iOpen(_Symbol, _Period, 1), _Digits)'], ['webhook from the forming bar', /if \((S_\w+)\(1\) && (g_hook_\w+) != iTime\(_Symbol, _Period, 1\)\) \{ \2 = iTime\(_Symbol, _Period, 1\);/, 'if ($1(0) && $2 != iTime(_Symbol, _Period, 0)) { $2 = iTime(_Symbol, _Period, 0);']]) {
+      if (!from.test(code)) continue; const mc = code.replace(from, to), g2 = hooksOf(run(translate(mc).js, bs, chartMin, n0)), caught = mc !== code && !same2(g2, want); ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; } }
   const cx = recipe.blocks.find(b => b.type === 'signal.cross' && env.get(b.id)?.some(x => x === 1));
   if (cx) { const mc = code.replace(new RegExp(`^(bool S_${cx.id}\\(int i\\) \\{ return .*?) (>|<) (.*?) && (.*?) (<=|>=) `, 'm'), (m0, a, o1, b, c, o2) => `${a} ${o1 === '>' ? '<' : '>'} ${b} && ${c} ${o2 === '<=' ? '>=' : '<='} `), r = run(translate(mc).js, bs, chartMin, n); let d = 0; for (let i = 1; i < top; i++) if (!!r.F.call(`S_${cx.id}`, i) !== (env.get(cx.id)[n - 1 - i] === 1)) d++;
     ok(mc !== code && d > 0, f, `mutant caught: flipped cross (${cx.id})`); if (mc !== code && d > 0) mutantsCaught++; }
@@ -204,5 +238,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(mc !== code && d > 0, f, 'mutant caught: higher timeframe reads the forming higher bar (s instead of s + 1)'); if (mc !== code && d > 0) mutantsCaught++; }
   { const st0 = [...code.matchAll(/^bool (S_\w+)\(int i\) \{ return false; \} \/\/ TODO/gm)].find(m => code.split(m[1] + '(').length > 2), mc = st0 ? code.replace(st0[0], '// TODO') : code, changed = mc !== code; if (changed) { let caught = false; try { const t = translate(mc), u = [...names(t.js)].filter(x => !t.declared.has(x) && !API.has(x) && !JSKW.has(x)); caught = u.length > 0; } catch { caught = true; } ok(caught, f, 'mutant caught: a comment-only TODO block that is still referenced (the Pine bug) is an undeclared name'); if (caught) mutantsCaught++; } }
 }
-console.log(JSON.stringify({ target: 'mql5', recipes: files, checks, failures, names_audited: auditNames, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, plots: plotsChecked, ranges: rangeChecked, pivots: pivChecked, sweep_divergence: pivSigSeen, zones: zonesSeen, breakouts: breakoutsSeen, alerts: alertsSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, alert_bars_60m_sets: fires, alerts_vacuous: vacuous, note: 'BSV MQL5-subset translator + stub of the documented MT5 API in node:vm, not MetaTrader 5' }));
+console.log(JSON.stringify({ target: 'mql5', recipes: files, checks, failures, names_audited: auditNames, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, plots: plotsChecked, panels: panelsSeen, webhook_payloads: hooksSeen, ranges: rangeChecked, pivots: pivChecked, sweep_divergence: pivSigSeen, zones: zonesSeen, breakouts: breakoutsSeen, alerts: alertsSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, alert_bars_60m_sets: fires, alerts_vacuous: vacuous, note: 'BSV MQL5-subset translator + stub of the documented MT5 API in node:vm, not MetaTrader 5' }));
 process.exit(failures ? 1 : 0);
