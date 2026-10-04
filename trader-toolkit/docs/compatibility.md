@@ -4,7 +4,7 @@ Status is about the current BSV Trader Tool Blocks implementation, not the platf
 
 | Platform | Extensibility path | Current BSV asset | Status |
 | --- | --- | --- | --- |
-| TradingView | Pine Script | generator target + 6 copy/paste Pine starters | Source prepared; runtime compile still required |
+| TradingView | Pine Script | generator target + 6 copy/paste Pine starters | Source prepared; runtime compile still required. Since 2026-10-04 the generator output is checked by a BSV Pine-subset evaluator (`check_pine.mjs`, not TradingView; see the TradingView section) |
 | MT5 | MQL5 | generator target (`mql5`: computes EMA/SMA/RSI/ATR, cross/threshold/combine, plots, closed-bar alerts) + EMA/ATR overlay source | Source prepared; runtime compile still required |
 | cTrader | C# or Python custom indicators in cTrader Algo | C# and Python generator targets (both compute indicators, signals, plots and closed-bar alerts) + EMA/ATR (C# and Python) + RSI source | Source prepared; runtime build still required |
 | Vela | JavaScript/TypeScript chart library + optional scripting engines | generator target (`vela`: a small BSV `ScriptingEngine` in plain JS, line series, signal markers, closed-bar alerts) + runnable custom web-chart starter | Generated starters for 7 recipes mounted without errors in headless Chrome against @luxalgo/vela 0.8.1 with synthetic bars (smoke test only); not tested with live data or by users |
@@ -327,3 +327,11 @@ Sources:
 - https://nautilustrader.io/docs/latest/concepts/strategies (Strategy, on_start, on_bar, StrategyConfig)
 - https://nautilustrader.io/docs/latest/concepts/backtesting (BacktestEngine, venues, data)
 - https://pypi.org/project/nautilus_trader/ (1.231.0 stable; 2.0 release candidates)
+
+## TradingView (Pine Script v6) — BSV check
+
+Checked by BSV since 2026-10-04: `scripts/site/check_pine.mjs` parses every recipe's `pine-v6` output with a small BSV-written Pine-subset parser and evaluates it as series over synthetic bars. It checks that only documented functions and constants are used (`ta.ema`, `ta.sma`, `ta.rsi`, `ta.atr`, `ta.crossover`, `ta.crossunder`, `time`, `na`, `request.security`, `timeframe.in_seconds`, `runtime.error`, `plot`, `alertcondition`), that every name is declared before use, that history offsets look back, and that `request.security` is only used as `(syminfo.tickerid, tf, expr[1], lookahead = barmerge.lookahead_on)`. EMA / SMA / RSI / ATR values equal an independent reference after warm-up (seeds may differ while warming up); crosses, thresholds, combines and sessions (time zones through `Intl`, 15-minute bars) equal an independent recomputation on every bar; plots and `alertcondition` use their blocks; prefix runs give the same last-bar values (no lookahead); a 60-minute higher-timeframe value equals the previous closed hour on 15-minute bars and the `runtime.error` guard stops the script on an hourly chart. Mutants that must be caught: the shift-0 higher timeframe (static rule and prefix test) and a flipped cross.
+
+Found and fixed while adding it: a recipe whose alert used a block the Pine generator does not render yet (liquidity sweep, divergence, opening-range breakout) referenced a name that was never declared, so that Pine output would not compile. TODO blocks are now declared as stubs that are never true (`name = false`) or empty (`float name = na`), as on the other targets.
+
+Not TradingView: the evaluator models the documented behaviour; compile and run the script on your TradingView version before relying on it (UNTESTED_RUNTIME).

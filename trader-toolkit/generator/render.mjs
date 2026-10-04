@@ -430,6 +430,9 @@ function renderPine(recipe) {
         break;
       default:
         lines.push(`// TODO unsupported block ${b.type}: ${b.id}`);
+        // declared stub so later lines that use it still compile (never true / na), like the other targets' TODO stubs
+        if (isBoolType(b.type)) lines.push(`${b.id} = false`);
+        else if (/^structure\./.test(b.type)) lines.push(`float ${b.id} = na`);
     }
   }
 
