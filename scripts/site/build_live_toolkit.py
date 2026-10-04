@@ -476,7 +476,8 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
             out += f'<p class="section-label">Same job, other frameworks<span data-lang-show="ja" hidden> · 同じ仕事・ほかのフレームワーク</span></p><ul class="tk-list">' + "".join(li(x) for x in sj) + "</ul>"
         if sf:
             out += f'<p class="section-label">More for {esc(r["framework"])}<span data-lang-show="ja" hidden> · {esc(r["framework"])} のほかの項目</span></p><ul class="tk-list">' + "".join(li(x) for x in sf) + "</ul>"
-        return f'<section class="section" id="tk-related">{out}</section>' if out else ""
+        out += f'<p><a class="btn-fat" data-tk-fw-hub href="/library/toolkit/?framework={esc(urllib.parse.quote(r["framework"]))}#tk-q">All {esc(r["framework"])} items in the toolkit →</a></p>'
+        return f'<section class="section" id="tk-related">{out}</section>'
 
     for r in recs:
         # gated source
@@ -561,7 +562,9 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
           "Original BSV templates and starters for OpenAI Dots, Hugging Face MCP/Spaces/Skills/Tiny Agents, LM Studio Bionic, smolagents, Letta, the OpenAI Agents SDK, and LangGraph/CrewAI team runners — organised by job and framework, with honest test status.", "/library/toolkit/", hub))
     meta = [{"id": r["id"], "title": r["title"], "framework": r["framework"], "job": r["job"], "type": r["type"], "status": r["status"], "summary": r["summary"], "url": f"/library/toolkit/{r['id']}/", "source_gated": True,
              "sourceAccess": "free email verification", "license": "MIT", "runtimeTestedByBSV": False, "capabilityId": "bsv.ai-toolkit." + r["id"]} for r in recs]
-    write(site / "library/toolkit/toolkit.v1.json", json.dumps({"schema": "bsv-ai-toolkit/v1", "source": "BotShelfVampire/botshelf ai-toolkit/catalog.json", "counts": {"entries": len(meta), "frameworks": len({m["framework"] for m in meta}), "runtimeTestedByBSV": 0}, "entries": meta}, ensure_ascii=False, indent=1) + "\n")
+    write(site / "library/toolkit/toolkit.v1.json", json.dumps({"schema": "bsv-ai-toolkit/v1", "source": "BotShelfVampire/botshelf ai-toolkit/catalog.json", "counts": {"entries": len(meta), "frameworks": len({m["framework"] for m in meta}), "runtimeTestedByBSV": 0},
+        "filters": {"url": "https://botshelfvampire.com/library/toolkit/?{param}={value}", "note": "The hub filters as URL parameters; values are the ones listed here (URL-encode them).",
+                    "framework": list(dict.fromkeys(m["framework"] for m in meta)), "job": list(dict.fromkeys(r["job"] for r in recs)), "status": list(dict.fromkeys(r["status"] for r in recs))}, "entries": meta}, ensure_ascii=False, indent=1) + "\n")
 
     # entry inside EXISTING library index
     lp = site / "library/index.html"
