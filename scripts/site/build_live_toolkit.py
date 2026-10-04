@@ -549,7 +549,7 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
            f'<p class="section-label">Browse by job</p><div class="lib-chip-row">{jchips}</div>'
            f'<p class="section-label">Browse by framework</p><div class="lib-chip-row">{fchips}</div>'
            f'<p class="section-label">Existing Library platforms</p><div class="lib-chip-row">{ex}</div>'
-           f'<div class="lib-filters tk-filters" aria-label="Toolkit filters"><div class="row"><label for="tk-q">Search</label><input id="tk-q" type="search" placeholder="Filter: memory, MCP, local, guardrails…" autocomplete="off"><span class="muted" id="tk-count"></span></div>'
+           f'<div class="lib-filters tk-filters" aria-label="Toolkit filters"><div class="row"><label for="tk-q">Search</label><input id="tk-q" type="search" placeholder="Filter: memory, MCP, local, guardrails…" autocomplete="off"><span class="muted" id="tk-count"></span> <button type="button" class="lib-chip" id="tk-clear" hidden>Clear filters</button></div>'
            f'<div class="row"><label for="tk-f-framework">Framework</label><select id="tk-f-framework"><option value="">Any</option>{fopt}</select><label for="tk-f-job">Job</label><select id="tk-f-job"><option value="">Any</option>{jopt}</select><label for="tk-f-status">Status</label><select id="tk-f-status"><option value="">Any</option>{sopt}</select></div></div>'
            f'{by_job}<section class="section"><p class="section-label">By framework / runtime</p></section>{by_fw}'
            + '<section class="section" id="tk-matrix"><p class="section-label">Jobs covered, by framework<span data-lang-show="ja" hidden> · フレームワークごとの対応する仕事</span></p><ul class="tk-list">'
@@ -690,8 +690,11 @@ function toUrl(){if(!history.replaceState)return;var u;try{u=new URL(location.hr
 sels.forEach(function(s,i){if(s&&s.value)u.searchParams.set(keys[i],s.value);else u.searchParams.delete(keys[i])});
 var t=q&&q.value.trim();if(t)u.searchParams.set('q',t.slice(0,80));else u.searchParams.delete('q');
 history.replaceState(null,'',u.pathname+u.search+u.hash);}
+function sync(){var on=sels.some(function(s){return s&&s.value})||!!(q&&q.value.trim()),c=document.getElementById('tk-clear');if(c)c.hidden=!on;
+var fw=sels[0]&&sels[0].value;[].forEach.call(document.querySelectorAll('[data-tk-ask-hub]'),function(a){a.href='/requests/?area=ai-workflows'+(fw?'&platform='+encodeURIComponent(fw):'')+'#rq-form'});}
+var clr=document.getElementById('tk-clear');if(clr)clr.addEventListener('click',function(){sels.forEach(function(s){if(s)s.value=''});if(q)q.value='';apply();toUrl();sync()});
 fromUrl();
-if(q)q.addEventListener('input',function(){apply();toUrl()});sels.forEach(function(s){if(s)s.addEventListener('change',function(){apply();toUrl()})});apply();
+if(q)q.addEventListener('input',function(){apply();toUrl();sync()});sels.forEach(function(s){if(s)s.addEventListener('change',function(){apply();toUrl();sync()})});apply();sync();
 [].forEach.call(document.querySelectorAll('[data-tk-copy]'),function(b){b.addEventListener('click',function(){var el=document.getElementById(b.getAttribute('data-tk-copy'));if(!el||!navigator.clipboard)return;navigator.clipboard.writeText(el.innerText).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1600)})})});
 })();
 """
