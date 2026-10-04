@@ -1,6 +1,6 @@
 # n8n team runner
 
-Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). `--self-test` checks the generated structure. BSV imported the 10 generated workflows into n8n 2.41.6 with the CLI and executed one against a local stub OpenAI-compatible server (success, section check ran). It has not been run against a real model, so it is not runtime verified.
+Status: **UNTESTED_RUNTIME**. Original BSV starter (MIT). `--self-test` checks the generated structure. BSV imported the 10 generated workflows into n8n 2.41.6 with the CLI and executed one against a local stub OpenAI-compatible server (success, section check ran). Smoke test (2026-10-04, `scripts/site/smoke_team_runners.py`, repeatable): this file unchanged builds the workflow, the n8n 2.41.6 CLI imports and executes it against a local stub with scripted replies: 1 request with the pasted system prompt and your input; the section check flags a missing section and passes a complete answer; nothing is written; with the proxy pointed at a local recorder, no outside call was seen. That checks the wiring with the real n8n only, not answer quality on a real model. It has not been run against a real model, so it is not runtime verified.
 
 `make_workflow.py` builds one importable n8n workflow per BSV Library AI Team task:
 
