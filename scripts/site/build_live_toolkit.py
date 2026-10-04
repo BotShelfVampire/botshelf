@@ -23,7 +23,7 @@ Usage: python3 scripts/site/build_live_toolkit.py --site /path/to/site [--repo .
 """
 from __future__ import annotations
 
-import argparse, hashlib, html, io, json, re, subprocess, zipfile
+import argparse, hashlib, html, io, json, re, subprocess, urllib.parse, zipfile
 from pathlib import Path
 
 VER = "v20261003"
@@ -552,7 +552,7 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
            f'<div class="row"><label for="tk-f-framework">Framework</label><select id="tk-f-framework"><option value="">Any</option>{fopt}</select><label for="tk-f-job">Job</label><select id="tk-f-job"><option value="">Any</option>{jopt}</select><label for="tk-f-status">Status</label><select id="tk-f-status"><option value="">Any</option>{sopt}</select></div></div>'
            f'{by_job}<section class="section"><p class="section-label">By framework / runtime</p></section>{by_fw}'
            + '<section class="section" id="tk-matrix"><p class="section-label">Jobs covered, by framework<span data-lang-show="ja" hidden> · フレームワークごとの対応する仕事</span></p><ul class="tk-list">'
-           + "".join(f'<li data-tk-fw="{esc(f)}"><strong>{esc(f)}</strong> — ' + ", ".join(f'<a href="#job-{j}">{esc(jobs[j]["en"])}</a> ({sum(1 for r in recs if r["framework"] == f and r["job"] == j)})' for j in jobs if any(r["framework"] == f and r["job"] == j for r in recs)) + '</li>' for f in fw_order if any(r["framework"] == f for r in recs))
+           + "".join(f'<li data-tk-fw="{esc(f)}"><strong><a data-tk-fw-link href="?framework={esc(urllib.parse.quote(f))}#tk-q">{esc(f)}</a></strong> — ' + ", ".join(f'<a href="#job-{j}">{esc(jobs[j]["en"])}</a> ({sum(1 for r in recs if r["framework"] == f and r["job"] == j)})' for j in jobs if any(r["framework"] == f and r["job"] == j for r in recs)) + '</li>' for f in fw_order if any(r["framework"] == f for r in recs))
            + '</ul>' + lib_both(T("Counted from the catalog: which jobs each framework has BSV items for. Not a ranking and not a test result.", "カタログから数えた、フレームワークごとにBSVの項目がある仕事です。順位でも検証結果でもありません。"), "p", "muted") + '</section>'
            f'<section class="section" id="tk-ask"><p class="section-label">Not listed?</p>{lib_both(T("Ask for a framework, runtime or tool that is not here. Requests are reviewed before anything is listed; nothing is sent until you press send with a verified email.", "ここにないフレームワーク・実行環境・ツールをリクエストできます。掲載の前に確認します。メール確認済みで送信ボタンを押すまで何も送られません。"), "p", "muted")}'
            '<p><a class="btn-fat" data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form">Ask for a framework or tool →</a></p></section>'
@@ -679,7 +679,16 @@ function apply(){if(!cards.length)return;var t=(q&&q.value||'').toLowerCase().tr
 cards.forEach(function(c){var ok=!t||c.getAttribute('data-search').indexOf(t)>-1;
 sels.forEach(function(s){if(s&&s.value&&c.getAttribute('data-'+s.id.replace('tk-f-',''))!==s.value)ok=false});
 c.hidden=!ok;if(ok)n++});if(cnt)cnt.textContent=n+' shown';}
-if(q)q.addEventListener('input',apply);sels.forEach(function(s){if(s)s.addEventListener('change',apply)});apply();
+var keys=['framework','job','status'];
+function fromUrl(){var u;try{u=new URL(location.href).searchParams}catch(e){return}
+sels.forEach(function(s,i){var v=u.get(keys[i]);if(s&&v!==null&&[].some.call(s.options,function(o){return o.value===v}))s.value=v});
+var t=u.get('q');if(q&&t!==null)q.value=t.slice(0,80);}
+function toUrl(){if(!history.replaceState)return;var u;try{u=new URL(location.href)}catch(e){return}
+sels.forEach(function(s,i){if(s&&s.value)u.searchParams.set(keys[i],s.value);else u.searchParams.delete(keys[i])});
+var t=q&&q.value.trim();if(t)u.searchParams.set('q',t.slice(0,80));else u.searchParams.delete('q');
+history.replaceState(null,'',u.pathname+u.search+u.hash);}
+fromUrl();
+if(q)q.addEventListener('input',function(){apply();toUrl()});sels.forEach(function(s){if(s)s.addEventListener('change',function(){apply();toUrl()})});apply();
 [].forEach.call(document.querySelectorAll('[data-tk-copy]'),function(b){b.addEventListener('click',function(){var el=document.getElementById(b.getAttribute('data-tk-copy'));if(!el||!navigator.clipboard)return;navigator.clipboard.writeText(el.innerText).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1600)})})});
 })();
 """
