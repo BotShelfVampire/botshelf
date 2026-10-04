@@ -251,6 +251,7 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
+let sigRecomputed = 0;
 let alertsSeen = 0, panelsSeen = 0, htfChecked = 0, rangeChecked = 0, breakoutsSeen = 0, mutantsCaught = 0, zonesSeen = 0, pivSigSeen = 0;
 const TS_MIN = { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 10: 1, 15: 1, 20: 1, 30: 1, 60: 1, 120: 1, 240: 1, 1440: 1, 2880: 1, 4320: 1, 5760: 1 };
 function htfReadable(recipe, b) {
@@ -298,13 +299,23 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     let worst = 0; for (let i = from; i < NB; i++) worst = Math.max(worst, Math.abs(v[i] - want[i]) / Math.max(1, Math.abs(want[i])));
     ok(v && worst < 1e-6, f, `${b.id} (${b.type}) matches reference from bar ${from}: worst ${worst}`);
   }
+  // threshold / look-back / combine signals: recomputed here from the block's own inputs (independent of the generator's
+  // expression), compared on every bar after the first 100; the look-back counts the previous bars only
+  { const tb = (x) => !!x && !Number.isNaN(x), get = (r) => env.get(('S_' + r).toLowerCase()) || env.get(('V_' + r).toLowerCase()) || pxOf[r];
+    for (const b of recipe.blocks.filter(b => /^signal\.(threshold|recent|combine)$/.test(b.type))) { const p = b.params || {}, v = env.get(('S_' + b.id).toLowerCase()); if (!v) continue; const want = [];
+      for (let i = 0; i < NB; i++) {
+        if (b.type === 'signal.threshold') { const a = get(p.left)[i], x = typeof p.right === 'string' && p.right ? get(p.right)[i] : Number(p.value); want.push(Number.isFinite(a) && Number.isFinite(x) && { '>': a > x, '>=': a >= x, '<': a < x, '<=': a <= x, '==': a === x, '!=': a !== x }[p.op || '>=']); }
+        if (b.type === 'signal.recent') { const sg = get(p.signal); let h = false; for (let k = 1; k <= p.bars && i - k >= 0; k++) if (tb(sg[i - k])) h = true; want.push(h); }
+        if (b.type === 'signal.combine') { const L = (p.signals || []).map(get); want.push(L.length > 0 && L.every(Boolean) && (p.mode === 'any' ? L.some(s => tb(s[i])) : L.every(s => tb(s[i])))); } }
+      let bad = 0; for (let i = 100; i < NB; i++) if (tb(v[i]) !== want[i]) bad++;
+      ok(bad === 0 && (b.type !== 'signal.recent' || want.some(Boolean)), f, `${b.id} (${b.type}) equals the recomputation from its inputs (${bad} differ)`); sigRecomputed++; } }
   // value panels (visual.table): one title label + one label per field the generator can show; the label text on the
   // last real bar carries the value of the bar that just closed ([1]). Expected fields are decided here independently.
   const tables = recipe.blocks.filter(b => b.type === 'visual.table');
   if (tables.length) {
     const by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
     const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine|breakout)|filter\.session|structure\.range)$/;
-    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : b.type === 'structure.range' ? [q.during] : b.type === 'signal.breakout' ? [q.range] : []; };
+    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left, typeof q.right === 'string' ? q.right : null] : b.type === 'signal.recent' ? [q.signal] : b.type === 'signal.combine' ? (q.signals || []) : b.type === 'structure.range' ? [q.during] : b.type === 'signal.breakout' ? [q.range] : []; };
     const shown = (r, seen = new Set()) => { if (!by[r]) return !!pxOf[r]; if (seen.has(r)) return true; seen.add(r); const b = by[r]; if (!OKT.test(b.type) || ((b.params || {}).timeframeRef && !htfReadable(recipe, b))) return false; return deps(b).filter(Boolean).every(x => shown(x, seen)); };
     // a field built only from higher-timeframe values is shown without [1] (it is already the previous closed higher bar)
     const htfOnly = (r, seen = new Set()) => { const b = by[r]; if (!b) return false; if ((b.params || {}).timeframeRef) return true; if (seen.has(r)) return true; seen.add(r); const d = deps(b).filter(Boolean); return d.length > 0 && d.every(x => htfOnly(x, seen)); };
@@ -417,5 +428,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify(fired) === JSON.stringify(expect), f, `alert ${k}: fired ${fired} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'thinkscript', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, zones: zonesSeen, sweep_divergence_15m: pivSigSeen, mutants_caught: mutantsCaught, note: 'BSV thinkScript-subset parser/evaluator, not thinkorswim' }));
+console.log(JSON.stringify({ target: 'thinkscript', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, zones: zonesSeen, sweep_divergence_15m: pivSigSeen, mutants_caught: mutantsCaught, signals_recomputed: sigRecomputed, note: 'BSV thinkScript-subset parser/evaluator, not thinkorswim' }));
 process.exit(failures ? 1 : 0);

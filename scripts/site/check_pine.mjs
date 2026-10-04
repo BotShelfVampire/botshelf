@@ -186,6 +186,7 @@ const refInd = (bs, b) => { const p = b.params || {}, x = srcOf(bs, p.source);
   if (b.type === 'indicator.rsi') { const G = refRma(x.slice(1).map((w, i) => Math.max(w - x[i], 0)), p.length), L = refRma(x.slice(1).map((w, i) => Math.max(x[i] - w, 0)), p.length); return [NaN, ...G.map((u, i) => 100 * u / (u + L[i]))]; }
   const tr = bs.map((h, i) => i === 0 ? h.high - h.low : Math.max(h.high, bs[i - 1].close) - Math.min(h.low, bs[i - 1].close)); return [NaN, ...refRma(tr.slice(1), p.length)]; };
 const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b)) || Math.abs(a - b) < 1e-9, tr = (v) => !!(v && fin(v));
+const lookBackAlerts = {}; // recipe -> alert bars, for recipes that use signal.recent
 let todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, mutantsCaught = 0, alertsSeen = 0, rangeChecked = 0, breakoutsSeen = 0, zonesSeen = 0, pivSigSeen = 0, panelsSeen = 0, hooksSeen = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
@@ -210,10 +211,11 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
       for (let i = from; i < bs.length; i++) worst = Math.max(worst, Math.abs(v[i] - R[i]) / Math.max(1, Math.abs(R[i])));
       ok(worst < 1e-6, f, `${b.id} (${b.type}) matches the reference from bar ${from}: worst ${worst}`); indChecked++;
     }
-    if (/^(signal\.(cross|threshold|combine)|filter\.session)$/.test(b.type)) {
+    if (/^(signal\.(cross|threshold|combine|recent)|filter\.session)$/.test(b.type)) {
       const n = bs.length, g = (r) => env.get(r) || srcOf(bs, r), want = N(n, false);
       if (b.type === 'signal.cross') { const a = g(p.left), c = g(p.right); for (let i = 1; i < n; i++) want[i] = [a[i], c[i], a[i - 1], c[i - 1]].every(fin) && (p.direction === 'below' ? a[i] < c[i] && a[i - 1] >= c[i - 1] : a[i] > c[i] && a[i - 1] <= c[i - 1]); }
-      if (b.type === 'signal.threshold') { const a = g(p.left), x = Number(p.value), op = ['>', '>=', '<', '<=', '==', '!='].includes(p.op) ? p.op : '>='; for (let i = 0; i < n; i++) want[i] = fin(a[i]) && { '>': a[i] > x, '>=': a[i] >= x, '<': a[i] < x, '<=': a[i] <= x, '==': a[i] === x, '!=': a[i] !== x }[op]; }
+      if (b.type === 'signal.threshold') { const a = g(p.left), c = typeof p.right === 'string' && p.right ? g(p.right) : null, op = ['>', '>=', '<', '<=', '==', '!='].includes(p.op) ? p.op : '>='; for (let i = 0; i < n; i++) { const x = c ? c[i] : Number(p.value); want[i] = fin(a[i]) && fin(x) && { '>': a[i] > x, '>=': a[i] >= x, '<': a[i] < x, '<=': a[i] <= x, '==': a[i] === x, '!=': a[i] !== x }[op]; } }
+      if (b.type === 'signal.recent') { const sg = env.get(p.signal); for (let i = 0; i < n; i++) { want[i] = false; for (let k = 1; k <= p.bars && i - k >= 0; k++) if (tr(sg[i - k])) want[i] = true; } ok(want.some(Boolean), f, `${b.id}: the look-back is true on some bars (not vacuous)`); }
       if (b.type === 'signal.combine') { const S = (p.signals || []).map(r => env.get(r)); for (let i = 0; i < n; i++) want[i] = S.length > 0 && (p.mode === 'any' ? S.some(s => tr(s[i])) : S.every(s => tr(s[i]))); }
       if (b.type === 'filter.session') { const [s0, s1] = String(p.session || '0000-2359').split('-').map(x => +x.slice(0, 2) * 60 + +x.slice(2, 4)), tz = String(p.timezone || 'Etc/UTC');
         for (let i = 0; i < n; i++) { const d = new Date(bs[i].time).toLocaleString('en-US', { timeZone: tz, hour12: false, hour: 'numeric', minute: 'numeric' }).split(':').map(Number), m = (d[0] % 24) * 60 + d[1]; want[i] = s0 <= s1 ? m >= s0 && m < s1 : m >= s0 || m < s1; }
@@ -260,6 +262,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   ok(sink.plots.length >= plotsB.length && plotsB.every((b, k) => sink.plots[k].v.every((x, i) => same(x, (env.get(b.params.source) || srcOf(bs, b.params.source))[i]))), f, 'one plot per visual.plot, plotting its source');
   ok(sink.alerts.length === alertsB.length && alertsB.every((b, k) => sink.alerts[k].cond.every((x, i) => tr(x) === tr(env.get(b.params.when)[i])) && sink.alerts[k].message === (b.params.message || b.id)), f, 'one alertcondition per alert.condition, on its signal, with its message');
   sink.alerts.forEach(a => { alertsSeen += a.cond.filter(tr).length; });
+  if (recipe.blocks.some(b => b.type === 'signal.recent') && sink.alerts.length) { const c = sink.alerts.reduce((t, a) => t + a.cond.filter(tr).length, 0); lookBackAlerts[f.replace('.json', '')] = c; ok(c > 0, f, `alert condition with a look-back fires on the test bars (${c} bars)`); }
   // value panels: every field of the recipe (a range = its high and low) is a row, the value is the bar that just closed (n - 2), from the series checked above
   const fieldIds = (tb) => (tb.params.fields || []).flatMap(x => by[x]?.type === 'structure.range' ? (by[x].params.track || []).map(k => `${x}.${k}`) : [String(x)]);
   const boolT = (x) => /^(signal\.|filter\.session)/.test(by[x]?.type || '');
@@ -291,6 +294,9 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   if (cx) { const mc = code.replace(new RegExp(`^${cx.id} = ta\\.cross(over|under)\\(`, 'm'), (m0, d) => `${cx.id} = ta.cross${d === 'over' ? 'under' : 'over'}(`), e2 = evalPine(parse(mc), bs, { plots: [], alerts: [] });
     const caught = mc !== code && e2.get(cx.id).some((x, i) => tr(x) !== tr(env.get(cx.id)[i])); ok(caught, f, `flipped-cross mutant caught (${cx.id})`); if (caught) mutantsCaught++; }
   else if (recipe.blocks.some(b => b.type === 'signal.cross' && env.get(b.id))) ok(false, f, 'crosses never fire on the test bars (vacuous)');
+  // signal.recent must look at the bars before, never the current one: the "[1]" -> "[0]" mutant must change the block
+  for (const rc of recipe.blocks.filter(b => b.type === 'signal.recent' && env.get(b.id) && env.get(b.id).some(tr))) { const mc = code.replace(new RegExp(`^(${rc.id} = \\w+)\\[1\\]`, 'm'), '$1[0]'), e2 = evalPine(parse(mc), bs, { plots: [], alerts: [] });
+    const caught = mc !== code && e2.get(rc.id).some((x, i) => tr(x) !== tr(env.get(rc.id)[i])); ok(caught, f, `mutant caught: look-back includes the current bar (${rc.id})`); if (caught) mutantsCaught++; }
 }
-console.log(JSON.stringify({ target: 'pine-v6', recipes: files, checks, failures, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, alert_bars: alertsSeen, ranges: rangeChecked, breakouts: breakoutsSeen, zones: zonesSeen, sweep_divergence: pivSigSeen, panels: panelsSeen, webhook_payloads: hooksSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, note: "BSV Pine-subset parser/evaluator, not TradingView" }));
+console.log(JSON.stringify({ target: 'pine-v6', recipes: files, checks, failures, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, alert_bars: alertsSeen, ranges: rangeChecked, breakouts: breakoutsSeen, zones: zonesSeen, sweep_divergence: pivSigSeen, panels: panelsSeen, webhook_payloads: hooksSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, look_back_alert_bars: lookBackAlerts, note: "BSV Pine-subset parser/evaluator, not TradingView" }));
 process.exit(failures ? 1 : 0);

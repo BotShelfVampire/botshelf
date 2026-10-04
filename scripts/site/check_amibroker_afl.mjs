@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Check of the generator's AmiBroker AFL output for every recipe, with a small BSV-written AFL-subset
 // parser and array evaluator. NOT AmiBroker: it only covers the statements BSV generates and follows the
-// AFL function reference on amibroker.com/guide (MA, EMA, RSIa, ATR, Ref, TimeNum, BarIndex, LastValue,
+// AFL function reference on amibroker.com/guide (MA, EMA, RSIa, ATR, Ref, Nz, TimeNum, BarIndex, LastValue,
 // Plot, AlertIf). Checks: comments/strings/parentheses parse, every statement ends with ';', only these
 // documented functions and constants are used, names are assigned before use, Ref only looks back, no Buy/Sell/Short/Cover,
 // indicator values match an independent JS reference once warmed up, and replayed alerts fire only on
@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
 const FN = { ema: [2, 2], ma: [2, 2], rsia: [1, 2], atr: [1, 1], ref: [2, 2], timenum: [0, 0], barindex: [0, 0], lastvalue: [1, 1], plot: [2, 9], alertif: [2, 6], printf: [1, 9], numtostr: [1, 4], writeif: [3, 3],
-  timeframeset: [1, 1], timeframerestore: [0, 0], timeframeexpand: [3, 3], interval: [0, 0], iif: [3, 3], isnull: [1, 1], highestsince: [2, 2], lowestsince: [2, 2], valuewhen: [2, 3], hhv: [2, 2], llv: [2, 2] };
+  timeframeset: [1, 1], timeframerestore: [0, 0], timeframeexpand: [3, 3], interval: [0, 0], iif: [3, 3], isnull: [1, 1], nz: [1, 2], highestsince: [2, 2], lowestsince: [2, 2], valuewhen: [2, 3], hhv: [2, 2], llv: [2, 2] };
 const CONST = new Set(['open', 'high', 'low', 'close', 'true', 'false', 'null', 'styleline',
   'expandfirst', 'indaily', 'colorblue', 'colorred', 'colorgreen', 'colororange', 'colorviolet', 'colorteal', 'colorbrown', 'colorgrey50']);
 const ORDER = new Set(['buy', 'sell', 'short', 'cover']);
@@ -154,6 +154,7 @@ function evalAfl(stmts, bars, sink) {
         if (f === 'timeframerestore') { cur = base; return 0; }
         if (f === 'timeframeexpand') { const c = comp(secOf(A[1])), x = A[0]; if (!Array.isArray(x) || x.length !== c.bars.length || A[2] !== 'expandfirst') throw new Error('TimeFrameExpand of a non-compressed array'); return c.gidx.map(g => x[g]); }
         if (f === 'interval') return bars.length > 1 ? (bars[1].time - bars[0].time) / 1000 : NaN;
+        if (f === 'nz') { const x = arr(A[0]), d = A.length > 1 ? arr(A[1]) : null; return x.map((v, i) => Number.isFinite(v) ? v : (d ? d[i] : 0)); } // Nz(x, valueifnull = 0): Null / NaN / Inf -> the default (AFL guide)
         if (f === 'iif') { const c = arr(A[0]), a = arr(A[1]), b = arr(A[2]); return c.map((v, i) => (v && !Number.isNaN(v)) ? a[i] : b[i]); }
         if (f === 'isnull') return arr(A[0]).map(v => +Number.isNaN(v));
         if (f === 'highestsince' || f === 'lowestsince') { const c = arr(A[0]), x = arr(A[1]), hi = f === 'highestsince'; let m = NaN; return x.map((v, i) => { if (c[i] && !Number.isNaN(c[i])) m = v; else if (!Number.isNaN(m)) m = hi ? Math.max(m, v) : Math.min(m, v); return m; }); } // since the last bar where the condition held (that bar included); Null before
@@ -178,6 +179,7 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
+let sigRecomputed = 0;
 let alertsSeen = 0, panelsSeen = 0, htfChecked = 0, rangeChecked = 0, breakoutsSeen = 0, mutantsCaught = 0, zonesSeen = 0, pivSigSeen = 0;
 const byId = (recipe) => Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
 let CUR_RECIPE = null;
@@ -226,6 +228,16 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     let worst = 0; for (let i = from; i < 400; i++) worst = Math.max(worst, Math.abs(v[i] - want[i]) / Math.max(1, Math.abs(want[i])));
     ok(v && worst < 1e-6, f, `${b.id} (${b.type}) matches reference from bar ${from}: worst ${worst}`);
   }
+  // threshold / look-back / combine signals: recomputed here from the block's own inputs (independent of the generator's
+  // expression), compared on every bar after the first 100; the look-back counts the previous bars only
+  { const tb = (x) => !!x && !Number.isNaN(x), get = (r) => env.get(('S_' + r).toLowerCase()) || env.get(('V_' + r).toLowerCase()) || pxOf[r];
+    for (const b of recipe.blocks.filter(b => /^signal\.(threshold|recent|combine)$/.test(b.type))) { const p = b.params || {}, v = env.get(('S_' + b.id).toLowerCase()); if (!v) continue; const want = [];
+      for (let i = 0; i < 400; i++) {
+        if (b.type === 'signal.threshold') { const a = get(p.left)[i], x = typeof p.right === 'string' && p.right ? get(p.right)[i] : Number(p.value); want.push(Number.isFinite(a) && Number.isFinite(x) && { '>': a > x, '>=': a >= x, '<': a < x, '<=': a <= x, '==': a === x, '!=': a !== x }[p.op || '>=']); }
+        if (b.type === 'signal.recent') { const sg = get(p.signal); let h = false; for (let k = 1; k <= p.bars && i - k >= 0; k++) if (tb(sg[i - k])) h = true; want.push(h); }
+        if (b.type === 'signal.combine') { const L = (p.signals || []).map(get); want.push(L.length > 0 && L.every(Boolean) && (p.mode === 'any' ? L.some(s => tb(s[i])) : L.every(s => tb(s[i])))); } }
+      let bad = 0; for (let i = 100; i < 400; i++) if (tb(v[i]) !== want[i]) bad++;
+      ok(bad === 0 && (b.type !== 'signal.recent' || want.some(Boolean)), f, `${b.id} (${b.type}) equals the recomputation from its inputs (${bad} differ)`); sigRecomputed++; } }
   // higher timeframe on 15-minute bars: previous closed hour, equal to the independent reference; prefix runs agree (no lookahead)
   const htfB = recipe.blocks.filter(b => (b.params || {}).timeframeRef && htfReadable(b) && String(byId(recipe)[b.params.timeframeRef].params.timeframe) === '60');
   if (htfB.length) {
@@ -310,7 +322,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   if (tables.length) {
     const by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
     const OKT = /^(indicator\.(ema|sma|rsi|atr)|signal\.(cross|threshold|combine|breakout)|filter\.session|structure\.range)$/;
-    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left] : b.type === 'signal.combine' ? (q.signals || []) : b.type === 'structure.range' ? [q.during] : b.type === 'signal.breakout' ? [q.range] : []; };
+    const deps = (b) => { const q = b.params || {}; return b.type === 'signal.cross' ? [q.left, q.right] : b.type === 'signal.threshold' ? [q.left, typeof q.right === 'string' ? q.right : null] : b.type === 'signal.recent' ? [q.signal] : b.type === 'signal.combine' ? (q.signals || []) : b.type === 'structure.range' ? [q.during] : b.type === 'signal.breakout' ? [q.range] : []; };
     const shown = (r, seen = new Set()) => { if (!by[r]) return !!pxOf[r]; if (seen.has(r)) return true; seen.add(r); const b = by[r]; if (!OKT.test(b.type) || ((b.params || {}).timeframeRef && !htfReadable(b))) return false; return deps(b).filter(Boolean).every(x => shown(x, seen)); };
     const expect = []; let skipped = 0, shownPanels = 0;
     for (const t of tables) {
@@ -336,5 +348,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify([...fired].sort((x, y) => x - y)) === JSON.stringify(expect), f, `alert ${k}: fired ${[...fired]} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, zones: zonesSeen, sweep_divergence_15m: pivSigSeen, mutants_caught: mutantsCaught, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
+console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, zones: zonesSeen, sweep_divergence_15m: pivSigSeen, mutants_caught: mutantsCaught, signals_recomputed: sigRecomputed, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
 process.exit(failures ? 1 : 0);

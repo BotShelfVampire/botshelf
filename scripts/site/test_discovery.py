@@ -405,6 +405,16 @@ def main():
     ok(not [u for u in list(locs) + txt + tlocs if bd.is_gated(u)], "no gated URL in any sitemap")
     ok(tlocs and all(bd.url_to_file(s, u).exists() for u in tlocs), "trading/sitemap.xml URLs exist")
     ok(not [c["canonicalUrl"] for c in cm["capabilities"] if bd.is_gated(c["canonicalUrl"])], "capability canonical URLs are public pages")
+    # recipe functional fix (batch 25): changelog on the public recipe page, entry in the changes feed, Builder knows the new block
+    tpc = s / "trading/tools/bsv-recipe-trend-pullback-composite.html"
+    if tpc.exists():
+        tv = bd.visible_text(tpc)
+        ok('id="changelog"' in tpc.read_text() and "2026-10-04" in tv and "Functional fix" in tv and "機能の修正" in tv and "signal.recent" in tv, "trend-pullback-composite: changelog (EN + JA) and the signal.recent block on the recipe page")
+        ok(not re.search(r'class="[^"]*changelog', tpc.read_text()), "changelog section uses existing classes only")
+        chj = s / "transparency/changes.json"
+        ok(chj.exists() and "trend-pullback-composite" in chj.read_text() and "functional fix" in chj.read_text(), "transparency changes feed discloses the trend-pullback-composite fix")
+        bj = "".join(p_.read_text() for p_ in (s / "trading/sources").glob("bsv-builder.*.js"))
+        ok("'signal.recent':[['signal','ref'],['bars','int']]" in bj and "['right','oref']" in bj, "Builder: signal.recent fields and the optional threshold right")
     # trust facts re-read from the built pages
     for key, page, sent in bd.FACTS:
         ok(sent in bd.visible_text(s / page), f"trust fact {key} not on {page}")
