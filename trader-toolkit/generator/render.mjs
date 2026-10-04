@@ -176,7 +176,7 @@ function pivotOk(recipe, b) {
   return n(q.left) && n(q.right) && ['close', 'high_low'].includes(q.source || 'close');
 }
 function zoneOk(recipe, b) {
-  if (!recipe.bsvRangeReal || !b || b.type !== 'visual.zone') return false;
+  if (!(recipe.bsvRangeReal || recipe.bsvPivotReal) || !b || b.type !== 'visual.zone') return false;  // Tradovate: pivot zones only (rangeOk needs bsvRangeReal)
   const d = blockMap(recipe).get(b.params?.source);
   return !!d && (pivotOk(recipe, d) || (rangeOk(recipe, d) && rangeKeys(d).length === 2));
 }
@@ -2245,6 +2245,7 @@ function renderTradovate(recipe) {
   const map = blockMap(recipe);
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot');
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
+  const zones = recipe.blocks.filter(b => zoneOk(recipe, b)); // pivot zones: two lines, the held pivot high and low
   const id = (x) => String(x).replace(/[^A-Za-z0-9_]/g, '_');
   const px = { open: 's.o', high: 's.h', low: 's.l', close: 's.c', hl2: '(s.h + s.l) / 2', hlc3: '(s.h + s.l + s.c) / 3', ohlc4: '(s.o + s.h + s.l + s.c) / 4' };
   const at = (expr, who) => who === 's' ? expr : expr.replace(/\bs\./g, who + '.');
@@ -2323,6 +2324,10 @@ function renderTradovate(recipe) {
         break;
       case 'visual.plot': case 'alert.condition':
         break;
+      case 'visual.zone':
+        if (zoneOk(recipe, b)) { L.push(`    // zone ${k}: drawn as Z lines from ${id(q.source)} (last confirmed pivot high / low)`); break; }
+        L.push(`    // TODO unsupported block ${b.type}: ${k}`, `    s.V_${k} = NaN;`);
+        break;
       case 'structure.pivot': {
         if (!pivotOk(recipe, b)) { L.push(`    // TODO unsupported block ${b.type}: ${k}`, `    s.V_${k} = NaN;`); break; }
         const [hk, lk] = (q.source || 'close') === 'high_low' ? ['h', 'l'] : ['c', 'c'];
@@ -2357,6 +2362,7 @@ function renderTradovate(recipe) {
   L.push('    const out = (v) => Number.isFinite(v) ? v : undefined;');
   const ret = [];
   plots.forEach((b, k) => ret.push(`P${k + 1}: out(${val(b.params?.source)})`));
+  zones.forEach((b, n) => ret.push(`Z${n + 1}H: out(s.V_${id(b.params.source)}_high)`, `Z${n + 1}L: out(s.V_${id(b.params.source)}_low)`));
   alerts.forEach((b, k) => ret.push(`A${k + 1}: p && ${bool(b.params?.when, 'p')} ? ${recipe.overlay ? 'p.c' : '1'} : undefined`));
   L.push(`    return { ${ret.join(', ')} };`);
   L.push('  }');
@@ -2369,8 +2375,9 @@ function renderTradovate(recipe) {
   }
   L.push('}');
   L.push('');
-  const plotEntries = [...plots.map((b, k) => `    P${k + 1}: { title: ${jsText(b.params?.title || b.params?.source || b.id, 60)} }`), ...alerts.map((b, k) => `    A${k + 1}: { title: ${jsText('Alert: ' + (b.params?.message || b.id), 80)} }`)];
-  const styles = [...plots.map((b, k) => `      P${k + 1}: { color: "${colors[k % colors.length]}" }`), ...alerts.map((b, k) => `      A${k + 1}: { color: "${k % 2 ? 'salmon' : 'lightgreen'}" }`)];
+  const zt = (b, x) => jsText(String(b.params?.title || b.id).slice(0, 50) + ' ' + x, 60);
+  const plotEntries = [...plots.map((b, k) => `    P${k + 1}: { title: ${jsText(b.params?.title || b.params?.source || b.id, 60)} }`), ...zones.flatMap((b, n) => [`    Z${n + 1}H: { title: ${zt(b, 'high')} }`, `    Z${n + 1}L: { title: ${zt(b, 'low')} }`]), ...alerts.map((b, k) => `    A${k + 1}: { title: ${jsText('Alert: ' + (b.params?.message || b.id), 80)} }`)];
+  const styles = [...plots.map((b, k) => `      P${k + 1}: { color: "${colors[k % colors.length]}" }`), ...zones.flatMap((b, n) => [`      Z${n + 1}H: { color: "salmon" }`, `      Z${n + 1}L: { color: "lightgreen" }`]), ...alerts.map((b, k) => `      A${k + 1}: { color: "${k % 2 ? 'salmon' : 'lightgreen'}" }`)];
   L.push('module.exports = {');
   L.push(`  name: "${name}",`);
   L.push(`  description: ${jsText(safeTitle(recipe), 80)},`);
@@ -2380,7 +2387,7 @@ function renderTradovate(recipe) {
   L.push(`  areaChoice: "${recipe.overlay ? 'overlay' : 'new'}",`);
   L.push('  tags: ["BSV starters"],');
   L.push(`  plots: {${plotEntries.length ? '\n' + plotEntries.join(',\n') + '\n  ' : ''}},`);
-  L.push(`  plotter: [${[...plots.map((b, k) => `predef.plotters.singleline("P${k + 1}")`), ...alerts.map((b, k) => `predef.plotters.dots("A${k + 1}")`)].join(', ')}],`);
+  L.push(`  plotter: [${[...plots.map((b, k) => `predef.plotters.singleline("P${k + 1}")`), ...zones.flatMap((b, n) => [`predef.plotters.singleline("Z${n + 1}H")`, `predef.plotters.singleline("Z${n + 1}L")`]), ...alerts.map((b, k) => `predef.plotters.dots("A${k + 1}")`)].join(', ')}],`);
   if (alerts.length) L.push(`  shifts: { ${alerts.map((b, k) => `A${k + 1}: -1`).join(', ')} }, // alert dots sit on the bar that just closed`);
   L.push(`  schemeStyles: { dark: {${styles.length ? '\n' + styles.join(',\n') + '\n    ' : ''}} }`);
   L.push('};');

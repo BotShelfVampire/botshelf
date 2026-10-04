@@ -13,7 +13,7 @@ import vm from 'node:vm';
 import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-let checks = 0, failures = 0, files = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0;
+let checks = 0, failures = 0, files = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0, zoneSeen = 0;
 const fail = (f, m) => { failures++; console.error('FAIL', f, m); };
 const ok = (c, f, m) => { checks++; if (!c) fail(f, m); };
 const fin = Number.isFinite;
@@ -117,7 +117,10 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   try { L = load(code, f); checks++; } catch (e) { fail(f, 'load: ' + e.message); continue; }
   const { ex } = L;
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot'), alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
-  const keys = [...plots.map((_, k) => 'P' + (k + 1)), ...alerts.map((_, k) => 'A' + (k + 1))];
+  const byIdR = new Map(recipe.blocks.map(b => [b.id, b]));
+  const zones = recipe.blocks.filter(b => b.type === 'visual.zone' && byIdR.get(b.params?.source)?.type === 'structure.pivot'); // pivot zones are rendered; range zones stay TODO
+  recipe.blocks.filter(b => b.type === 'visual.zone' && !zones.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block visual.zone: ${String(b.id).replace(/[^A-Za-z0-9_]/g, '_')}`), f, `${b.id}: range zone left as TODO on Tradovate`));
+  const keys = [...plots.map((_, k) => 'P' + (k + 1)), ...zones.flatMap((_, n) => ['Z' + (n + 1) + 'H', 'Z' + (n + 1) + 'L']), ...alerts.map((_, k) => 'A' + (k + 1))];
   ok(Object.keys(ex).every(k => EXPORT_KEYS.has(k)), f, 'only documented Indicator fields: ' + Object.keys(ex));
   ok(/^[A-Za-z][A-Za-z0-9]*$/.test(ex.name) && typeof ex.description === 'string' && ex.description.length > 0, f, 'name/description');
   ok(typeof ex.calculator === 'function' && typeof ex.calculator.prototype.map === 'function' && typeof ex.calculator.prototype.init === 'function', f, 'calculator class with init/map');
@@ -164,6 +167,17 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     }
   }
   plots.forEach((pl, k) => { const want = ref.val(pl.params?.source), got = A.out.map(o => o['P' + (k + 1)]); ok(got.every((g, i) => fin(want[i]) ? Math.abs(g - want[i]) < 1e-9 : g === undefined), f, `P${k + 1} plots ${pl.params?.source}`); });
+  // zone lines = the reference's held pivot high / low on every bar (undefined while none is confirmed); a swapped mutant must fail
+  const zoneBad = (out) => zones.reduce((n, z, j) => n + ['high', 'low'].reduce((m, e) => { const want = ref.V.get(z.params.source + '.' + e), key = 'Z' + (j + 1) + e[0].toUpperCase();
+    return m + out.reduce((c, o, i) => c + !(fin(want[i]) ? Math.abs(o[key] - want[i]) < 1e-12 : o[key] === undefined), 0); }, 0), 0);
+  zones.forEach((z, j) => { const w = ref.V.get(z.params.source + '.high'); ok(w.some(fin) && ref.V.get(z.params.source + '.low').some(fin), f, `Z${j + 1}: reference has confirmed pivots (not vacuous)`); zoneSeen++; });
+  if (zones.length) {
+    ok(zoneBad(A.out) === 0, f, `zone lines equal the reference pivot high / low (${zoneBad(A.out)} values differ)`);
+    const mc = code.replace(/Z1H: out\(s\.V_(\w+)_high\), Z1L: out\(s\.V_\w+_low\)/, 'Z1H: out(s.V_$1_low), Z1L: out(s.V_$1_high)');
+    let M2; try { M2 = load(mc, f); } catch (e) { M2 = null; }
+    if (mc !== code && M2) { const c3 = new M2.ex.calculator(); c3.props = {}; c3.init(); const o3 = []; for (let i = 0; i < NB; i++) o3.push(c3.map(entity(bars[i]), i)); const caught = zoneBad(o3) > 0; ok(caught, f, 'mutant caught: zone lines swapped'); if (caught) mutCaught++; }
+    else ok(false, f, 'zone swap mutant could not be built');
+  }
   // live updates: re-running the forming bar must not change any output, and alerts only read the closed bar
   ok(JSON.stringify(A.out) === JSON.stringify(B.out), f, 'outputs unchanged after forming-bar updates');
   alerts.forEach((al, k) => {
@@ -189,5 +203,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(!same, f, `mutant caught: ${mn}`); if (!same) mutCaught++;
   }
 }
-console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, sweep_divergence_signals: pivSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
+console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
 process.exit(failures ? 1 : 0);
