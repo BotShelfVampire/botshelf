@@ -43,13 +43,39 @@
     });
     return { ok: errors.length === 0, status: st || null, errors: errors, warnings: warnings, filled: filled, fields: total };
   }
-  var api = { checkHandoff: checkHandoff, parse: parse, SECTIONS: SECTIONS, STATUS: STATUS };
+  // Start a blank packet for one AI toolkit item: only facts known from the catalog are filled in (job id, NOT_STARTED, the
+  // BSV source path, the framework, the catalog status as a limitation). Everything else, including owner approval, stays blank.
+  function startPacket(template, item) {
+    var set = { 'JOB': { 'id': 'toolkit:' + item.id, 'status': 'NOT_STARTED' },
+      'CURRENT STATE': { 'authoritative source': 'BotShelfVampire/botshelf ' + item.path, 'live deploy / environment': item.framework + ' (your own; BSV does not run it)',
+        'verified facts': 'AI toolkit catalog status ' + item.status },
+      'EVIDENCE': { 'limitations': 'Not runtime-tested by BSV (catalog status ' + item.status + '); file presence and CI syntax checks are not runtime verification' } };
+    var cur = null;
+    return String(template || '').replace(/\r\n?/g, '\n').split('\n').map(function (line) {
+      var t = line.trim();
+      if (SECTIONS.indexOf(t) >= 0) { cur = t; return line; }
+      var m = /^(\s*-\s*)([^:]+):(.*)$/.exec(line);
+      if (m && cur && set[cur] && Object.prototype.hasOwnProperty.call(set[cur], m[2].trim().toLowerCase())) return m[1] + m[2] + ': ' + set[cur][m[2].trim().toLowerCase()];
+      return line;
+    }).join('\n');
+  }
+  var api = { checkHandoff: checkHandoff, parse: parse, startPacket: startPacket, SECTIONS: SECTIONS, STATUS: STATUS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BSVHandoff = api;
   if (!root.document) return;
   root.document.addEventListener('DOMContentLoaded', function () {
     var b = root.document.getElementById('ho-check'), ta = root.document.getElementById('ho-text'), out = root.document.getElementById('ho-out');
     if (!b || !ta || !out) return;
+    var sb = root.document.getElementById('ho-start'), sel = root.document.getElementById('ho-item');
+    if (sb && sel) sb.addEventListener('click', function () {
+      var o = sel.options[sel.selectedIndex]; out.textContent = '';
+      var msg = root.document.createElement('p'); msg.className = 'rq-msg';
+      if (!o || !o.value) { msg.className += ' err'; msg.textContent = 'Choose a toolkit item first / 先に項目を選んでください'; }
+      else if (ta.value.trim()) { msg.className += ' err'; msg.textContent = 'The box is not empty: clear it first so nothing you wrote is replaced / 入力欄が空ではありません。書いた内容を消さないよう、先に空にしてください'; }
+      else { ta.value = startPacket(sb.getAttribute('data-ho-tpl'), { id: o.value, path: o.getAttribute('data-path'), framework: o.getAttribute('data-fw'), status: o.getAttribute('data-st') });
+        msg.className += ' ok'; msg.textContent = 'Started a packet for ' + o.value + '. Fill in the rest, choose owner approval YES or NO, then press Check / 残りを記入し、owner approval を YES か NO にしてから Check を押してください'; }
+      out.appendChild(msg);
+    });
     b.addEventListener('click', function () {
       var r = checkHandoff(ta.value); out.textContent = '';
       var head = root.document.createElement('p'); head.className = 'rq-msg ' + (r.ok ? 'ok' : 'err');
