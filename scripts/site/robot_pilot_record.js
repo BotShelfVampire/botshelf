@@ -98,7 +98,7 @@
   // Practice log (Issue #7 tranche 6): totals over evidence records saved in this browser. Self-reported input only;
   // nothing is estimated, uploaded or upgraded. Records whose counts do not add up are flagged, not corrected.
   function summarize(list) {
-    var o = { sessions: 0, attempted: 0, successful: 0, failed: 0, recovery: 0, safetyEvents: 0, nonSimulation: 0, inconsistent: [], byTask: {}, firstDate: null, lastDate: null };
+    var o = { sessions: 0, attempted: 0, successful: 0, failed: 0, recovery: 0, safetyEvents: 0, nonSimulation: 0, inconsistent: [], endBeforeStart: [], byTask: {}, firstDate: null, lastDate: null };
     (Array.isArray(list) ? list : []).forEach(function (e, i) {
       if (!e || typeof e !== 'object' || !e.episodes || typeof e.episodes !== 'object') return;
       var ep = e.episodes, n = function (x) { return typeof x === 'number' && isFinite(x) && x >= 0 ? Math.floor(x) : 0; };
@@ -109,6 +109,8 @@
       o.safetyEvents += Array.isArray(e.safetyEvents) ? e.safetyEvents.length : 0;
       if (e.environment !== 'SIMULATION') o.nonSimulation++;
       if (s + f > a) o.inconsistent.push(e.evidenceId || ('#' + i));
+      var t0 = typeof e.startedAt === 'string' ? Date.parse(e.startedAt) : NaN, t1 = typeof e.endedAt === 'string' ? Date.parse(e.endedAt) : NaN;
+      if (isFinite(t0) && isFinite(t1) && t1 < t0) o.endBeforeStart.push(e.evidenceId || ('#' + i)); // flagged as saved; never corrected
       var t = String(e.taskId || '(no task)'), b = o.byTask[t] || (o.byTask[t] = { sessions: 0, attempted: 0, successful: 0, failed: 0, recovery: 0 });
       b.sessions++; b.attempted += a; b.successful += s; b.failed += f; b.recovery += r;
     });
@@ -200,7 +202,7 @@
       var o = summarize(list); tb.textContent = '';
       Object.keys(o.byTask).sort().forEach(function (t) { var b = o.byTask[t], tr = root.document.createElement('tr'); [t, b.sessions, b.attempted, b.successful, b.failed, b.recovery, pct(b.attempted ? b.successful / b.attempted : null)].forEach(function (v) { td(tr, v); }); tb.appendChild(tr); });
       sm.textContent = o.sessions ? (o.sessions + ' session(s) saved in this browser: ' + o.attempted + ' attempted, ' + o.successful + ' successful (' + pct(o.successRate) + '), ' + o.failed + ' failed, ' + o.recovery + ' recovery, ' + o.safetyEvents + ' safety event(s).' +
-        (o.nonSimulation ? ' ' + o.nonSimulation + ' not marked SIMULATION.' : '') + (o.inconsistent.length ? ' Counts do not add up in: ' + o.inconsistent.join(', ') + '.' : '') + (o.firstDate ? ' Session dates: ' + (o.firstDate === o.lastDate ? o.firstDate : o.firstDate + ' to ' + o.lastDate) + '.' : '') + ' Self-reported; not reviewed.') : 'No sessions saved in this browser yet.';
+        (o.nonSimulation ? ' ' + o.nonSimulation + ' not marked SIMULATION.' : '') + (o.inconsistent.length ? ' Counts do not add up in: ' + o.inconsistent.join(', ') + '.' : '') + (o.endBeforeStart.length ? ' End time before start time in: ' + o.endBeforeStart.join(', ') + '.' : '') + (o.firstDate ? ' Session dates: ' + (o.firstDate === o.lastDate ? o.firstDate : o.firstDate + ' to ' + o.lastDate) + '.' : '') + ' Self-reported; not reviewed.') : 'No sessions saved in this browser yet.';
     }
     renderLog();
     $('#rp-save').addEventListener('click', renderLog);
