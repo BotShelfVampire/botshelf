@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
 const FN = { ema: [2, 2], ma: [2, 2], rsia: [1, 2], atr: [1, 1], ref: [2, 2], timenum: [0, 0], barindex: [0, 0], lastvalue: [1, 1], plot: [2, 9], alertif: [2, 6], printf: [1, 9], numtostr: [1, 4], writeif: [3, 3],
-  timeframeset: [1, 1], timeframerestore: [0, 0], timeframeexpand: [3, 3], interval: [0, 0], iif: [3, 3], isnull: [1, 1], highestsince: [2, 2], lowestsince: [2, 2], valuewhen: [2, 2] };
+  timeframeset: [1, 1], timeframerestore: [0, 0], timeframeexpand: [3, 3], interval: [0, 0], iif: [3, 3], isnull: [1, 1], highestsince: [2, 2], lowestsince: [2, 2], valuewhen: [2, 3], hhv: [2, 2], llv: [2, 2] };
 const CONST = new Set(['open', 'high', 'low', 'close', 'true', 'false', 'null', 'styleline',
   'expandfirst', 'indaily', 'colorblue', 'colorred', 'colorgreen', 'colororange', 'colorviolet', 'colorteal', 'colorbrown', 'colorgrey50']);
 const ORDER = new Set(['buy', 'sell', 'short', 'cover']);
@@ -157,7 +157,8 @@ function evalAfl(stmts, bars, sink) {
         if (f === 'iif') { const c = arr(A[0]), a = arr(A[1]), b = arr(A[2]); return c.map((v, i) => (v && !Number.isNaN(v)) ? a[i] : b[i]); }
         if (f === 'isnull') return arr(A[0]).map(v => +Number.isNaN(v));
         if (f === 'highestsince' || f === 'lowestsince') { const c = arr(A[0]), x = arr(A[1]), hi = f === 'highestsince'; let m = NaN; return x.map((v, i) => { if (c[i] && !Number.isNaN(c[i])) m = v; else if (!Number.isNaN(m)) m = hi ? Math.max(m, v) : Math.min(m, v); return m; }); } // since the last bar where the condition held (that bar included); Null before
-        if (f === 'valuewhen') { const c = arr(A[0]), x = arr(A[1]); let m = NaN; return x.map((v, i) => { if (c[i] && !Number.isNaN(c[i])) m = v; return m; }); } // value at the most recent bar where the condition held
+        if (f === 'valuewhen') { const c = arr(A[0]), x = arr(A[1]), k = A[2] === undefined ? 1 : Number(A[2]), seen = []; return x.map((v, i) => { if (c[i] && !Number.isNaN(c[i])) seen.push(v); return seen.length >= k ? seen[seen.length - k] : NaN; }); } // value at the k-th most recent bar where the condition held
+        if (f === 'hhv' || f === 'llv') { const x = arr(A[0]), p = A[1]; return x.map((_, i) => { if (i < p - 1) return NaN; let m = x[i]; for (let j = i - p + 1; j < i; j++) m = f === 'hhv' ? Math.max(m, x[j]) : Math.min(m, x[j]); return m; }); } // over the last p bars, this bar included
         if (f === 'alertif') { sink.alerts.push({ text: A[2], cond: arr(A[0]), lookback: A[5] ?? 1, flags: A[4] ?? 15 }); return 0; }
       }
     }
@@ -177,7 +178,7 @@ const C = bars.map(b => b.close);
 const TR = bars.map((b, i) => i === 0 ? b.high - b.low : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 const pxOf = { close: C, open: bars.map(b => b.open), high: bars.map(b => b.high), low: bars.map(b => b.low) };
 pxOf.hl2 = bars.map(b => (b.high + b.low) / 2); pxOf.hlc3 = bars.map(b => (b.high + b.low + b.close) / 3); pxOf.ohlc4 = bars.map(b => (b.open + b.high + b.low + b.close) / 4);
-let alertsSeen = 0, panelsSeen = 0, htfChecked = 0, rangeChecked = 0, breakoutsSeen = 0, mutantsCaught = 0;
+let alertsSeen = 0, panelsSeen = 0, htfChecked = 0, rangeChecked = 0, breakoutsSeen = 0, mutantsCaught = 0, zonesSeen = 0, pivSigSeen = 0;
 const byId = (recipe) => Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
 let CUR_RECIPE = null;
 function htfReadable(b) {  // indicator on a data.higher_timeframe of whole minutes < 1 day, or 1 day (what the generator renders for AFL)
@@ -206,7 +207,11 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   if (failures > before) continue; // do not evaluate code that failed the static checks
   const sink = { plots: [], alerts: [] };
   const env = evalAfl(stmts, bars, sink);
-  ok(sink.plots.length === recipe.blocks.filter(b => b.type === 'visual.plot').length, f, 'one Plot per visual.plot');
+  const zoneB = recipe.blocks.filter(b => b.type === 'visual.zone' && new RegExp(`^Plot\\(V_${b.params?.source}_high, `, 'm').test(code));
+  ok(sink.plots.length === recipe.blocks.filter(b => b.type === 'visual.plot').length + 2 * zoneB.length, f, 'one Plot per visual.plot, two per rendered zone');
+  zoneB.forEach((z, k) => { const n0 = sink.plots.length - 2 * zoneB.length + 2 * k, hv = env.get(`v_${z.params.source}_high`), lv = env.get(`v_${z.params.source}_low`);
+    const z15 = evalAfl(stmts, bars15, { plots: [], alerts: [] }); ok(sink.plots[n0].v === hv && sink.plots[n0 + 1].v === lv && z15.get(`v_${z.params.source}_high`).some(Number.isFinite), f, `${z.id}: zone lines are the source high / low (not vacuous on the 15-minute bars)`); zonesSeen++; });
+  recipe.blocks.filter(b => b.type === 'visual.zone' && !zoneB.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block visual.zone: ${b.id}`), f, `${b.id}: zone left as TODO`));
   ok(sink.alerts.length === recipe.blocks.filter(b => b.type === 'alert.condition').length, f, 'one AlertIf per alert.condition');
   for (const b of recipe.blocks) {
     const v = env.get(('V_' + b.id).toLowerCase()), p = b.params || {};
@@ -267,6 +272,38 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
       const caught = bad(evalAfl(parse(tokenize(mc)), bars15, { plots: [], alerts: [] })) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++;
     }
   }
+  // pivots, sweeps and divergences on the 15-minute bars: an independent bar-by-bar reference (pivot confirmed `right` bars later,
+  // strictly beyond the left bars, at least as far as the right ones; last pivot held); sweep and divergence use the evaluator's
+  // ATR / oscillator (checked against their own reference above) and are compared after warm-up; mutants must be caught
+  const pivB = recipe.blocks.filter(b => b.type === 'structure.pivot' && new RegExp(`^P_${b.id}_h = `, 'm').test(code));
+  if (pivB.length) {
+    const by = byId(recipe), N15 = bars15.length, px15 = (k) => bars15.map(b => b[k]);
+    const refPiv = (pb) => { const q = pb.params, [hk, lk] = (q.source || 'close') === 'high_low' ? ['high', 'low'] : ['close', 'close'], H = px15(hk), Lo = px15(lk), out = { h: [], l: [], ph: [], pl: [], H, Lo };
+      let vh = NaN, vl = NaN; for (let i = 0; i < N15; i++) { const j = i - q.right; let up = false, dn = false;
+        if (j - q.left >= 0) { up = true; dn = true; for (let n = j - q.left; n <= i; n++) { if (n === j) continue; if (n < j ? !(H[j] > H[n]) : !(H[j] >= H[n])) up = false; if (n < j ? !(Lo[j] < Lo[n]) : !(Lo[j] <= Lo[n])) dn = false; } }
+        if (up) { vh = H[j]; out.ph.push(j); } if (dn) { vl = Lo[j]; out.pl.push(j); } out.h.push(vh); out.l.push(vl); } return out; };
+    const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b)) || Math.abs(a - b) < 1e-9, tr = (v) => !!(v && !Number.isNaN(v));
+    const sigB = recipe.blocks.filter(b => /^signal\.(liquidity_sweep|divergence)$/.test(b.type) && pivB.some(x => x.id === b.params?.pivot));
+    const bad = (env) => { let n = 0; for (const pb of pivB) { const q = refPiv(pb); for (let i = 0; i < N15; i++) { if (!same(env.get(`v_${pb.id}_high`)[i], q.h[i])) n++; if (!same(env.get(`v_${pb.id}_low`)[i], q.l[i])) n++; } }
+      for (const sb of sigB) { const pb = by[sb.params.pivot], q = refPiv(pb), v = env.get(`s_${sb.id}`), from = 400;
+        if (sb.type === 'signal.liquidity_sweep') { const A = env.get(`v_${sb.params.atr}`), fr = Number(sb.params.minAtrFraction || 0);
+          for (let i = from; i < N15; i++) { const b = bars15[i], ph = q.h[i - 1], pl = q.l[i - 1]; const w = Number.isFinite(A[i]) && ((Number.isFinite(ph) && b.high > ph && b.high - ph >= fr * A[i] && b.close < ph) || (Number.isFinite(pl) && b.low < pl && pl - b.low >= fr * A[i] && b.close > pl)); if (tr(v[i]) !== w) n++; } }
+        else { const O = env.get(`v_${sb.params.oscillator}`), d = sb.params.direction || 'both', w = new Array(N15).fill(false), R = pb.params.right;
+          if (d !== 'bullish') for (let k = 1; k < q.ph.length; k++) { const a = q.ph[k - 1], j = q.ph[k]; if (q.H[j] > q.H[a] && O[j] < O[a]) w[j + R] = true; }
+          if (d !== 'bearish') for (let k = 1; k < q.pl.length; k++) { const a = q.pl[k - 1], j = q.pl[k]; if (q.Lo[j] < q.Lo[a] && O[j] > O[a]) w[j + R] = true; }
+          for (let i = from; i < N15; i++) if (tr(v[i]) !== w[i]) n++; } }
+      return n; };
+    const e15 = evalAfl(stmts, bars15, { plots: [], alerts: [] });
+    ok(bad(e15) === 0, f, `pivot / sweep / divergence values equal the reference on the 15-minute bars (${bad(e15)} differ)`);
+    for (const sb of sigB) { const c = e15.get(`s_${sb.id}`).slice(400).filter(tr).length; ok(c > 0, f, `${sb.id}: fires on the 15-minute bars (${c}; not vacuous)`); pivSigSeen += c; }
+    let pd = 0; for (let n = 1200; n <= 4000; n += 151) { const ep = evalAfl(stmts, bars15.slice(0, n), { plots: [], alerts: [] }); for (const pb of pivB) for (const k of ['high', 'low']) if (!same(ep.get(`v_${pb.id}_${k}`)[n - 1], e15.get(`v_${pb.id}_${k}`)[n - 1])) pd++; for (const sb of sigB) if (tr(ep.get(`s_${sb.id}`)[n - 1]) !== tr(e15.get(`s_${sb.id}`)[n - 1])) pd++; }
+    ok(pd === 0, f, `pivot prefix runs give the same last-bar values (no lookahead; ${pd} differ)`);
+    for (const [mn, from, to, need] of [['pivot without the right-side test', / AND Ref\((\w+), -(\d+)\) >= HHV\(\1, \2\);/, ';', null], ['sweep without the close back inside', / AND Close < Ref\(V_\w+_high, -1\)\)/, ')', 'signal.liquidity_sweep'], ['divergence oscillator test flipped', /\) < ValueWhen\(P_(\w+)_h, Ref\(V_/, ') > ValueWhen(P_$1_h, Ref(V_', 'signal.divergence']]) {
+      if (need && !sigB.some(b => b.type === need)) continue;
+      const mc = code.replace(from, to); if (mc === code) { ok(false, f, `mutant could not be built: ${mn}`); continue; }
+      const caught = bad(evalAfl(parse(tokenize(mc)), bars15, { plots: [], alerts: [] })) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++;
+    }
+  }
   // replay: bars 300..399 arrive one by one; AlertIf sees the last `lookback` bars; flag 8 = no repeat for the same bar time
   // value panels (visual.table): printf lines for the last completed bar; expected fields decided here independently
   const tables = recipe.blocks.filter(b => b.type === 'visual.table');
@@ -299,5 +336,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(JSON.stringify([...fired].sort((x, y) => x - y)) === JSON.stringify(expect), f, `alert ${k}: fired ${[...fired]} expected ${expect}`);
   });
 }
-console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, mutants_caught: mutantsCaught, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
+console.log(JSON.stringify({ target: 'amibroker', recipes: files, checks, failures, replay_alerts: alertsSeen, panels: panelsSeen, htf_values: htfChecked, ranges: rangeChecked, breakouts_15m: breakoutsSeen, zones: zonesSeen, sweep_divergence_15m: pivSigSeen, mutants_caught: mutantsCaught, note: 'BSV AFL-subset parser/evaluator, not AmiBroker' }));
 process.exit(failures ? 1 : 0);
