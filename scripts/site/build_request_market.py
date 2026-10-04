@@ -114,6 +114,12 @@ document.addEventListener('DOMContentLoaded',function(){prefill();load();window.
 """
 
 
+
+def ai_frameworks() -> list:
+    """Frameworks named in ai-toolkit/catalog.json, in catalog order (#6 tranche 12); "Any framework" is not a framework."""
+    cat = json.loads((Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]
+    return [p for p in dict.fromkeys(e["platform"] for e in cat) if p != "Any framework"]
+
 def h8(s):
     return hashlib.sha256(s.encode()).hexdigest()[:8]
 
@@ -368,7 +374,9 @@ def page(site: Path, css_href: str, js_href: str) -> str:
         f'<fieldset><legend>{both("Area", "分野")}</legend><div class="rq-checks">{checks}</div></fieldset>'
         f'<div><label for="rq-platforms">{both("Platform / runtime (comma separated)", "プラットフォーム・実行環境（カンマ区切り）")}</label><input type="text" id="rq-platforms" maxlength="480" placeholder="TradingView, MT5, n8n, ROS 2">'
         f'<p class="small muted" id="rq-plat-picks">{both("Trading platforms the recipe builder writes starters for (tap to add; any other platform can be typed):", "レシピビルダーが出力するトレード用プラットフォーム（タップで追加。ほかのプラットフォームは入力できます）:")} '
-        + " ".join(f'<button type="button" class="chip" data-rq-plat="{blt.esc(p)}">{blt.esc(p)}</button>' for p in dict.fromkeys(l.split(" · ")[0] for _, l, _ in blt.TARGETS)) + '</p></div>'
+        + " ".join(f'<button type="button" class="chip" data-rq-plat="{blt.esc(p)}">{blt.esc(p)}</button>' for p in dict.fromkeys(l.split(" · ")[0] for _, l, _ in blt.TARGETS)) + '</p>'
+        f'<p class="small muted" id="rq-ai-picks">{both("AI frameworks with BSV toolkit items (tap to add; any other can be typed):", "BSVのAIツールキットがあるフレームワーク（タップで追加。ほかも入力できます）:")} '
+        + " ".join(f'<button type="button" class="chip" data-rq-plat="{blt.esc(p)}">{blt.esc(p)}</button>' for p in ai_frameworks()) + '</p></div>'
         f'<div class="rq-row"><div><label for="rq-in">{both("Inputs", "入力")}</label><input type="text" id="rq-in" maxlength="960"></div><div><label for="rq-out">{both("Outputs", "出力")}</label><input type="text" id="rq-out" maxlength="960"></div></div>'
         f'<div class="rq-row"><div><label for="rq-free">{both("Free / open solution OK?", "無料・オープンな解決でもよいか")}</label><select id="rq-free"><option value="">—</option><option value="yes">Yes / はい</option><option value="no">No / いいえ</option></select></div>'
         f'<div><label for="rq-min">{both("Budget min (USDT, optional)", "予算の下限（USDT・任意）")}</label><input type="number" id="rq-min" min="0" step="1"></div>'
