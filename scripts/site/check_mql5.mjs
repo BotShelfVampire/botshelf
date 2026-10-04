@@ -95,7 +95,7 @@ const srcOf = (bs, s) => bs.map(b => s === 'hl2' ? (b.high + b.low) / 2 : s === 
 const refInd = (bs, b) => { const p = b.params || {}, x = srcOf(bs, p.source); if (b.type === 'indicator.sma') return refSma(x, p.length); if (b.type === 'indicator.ema') return refEma(x, p.length);
   if (b.type === 'indicator.rsi') { const G = refRma(x.slice(1).map((w, i) => Math.max(w - x[i], 0)), p.length), L = refRma(x.slice(1).map((w, i) => Math.max(x[i] - w, 0)), p.length); return [NaN, ...G.map((u, i) => 100 * u / (u + L[i]))]; }
   const trs = bs.map((h, i) => i === 0 ? NaN : Math.max(h.high, bs[i - 1].close) - Math.min(h.low, bs[i - 1].close)); return [NaN, ...refSma(trs.slice(1), p.length)]; }; // MT5 ATR: simple average of the true range
-const vacuous = []; let rangeChecked = 0, breakoutsSeen = 0, todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, plotsChecked = 0, alertsSeen = 0, mutantsCaught = 0, files = 0, auditNames = 0;
+const vacuous = []; let pivChecked = 0, pivSigSeen = 0, zonesSeen = 0, rangeChecked = 0, breakoutsSeen = 0, todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, plotsChecked = 0, alertsSeen = 0, mutantsCaught = 0, files = 0, auditNames = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'mql5'], { encoding: 'utf8' });
@@ -143,10 +143,37 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
       const mc = code.replace(from, to), caught = mc !== code && badR(run(translate(mc).js, bs, chartMin, n).F) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; } }
   // TODO stubs: never true / never a value
   for (const m of code.matchAll(/^(bool|double) ([SV])_(\w+)\(int i\) \{ return (false|EMPTY_VALUE); \} \/\/ TODO unsupported block/gm)) { let bad = 0; for (let i = 0; i < top; i += 7) { const x = S(`${m[2]}_${m[3]}`, i); if (m[1] === 'bool' ? x !== false : x !== EMPTY) bad++; } ok(bad === 0, f, `${m[3]}: TODO stub never true / never a value`); }
+  // pivots / sweeps / divergences / zones (batch 26): independent chronological pivot reference written here (not from the generator);
+  // sweep and divergence use the model's ATR / oscillator buffers (checked above); compared on calculated bars from chronological bar 400
+  const pivB = recipe.blocks.filter(b => b.type === 'structure.pivot' && hasFn(`V_${b.id}_high`)), pvSig = recipe.blocks.filter(b => /^signal\.(liquidity_sweep|divergence)$/.test(b.type) && pivB.some(x => x.id === b.params?.pivot) && hasFn(`S_${b.id}`));
+  const zoneB = recipe.blocks.filter(b => b.type === 'visual.zone' && code.includes(`double Buf_${b.id}_high[];`));
+  const refPiv = (pb) => { const q = pb.params, [hk, lk] = (q.source || 'close') === 'high_low' ? ['high', 'low'] : ['close', 'close'], H = bs.map(b => b[hk]), Lo = bs.map(b => b[lk]), out = { h: [], l: [], ph: [], pl: [], H, Lo }; let vh = NaN, vl = NaN;
+    for (let i = 0; i < n; i++) { const j = i - q.right; let up = false, dn = false; if (j - q.left >= 0) { up = true; dn = true; for (let m = j - q.left; m <= i; m++) { if (m === j) continue; if (m < j ? !(H[j] > H[m]) : !(H[j] >= H[m])) up = false; if (m < j ? !(Lo[j] < Lo[m]) : !(Lo[j] <= Lo[m])) dn = false; } }
+      if (up) { vh = H[j]; out.ph.push(j); } if (dn) { vl = Lo[j]; out.pl.push(j); } out.h.push(vh); out.l.push(vl); } return out; };
+  const badP = (F) => { let d = 0; const from = Math.max(400, n - top);
+    for (const pb of pivB) { const q = refPiv(pb); for (let j = from; j < n; j++) { if (!same(val(F.call(`V_${pb.id}_high`, n - 1 - j)), q.h[j])) d++; if (!same(val(F.call(`V_${pb.id}_low`, n - 1 - j)), q.l[j])) d++; } }
+    for (const sb of pvSig) { const pb = by[sb.params.pivot], q = refPiv(pb);
+      if (sb.type === 'signal.liquidity_sweep') { const fr = Number(sb.params.minAtrFraction || 0); for (let j = from; j < n; j++) { const b = bs[j], A = val(F.call(`V_${sb.params.atr}`, n - 1 - j)), ph = q.h[j - 1], pl = q.l[j - 1], w = fin(A) && ((fin(ph) && b.high > ph && b.high - ph >= fr * A && b.close < ph) || (fin(pl) && b.low < pl && pl - b.low >= fr * A && b.close > pl)); if (!!F.call(`S_${sb.id}`, n - 1 - j) !== w) d++; } }
+      else { const O = (j) => val(F.call(`V_${sb.params.oscillator}`, n - 1 - j)), dir = sb.params.direction || 'both', w = new Array(n).fill(false), R = pb.params.right;
+        if (dir !== 'bullish') for (let k = 1; k < q.ph.length; k++) { const a = q.ph[k - 1], j = q.ph[k]; if (q.H[j] > q.H[a] && fin(O(j)) && fin(O(a)) && O(j) < O(a)) w[j + R] = true; }
+        if (dir !== 'bearish') for (let k = 1; k < q.pl.length; k++) { const a = q.pl[k - 1], j = q.pl[k]; if (q.Lo[j] < q.Lo[a] && fin(O(j)) && fin(O(a)) && O(j) > O(a)) w[j + R] = true; }
+        for (let j = from; j < n; j++) if (!!F.call(`S_${sb.id}`, n - 1 - j) !== w[j]) d++; } }
+    return d; };
+  if (pivB.length) { const d0 = badP(full.F); ok(d0 === 0, f, `pivot / sweep / divergence equal the chronological reference on every calculated bar from 400 (${d0} differ)`);
+    for (const pb of pivB) { const q = refPiv(pb); ok(q.ph.length > 0 && q.pl.length > 0, f, `${pb.id}: pivots occur (not vacuous)`); pivChecked++; }
+    for (const sb of pvSig) { let c = 0; for (let j = Math.max(400, n - top); j < n; j++) if (full.F.call(`S_${sb.id}`, n - 1 - j)) c++; ok(c > 0, f, `${sb.id}: fires (${c}; not vacuous)`); pivSigSeen += c; if (d0 === 0) env.set(sb.id, series(`S_${sb.id}`, x => +tr(x))); }
+    for (const [mn, from, to, need] of [['pivot without the right-side test', / for \(int k = 1; k <= \d+; k\+\+\) if \((iHigh|iClose)\(_Symbol, _Period, c - k\) > v\) return\(false\);/, '', null],
+      ['sweep without the close back inside', / && c < ph\)/, ')', 'signal.liquidity_sweep'], ['divergence oscillator test flipped', / && o1 < o0; \}/, ' && o1 > o0; }', 'signal.divergence']]) {
+      if (need && !pvSig.some(b => b.type === need)) continue; const mc = code.replace(from, to), caught = mc !== code && badP(run(translate(mc).js, bs, chartMin, n).F) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; } }
+  // zones: two extra buffers after the plots, holding the source's high / low; the incremental run equals one full calculation
+  zoneB.forEach((z, k) => { const src = by[z.params.source], k0 = recipe.blocks.filter(b => b.type === 'visual.plot').length + 2 * k;
+    const want = src.type === 'structure.pivot' ? (() => { const q = refPiv(src); return [q.h, q.l]; })() : [0, 1].map(s => { const R = env.get(src.params.during).map(x => x === 1), out = []; let h = NaN, l = NaN; bs.forEach((b, j) => { if (R[j]) { const fresh = j === 0 || !R[j - 1]; h = fresh ? b.high : Math.max(h, b.high); l = fresh ? b.low : Math.min(l, b.low); } out.push(s ? l : h); }); return out; });
+    let bad = 0, binc = 0; for (const s of [0, 1]) { const fb = full.rt.buffers[k0 + s]?.__t, ib = inc.rt.buffers[k0 + s]?.__t; if (!fb || !ib) { bad++; continue; } for (let j = Math.max(400, n - top + 1); j < n; j++) { if (!same(val(fb.store[j]), want[s][j])) bad++; if (!same(val(ib.store[j]), val(fb.store[j]))) binc++; } }
+    ok(bad === 0 && binc === 0 && want[0].some(fin), f, `${z.id}: zone buffers = ${z.params.source} high / low (${bad} differ; incremental differ ${binc}; not vacuous)`); zonesSeen++; });
   ok(recipe.blocks.every(b => !/^(structure|signal|visual\.(zone|table)|alert\.webhook|scanner)\./.test(b.type) || /^signal\.(cross|threshold|combine)$/.test(b.type) || hasFn(`S_${b.id}`) || hasFn(`V_${b.id}`) || hasFn(`V_${b.id}_high`) || hasFn(`V_${b.id}_low`) || code.includes(`TODO unsupported block ${b.type}: ${b.id}`)), f, 'every block is rendered or a declared TODO stub');
   // plots: one buffer per visual.plot holding its source; the incremental run (new bar + ticks) equals one full calculation
   const plotB = recipe.blocks.filter(b => b.type === 'visual.plot');
-  ok(full.rt.buffers.length === plotB.length, f, 'one indicator buffer per visual.plot');
+  ok(full.rt.buffers.length === plotB.length + 2 * zoneB.length, f, 'one indicator buffer per visual.plot, two per rendered zone');
   plotB.forEach((b, k) => { const fb = full.rt.buffers[k]?.__t, ib = inc.rt.buffers[k]?.__t; if (!fb || !ib) { ok(false, f, `${b.id}: buffer`); return; } const v = env.get(b.params.source) || srcOf(bs, b.params.source); let bad = 0, binc = 0;
     for (let i = 0; i < top; i++) { const j = n - 1 - i, a = fb.store[fb.series ? j : j], w = v[j]; if (!same(val(a), w)) bad++; if (!same(val(ib.store[j]), val(a))) binc++; }
     ok(bad === 0, f, `${b.id}: plot buffer = its source on every calculated bar (${bad} differ)`); ok(binc === 0, f, `${b.id}: incremental calls (new bar + ticks) equal one full calculation (${binc} differ)`); plotsChecked++; });
@@ -177,5 +204,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(mc !== code && d > 0, f, 'mutant caught: higher timeframe reads the forming higher bar (s instead of s + 1)'); if (mc !== code && d > 0) mutantsCaught++; }
   { const st0 = [...code.matchAll(/^bool (S_\w+)\(int i\) \{ return false; \} \/\/ TODO/gm)].find(m => code.split(m[1] + '(').length > 2), mc = st0 ? code.replace(st0[0], '// TODO') : code, changed = mc !== code; if (changed) { let caught = false; try { const t = translate(mc), u = [...names(t.js)].filter(x => !t.declared.has(x) && !API.has(x) && !JSKW.has(x)); caught = u.length > 0; } catch { caught = true; } ok(caught, f, 'mutant caught: a comment-only TODO block that is still referenced (the Pine bug) is an undeclared name'); if (caught) mutantsCaught++; } }
 }
-console.log(JSON.stringify({ target: 'mql5', recipes: files, checks, failures, names_audited: auditNames, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, plots: plotsChecked, ranges: rangeChecked, breakouts: breakoutsSeen, alerts: alertsSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, alert_bars_60m_sets: fires, alerts_vacuous: vacuous, note: 'BSV MQL5-subset translator + stub of the documented MT5 API in node:vm, not MetaTrader 5' }));
+console.log(JSON.stringify({ target: 'mql5', recipes: files, checks, failures, names_audited: auditNames, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, plots: plotsChecked, ranges: rangeChecked, pivots: pivChecked, sweep_divergence: pivSigSeen, zones: zonesSeen, breakouts: breakoutsSeen, alerts: alertsSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, alert_bars_60m_sets: fires, alerts_vacuous: vacuous, note: 'BSV MQL5-subset translator + stub of the documented MT5 API in node:vm, not MetaTrader 5' }));
 process.exit(failures ? 1 : 0);
