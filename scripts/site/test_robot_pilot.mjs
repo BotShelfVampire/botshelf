@@ -141,6 +141,8 @@ ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?a
   ok(S.inconsistent.length === 1 && S.inconsistent[0] === "e3" && S.nonSimulation === 1, "practice log: counts that do not add up and non-simulation sessions are flagged");
   const E = P.summarize([]); ok(E.sessions === 0 && E.successRate === null, "practice log: empty log has no rate");
   const N = P.summarize([mk("n", "T", -3, "2", 1.9, 0)]); ok(N.attempted === 0 && N.successful === 0 && N.failed === 1, "practice log: negative or non-number counts are not counted");
+  const Tm = P.summarize([{ ...mk("t1", "T", 1, 1, 0, 0), startedAt: "2026-10-04T10:00:00Z", endedAt: "2026-10-04T09:00:00Z" }, { ...mk("t2", "T", 1, 1, 0, 0), startedAt: "2026-10-04T10:00:00Z", endedAt: "2026-10-04T11:00:00Z" }, { ...mk("t3", "T", 1, 1, 0, 0), startedAt: "bad", endedAt: "2026-10-04T11:00:00Z" }]);
+  ok(Tm.endBeforeStart.length === 1 && Tm.endBeforeStart[0] === "t1" && Tm.sessions === 3, "practice log: a session that ends before it starts is flagged, not corrected; unparseable times are not flagged");
   ok(html.includes('id="rp-log"') && html.includes('id="rp-log-clear"') && /not reviewed|nothing is uploaded, estimated or reviewed/.test(html), "practice log section on the Academy page");
 }
 // tooling opportunities (#7 tranche 7): all seven kinds, counts equal the recipe file, no demand numbers, request + publish links
