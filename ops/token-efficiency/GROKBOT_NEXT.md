@@ -1,4 +1,5 @@
 # Progress 2026-10-04 00:00 JST (New Bobby) — P0 tranches
+- 10:00 JST LIVE 6ac1a520: AI handoff 'start from a toolkit item' (gated page only). Next: tranche 12 (#8 llms AI toolkit section, #6 AI framework picks, #7 save cap notice) — prepared in /workspace/bsv-wt.
 - 09:51 JST LIVE 6ac1a328: Tradovate visual.zone (pivot source; Z lines), check_tradovate 376/0 mutants 5; range zone stays TODO. Next: AI handoff 'start from toolkit item', then tranche 12 (#8 llms AI toolkit section, #6 AI framework picks, #7 save warns when the 20-session cap drops oldest).
 - 09:43 JST email 26 sent+confirmed (covers 6ac1913b, 6ac1933b, 6ac194c6, 6ac19fcd). Next email: send_report27.py.
 - 09:37 JST LIVE 6ac19fcd: tranche 11 — #8 AI toolkit in /capabilities/ (17 manifests, UNTESTED; total 107), #6 ask-for-another-framework links (?toolkit= prefill), #7 per-module mission links (?kind=mission&module=). Comments #8 c5975072647, #6 c5975072837, #7 c5975073040. Note: /workspace/netlify-cli node_modules had vanished; restored with npm ci (lockfile). Next: Trader gap (visual.zone on Tradovate / HTF TODO), then AI toolkit item.
