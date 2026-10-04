@@ -267,6 +267,10 @@ def main():
         ok("' End time before start time in: '" in pjs and "o.endBeforeStart" in pjs, "robot pilot: log summary flags sessions that end before they start (#7 t18)")
         ok('<p class="muted" id="tk-empty" hidden>' in hub and 'id="tk-empty" hidden>No toolkit item matches these filters. <a data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form">' in hub and "' of '+cards.length+' shown'" in tkjs, "AI hub: empty state with an ask link that carries the framework; count shows N of M (AI t18, #6 t18)")
         ok('<button type="button" class="lib-chip" id="tk-link" hidden>Copy link to this view</button>' in hub and "lk.hidden=!on||!navigator.clipboard" in tkjs and "writeText(location.href)" in tkjs, "AI hub: copy-link button only while filtered and when the clipboard exists (AI t19)")
+        ok("' Saved more than once: '" in pjs and "o.duplicateIds" in pjs, "robot pilot: log summary flags evidence ids saved more than once (#7 t19)")
+        _jopts = set(re.findall(r'<option value="([^"]+)">', hub[hub.find('id="tk-f-job"'):hub.find("</select>", hub.find('id="tk-f-job"'))]))
+        _jl = [(m.group(1), m.group(2)) for x in sorted((s / "library/toolkit").glob("*/index.html")) for m in [re.search(r'data-tk-job-hub="([^"]+)" href="/library/toolkit/\?job=([^"#]+)#tk-q"', x.read_text(errors="ignore"))] if m]
+        ok(len(_jl) >= 10 and all(a == urllib.parse.unquote(b) and a in _jopts for a, b in _jl), f"AI item pages: job hub link uses a job the hub filter knows ({len(_jl)} pages) (AI t20)")
         ok("which block types render or stay TODO" in rd("llms.txt"), "llms.txt: coverage line names block support (#8 t18)")
         cvb = json.loads(rd("trading/build/coverage.json"))
         U = [set(x["blockSupport"]["rendered"]) | set(x["blockSupport"]["unsupportedTodo"]) for x in cvb["targets"]]
@@ -298,6 +302,9 @@ def main():
         ok(cr[0] == ["recipe"] + [x["id"] for x in cv["targets"]] and [[r[0]] + [int(v) for v in r[1:]] for r in cr[1:cut]] == [[r["id"]] + [r["todoLines"][x["id"]] for x in cv["targets"]] for r in cv["recipes"]]
            and [r[3] for r in cr[cut + 2:cut2]] == [x["higherTimeframe"]["status"] for x in cv["targets"]] and all(r[4] == "false" for r in cr[cut + 2:cut2]) and 'href="/trading/build/coverage.csv"' in ct, "coverage.csv equals coverage.json (matrix + statuses) and is linked")
         ok(cr[cut2 + 1:cut2 + 2] == [["target", "block_types_rendered", "block_types_todo"]] and [[r[0], r[1].split(), r[2].split()] for r in cr[cut2 + 2:]] == [[x["id"], x["blockSupport"]["rendered"], x["blockSupport"]["unsupportedTodo"]] for x in cv["targets"]], "coverage.csv: block-support rows equal coverage.json blockSupport, one per target (#8 t18)")
+        _rows = re.findall(r'<tr id="cov-([a-z0-9-]+)">.*?<td class="small" data-todo-blocks="(\d+)">(.*?)</td>', ct)
+        ok([(r[0], int(r[1]), re.findall(r'data-ask-block="([a-z._]+)" href="/requests/\?area=trading&amp;platform=[^"&]+&amp;block=\1#rq-form"', r[2])) for r in _rows] == [(x["id"], len(x["blockSupport"]["unsupportedTodo"]), x["blockSupport"]["unsupportedTodo"]) for x in cv["targets"]], "coverage page: TODO blocks per target equal coverage.json, each with a block request link (#8 t19, #6 t19)")
+        ok(all(re.fullmatch(r"[a-z]+\.[a-z_]+", k) for x in cv["targets"] for k in x["blockSupport"]["unsupportedTodo"]), "coverage page: every TODO block id passes the request form block prefill pattern (#6 t19)")
         ok(re.findall(r'data-doc href="([^"]+)"', ct) == [u for x in cv["targets"] for u in x["higherTimeframe"].get("docs", [])], "coverage page: official doc links for documented-idiom targets")
         ok('"@type":"Dataset"' in ct and "/trading/build/coverage.json" in ct and "<script>" not in ct.replace('<script type="application/ld+json">', ""), "coverage page: Dataset JSON-LD for the downloadable file, no inline script")
         tids = [x["id"] for x in cv["targets"]]
