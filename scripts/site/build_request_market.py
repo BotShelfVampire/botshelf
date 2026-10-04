@@ -115,6 +115,18 @@ document.addEventListener('DOMContentLoaded',function(){prefill();load();window.
 
 
 
+def ai_supply() -> str:
+    """AI toolkit supply by framework (#6 tranche 14): counted from ai-toolkit/catalog.json; a catalogue fact, not demand."""
+    cat = json.loads((Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]
+    rows = "".join(f'<tr data-ai-fw="{blt.esc(f)}"><td>{blt.esc(f)}</td><td>{sum(1 for e in cat if e["platform"] == f)}</td><td class="small">'
+                   + blt.esc(", ".join(f"{s} {n}" for s, n in sorted({e["status"]: sum(1 for x in cat if x["platform"] == f and x["status"] == e["status"]) for e in cat if e["platform"] == f}.items()))) + '</td></tr>'
+                   for f in dict.fromkeys(e["platform"] for e in cat))
+    return (f'<h3 id="ai-supply">{both("AI toolkit items by framework", "フレームワークごとのAIツールキットの項目")}</h3>'
+            f'<p class="small">{both("Counted from the AI toolkit catalog. A fact about what BSV has published, not a measure of demand; none is runtime-tested by BSV.", "AIツールキットのカタログから数えた値です。BSVが公開しているものの数で、需要の指標ではありません。BSVで実行検証したものはありません。")} '
+            f'<a href="/library/toolkit/">{both("AI toolkits", "AIツールキット")}</a> · <a href="/library/toolkit/toolkit.v1.json">toolkit.v1.json</a></p>'
+            f'<div class="bb-table-wrap"><table class="qa-table" id="rq-ai-supply"><thead><tr><th>{both("Framework", "フレームワーク")}</th><th>{both("Items", "項目")}</th><th>{both("Catalog status", "カタログの状態")}</th></tr></thead><tbody>{rows}</tbody></table></div>')
+
+
 def ai_frameworks() -> list:
     """Frameworks named in ai-toolkit/catalog.json, in catalog order (#6 tranche 12); "Any framework" is not a framework."""
     cat = json.loads((Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]
@@ -338,6 +350,7 @@ def builders_section(site: Path) -> str:
         f'<h3 id="generator-gaps">{both("Blocks the generator cannot render yet", "ジェネレーターがまだ出力できないブロック")}</h3>'
         f'<p class="small">{both(gen_en, gen_ja)} <a href="/trading/build/coverage/">{both("Coverage by target", "出力先ごとの確認状況")}</a> · <a href="/trading/build/coverage.json">coverage.json</a></p>'
         f'<div class="bb-table-wrap"><table class="qa-table" id="rq-gen-gaps"><thead><tr><th>{both("Block type", "ブロックの種類")}</th><th>{both("Recipes using it", "使っているレシピ")}</th><th>{both("Targets that render it", "出力できる出力先")}</th><th>{both("Request", "リクエスト")}</th></tr></thead><tbody>{grows}</tbody></table></div>'
+        + ai_supply() +
         f'<h3>{both("Signals not collected yet", "まだ集めていないデータ")}</h3>'
         f'<p class="small">{both("No-result searches and page-view demand are not logged on this site, so they are not shown.", "結果0件の検索やページの閲覧数は記録していないため、表示していません。")}</p>'
         f'<h3>{both("If you build it", "作ったら")}</h3><ul><li><q>{blt.esc(split[2])}</q> <a class="small" href="/{split[1]}">{split[1]}</a></li>'
