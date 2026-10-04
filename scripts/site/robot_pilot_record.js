@@ -115,15 +115,17 @@
   }
   // CSV of the sessions saved in this browser (Issue #7 tranche 8): one row per saved evidence file, values copied as
   // saved (nothing estimated). Cells that a spreadsheet would read as a formula get a leading apostrophe.
-  var CSV_COLS = ['evidenceId', 'taskId', 'environment', 'runtime', 'runtimeVersion', 'inputDevice', 'startedAt', 'endedAt', 'attempted', 'successful', 'failed', 'recoveryEpisodes', 'safetyEvents', 'reviewStatus'];
+  var CSV_COLS = ['evidenceId', 'taskId', 'environment', 'runtime', 'runtimeVersion', 'inputDevice', 'startedAt', 'endedAt', 'attempted', 'successful', 'failed', 'recoveryEpisodes', 'safetyEvents', 'reviewStatus', 'criteriaMet', 'criteriaTotal'];
   function csvCell(v) { var t = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }
+  // pass criteria the pilot ticked, as saved in metrics["module.<id>.criterion<n>"] (#7 tranche 13); blank when none were recorded
+  function crit(m) { var k = m && typeof m === 'object' ? Object.keys(m).filter(function (x) { return /^module\.[^.]+\.criterion\d+$/.test(x); }) : []; return k.length ? [k.filter(function (x) { return m[x] === true; }).length, k.length] : ['', '']; }
   function toCsv(list) {
     var rows = [CSV_COLS.join(',')];
     (Array.isArray(list) ? list : []).forEach(function (e) {
       if (!e || typeof e !== 'object') return;
       var ep = e.episodes || {}, rt = e.runtime && typeof e.runtime === 'object' ? e.runtime : {};
       rows.push([e.evidenceId, e.taskId, e.environment, typeof e.runtime === 'string' ? e.runtime : rt.name, e.runtimeVersion || rt.version, e.inputDevice, e.startedAt, e.endedAt,
-        ep.attempted, ep.successful, ep.failed, ep.recoveryEpisodes, Array.isArray(e.safetyEvents) ? e.safetyEvents.length : '', e.review && e.review.status].map(csvCell).join(','));
+        ep.attempted, ep.successful, ep.failed, ep.recoveryEpisodes, Array.isArray(e.safetyEvents) ? e.safetyEvents.length : '', e.review && e.review.status].concat(crit(e.metrics)).map(csvCell).join(','));
     });
     return rows.join('\r\n') + '\r\n';
   }
