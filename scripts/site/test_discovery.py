@@ -224,6 +224,19 @@ def main():
             relok = relok and got == want
         ok(relok, "AI toolkit pages: related items = same job (other items), then same framework, in catalog order")
         ok('data-tk-ask-hub href="/requests/?area=ai-workflows#rq-form"' in rd("library/toolkit/index.html"), "AI toolkit hub: ask for a framework or tool not listed")
+        # batch 14: CreativeWork JSON-LD on AI pages, jobs-by-framework list, AI supply table, Robot Pilot cap note
+        cwok = True
+        for e in tv:
+            h = rd(f"library/toolkit/{e['id']}/index.html")
+            lds = [json.loads(x) for x in re.findall(r'<script type="application/ld\+json">(.*?)</script>', h, re.S)]
+            cw = [x for x in lds if x.get("@type") == "CreativeWork"]
+            cwok = cwok and len(cw) == 1 and cw[0]["url"] == ORIGIN + e["url"] and cw[0]["license"] == "https://spdx.org/licenses/MIT.html" and cw[0]["name"] == e["title"] and not ({"aggregateRating", "review", "offers"} & set(cw[0]))
+        ok(cwok, "AI toolkit pages: one CreativeWork JSON-LD each (title, url, MIT; no rating, review or offer)")
+        hub = rd("library/toolkit/index.html"); mx = hub[hub.find('id="tk-matrix"'):hub.find("</section>", hub.find('id="tk-matrix"'))]
+        ok(re.findall(r'data-tk-fw="([^"]+)"', mx) == [blt.esc(f) for f in dict.fromkeys(e["framework"] for e in tv)] and sum(int(x) for x in re.findall(r"</a> \((\d+)\)", mx)) == len(tv), "AI toolkit hub: jobs by framework, counts add up to the catalog")
+        sup = t[t.find('id="rq-ai-supply"'):t.find("</table>", t.find('id="rq-ai-supply"'))]
+        ok(re.findall(r'data-ai-fw="([^"]+)"', sup) == [blt.esc(f) for f in dict.fromkeys(e["platform"] for e in aicat)] and sum(int(x) for x in re.findall(r"</td><td>(\d+)</td>", sup)) == len(aicat), "requests: AI toolkit items by framework = catalog counts")
+        ok('id="rp-cap"' in rd("robot-pilot/index.html") and "latest 20" in rd("robot-pilot/index.html"), "robot pilot: 20-session cap stated next to Save")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
