@@ -14,7 +14,7 @@
 
 No wallet, price, split, payout, auth or entitlement logic is touched.
 """
-import argparse, html, json, re, sys, datetime
+import argparse, html, json, re, sys, datetime, urllib.parse
 from pathlib import Path
 
 ORIGIN = "https://botshelfvampire.com"
@@ -193,6 +193,8 @@ def ai_toolkit_lines(site: Path, locs: set, today: str) -> list:
             raise SystemExit(f"llms: {rel} is not an indexable sitemap URL")
         if label:
             out.append(f"- {label}: {u}")
+            fw = json.loads(j.read_text())["entries"][0]["framework"]
+            out.append(f"- Filtered hub views use the page filters as URL parameters (framework, job, status, q), for example {u}?framework={urllib.parse.quote(fw)}")
     for e in json.loads(j.read_text())["entries"]:
         out.append(f"- {e['title']} ({e['framework']}; {e['status']}): {ORIGIN}{e['url']}")
     out.append(f"- AI toolkit index (JSON, bsv-ai-toolkit/v1): {ORIGIN}/library/toolkit/toolkit.v1.json")
