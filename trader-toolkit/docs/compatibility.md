@@ -85,6 +85,15 @@ A field is shown only when it and every block it depends on is rendered by the g
 
 While adding the AmiBroker panel check, BSV found and fixed a bug in its own AFL-subset evaluator: `Ref(x, -1)` was evaluated as missing values, so earlier cross checks did not exercise crosses. Replayed alerts went from 8 to 13 after the fix, with no failures.
 
+## Look-back and value-to-value thresholds (signal.recent, signal.threshold right)
+
+Added 2026-10-04 (batch 25) for the trend-pullback-composite fix. Both render on all 22 targets with no TODO.
+- `signal.threshold` takes an optional `right` (a block id or a price name) instead of `value`, so a trend **state** such as `EMA 21 > EMA 89` holds on every bar of the trend, not only on the cross bar.
+- `signal.recent {signal, bars}` is true when `signal` was true on one of the previous `bars` bars (1-50). The current bar is not counted. `signal` must be an earlier signal or filter block, not an alert, scanner or another `signal.recent`.
+- Series and index targets (Pine, MQL5 / MQL4, cTrader, NinjaTrader, Quantower, Sierra Chart, ProRealTime, GoCharting, MotiveWave, Vela, JForex, EasyLanguage, ATAS, AmiBroker, thinkScript, Tradovate) OR the signal over offsets 1..N; index targets guard the first bars, AmiBroker wraps `Ref` in `Nz` (no value before the first bar = false).
+- Bar-by-bar Python targets (Bookmap, backtrader, NautilusTrader) keep a bars-since counter per block; Backtesting.py uses a vectorised `bsv_recent` helper emitted only when the recipe needs it. MQL5 copies `bars` more history for the look-back.
+- Checked by the Pine, MQL5, thinkScript, AmiBroker, Tradovate, backtrader, Backtesting.py and NautilusTrader checks against independent recomputations, plus a "look-back includes the current bar" mutant (Pine, MQL5). Other targets: source checks only. UNTESTED_RUNTIME on every platform.
+
 ## Vela
 
 Vela is especially relevant to the BSV goal of letting a user build a custom chart surface rather than only paste an indicator into a closed charting UI.
@@ -347,7 +356,7 @@ Since 2026-10-04 (batch 24) the `mql5` output is checked by `scripts/site/check_
 - **Built-in values follow the MT5 example sources** (Indicators/Examples): the MA EMA starts from the first price, RSI is Wilder-smoothed, and **ATR is a simple moving average of the true range** (ATR.mq5), not Wilder's smoothing used by `ta.atr` in Pine and by the other BSV targets. An ATR threshold (for example `atr > 2`) can therefore switch on different bars on MT5. EMA / SMA / RSI / ATR are compared with independent references after warm-up.
 - **Bar by bar:** signals, sessions (broker server time; the output keeps its TODO to convert from the recipe time zone), the higher timeframe (previous closed higher bar; `INIT_FAILED` on a too-coarse chart), ranges and breakouts are compared with independent references.
 - **Incremental calls:** `OnCalculate` is called the way MT5 does it: history first, then each new bar as a first tick and then its final tick. Plot buffers must equal one full calculation, and alerts must fire once per **closed** bar on the condition, never from the forming bar.
-- **Mutants caught:** an alert from the forming bar, no `limit++`, a flipped cross, the higher timeframe reading the forming higher bar, a window starting one bar too old, a breakout without the close before, and a comment-only TODO.
+- **Mutants caught:** an alert from the forming bar, no `limit++`, a flipped cross, a look-back that includes the current bar (`signal.recent`), the higher timeframe reading the forming higher bar, a window starting one bar too old, a breakout without the close before, and a comment-only TODO.
 - `structure.range` / `signal.breakout` render on MQL5 since batch 24. They scan back from bar i to the latest window bar, then to the start of that window.
 - Still TODO on MQL5: pivot, sweep, divergence, zone, value panel, webhook and symbol set. These follow next, in the same order as Pine.
-- The recipe trend-pullback-composite (EMA 21 / 89 cross up AND RSI <= 45 on the same bar) does not fire on either BSV test bar set. The checker reports it as `alerts_vacuous` instead of counting it as a pass.
+- **trend-pullback-composite, functional fix (2026-10-04, batch 25).** The old condition needed the EMA 21 / 89 cross-up event AND RSI <= 45 on the same bar, which never happened on either BSV test bar set (batch 24 reported it as `alerts_vacuous`). It now uses the standard trend-pullback form: trend state `EMA 21 > EMA 89` (a `signal.threshold` with `right`), pullback = RSI <= 45 on one of the previous 5 bars (`signal.recent`, `bars` editable in the Builder), trigger = RSI crosses back above 45 on a closed bar (RSI > 45 now, RSI <= 45 on the bar before). The recipe has no short side, so there is nothing to mirror. With both levels at 45 the cross already implies the pullback; lower `rsi_pullback_level` to require a deeper dip. The alert condition now holds on 35 / 10 closed bars of the two MQL5 60-minute test sets and on 41 bars of the Pine test set; `alerts_vacuous` is empty.

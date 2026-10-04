@@ -71,8 +71,9 @@ function reference(recipe) {
         break;
       }
       case 'signal.cross': { const L = val(p.left), R = val(p.right), up = p.direction !== 'below'; S.set(b.id, L.map((v, i) => i > 0 && (up ? v > R[i] && L[i - 1] <= R[i - 1] : v < R[i] && L[i - 1] >= R[i - 1]))); break; }
-      case 'signal.threshold': { const L = val(p.left), x = Number(p.value), op = ['>', '>=', '<', '<=', '==', '!='].includes(p.op) ? p.op : '>=';
-        S.set(b.id, L.map(v => fin(v) && { '>': v > x, '>=': v >= x, '<': v < x, '<=': v <= x, '==': v === x, '!=': v !== x }[op])); break; }
+      case 'signal.threshold': { const L = val(p.left), R = typeof p.right === 'string' && p.right ? val(p.right) : null, op = ['>', '>=', '<', '<=', '==', '!='].includes(p.op) ? p.op : '>=';
+        S.set(b.id, L.map((v, i) => { const x = R ? R[i] : Number(p.value); return fin(v) && fin(x) && { '>': v > x, '>=': v >= x, '<': v < x, '<=': v <= x, '==': v === x, '!=': v !== x }[op]; })); break; }
+      case 'signal.recent': { const sg = boolOf(p.signal); S.set(b.id, sg.map((_, i) => { for (let k = 1; k <= p.bars && i - k >= 0; k++) if (sg[i - k]) return true; return false; })); break; } // written separately: previous bars only
       case 'signal.combine': { const list = (p.signals || []).map(boolOf); S.set(b.id, new Array(NB).fill(0).map((_, i) => list.length ? (p.mode === 'any' ? list.some(a => a[i]) : list.every(a => a[i])) : false)); break; }
       case 'structure.range': { // written separately: each run of bars inside the window gets running extremes; after the run they are held
         const tr = Array.isArray(p.track) ? p.track : [];

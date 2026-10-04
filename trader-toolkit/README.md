@@ -21,6 +21,7 @@ The goal is practical: choose a platform, copy a starter, edit one recipe, and t
 - session filters
 - cross/threshold signals
 - combined conditions
+- look-back conditions (`signal.recent`: true if a signal held on one of the previous N bars) and value-to-value thresholds (`signal.threshold` with `right`, e.g. a trend state EMA 21 > EMA 89)
 - visual plots
 - alert conditions
 - webhook-ready alert messages

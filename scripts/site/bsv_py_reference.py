@@ -149,9 +149,14 @@ def reference(recipe):
             L, R = val(p["left"]), val(p["right"]); up = p.get("direction") != "below"
             S[b["id"]] = [i > 0 and ((L[i] > R[i] and L[i - 1] <= R[i - 1]) if up else (L[i] < R[i] and L[i - 1] >= R[i - 1])) for i in range(NB)]
         elif t == "signal.threshold":
-            L = val(p["left"]); x = float(p["value"]); op = p.get("op") if p.get("op") in (">", ">=", "<", "<=", "==", "!=") else ">="
-            f = {">": lambda a: a > x, ">=": lambda a: a >= x, "<": lambda a: a < x, "<=": lambda a: a <= x, "==": lambda a: a == x, "!=": lambda a: a != x}[op]
-            S[b["id"]] = [fin(v) and f(v) for v in L]
+            L = val(p["left"]); op = p.get("op") if p.get("op") in (">", ">=", "<", "<=", "==", "!=") else ">="
+            R = val(p["right"]) if isinstance(p.get("right"), str) and p.get("right") else [float(p["value"])] * NB  # right = another value (trend state), else the fixed number
+            f = {">": lambda a, x: a > x, ">=": lambda a, x: a >= x, "<": lambda a, x: a < x, "<=": lambda a, x: a <= x, "==": lambda a, x: a == x, "!=": lambda a, x: a != x}[op]
+            S[b["id"]] = [fin(v) and fin(r) and f(v, r) for v, r in zip(L, R)]
+        elif t == "signal.recent":
+            # written separately from the generator: look back over the previous `bars` bars (not the current one)
+            sg, n = boo(p["signal"]), int(p["bars"])
+            S[b["id"]] = [any(sg[i - k] for k in range(1, n + 1) if i - k >= 0) for i in range(NB)]
         elif t == "signal.combine":
             ls = [boo(r) for r in p.get("signals", [])]
             S[b["id"]] = [bool(ls) and (any(a[i] for a in ls) if p.get("mode") == "any" else all(a[i] for a in ls)) for i in range(NB)]
@@ -243,14 +248,15 @@ def use_rounded(nd):
 # ---- value panels (visual.table), shared by the Python target checks. Written independently of the generator:
 # a field is expected on the panel only when its whole dependency chain uses block types BSV renders and no
 # higher timeframe; the panel shows the field's value on the last bar.
-PANEL_TYPES = {"indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr", "signal.cross", "signal.threshold", "signal.combine", "filter.session", "structure.range", "signal.breakout"}
+PANEL_TYPES = {"indicator.ema", "indicator.sma", "indicator.rsi", "indicator.atr", "signal.cross", "signal.threshold", "signal.combine", "signal.recent", "filter.session", "structure.range", "signal.breakout"}
 PX_NAMES = {"open", "high", "low", "close", "hl2", "hlc3", "ohlc4"}
 
 
 def _deps(b):
     p = b.get("params") or {}
     if b["type"] == "signal.cross": return [p.get("left"), p.get("right")]
-    if b["type"] == "signal.threshold": return [p.get("left")]
+    if b["type"] == "signal.threshold": return [p.get("left"), p.get("right") if isinstance(p.get("right"), str) else None]
+    if b["type"] == "signal.recent": return [p.get("signal")]
     if b["type"] == "signal.combine": return list(p.get("signals") or [])
     if b["type"] == "structure.range": return [p.get("during")]
     if b["type"] == "signal.breakout": return [p.get("range")]
