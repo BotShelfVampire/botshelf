@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Higher timeframe on Tradovate: indicators marked with a higher timeframe are computed from closed higher-timeframe bars only, checked against an independent reference on every bar in BSV's stub of the documented API (not run on Tradovate; UNTESTED_RUNTIME). Coverage: 4 targets with checked closed-bar values.", "/trading/build/coverage/"),
     ("2026-10-04", "llms.txt lists the AI toolkit: the hub, its JSON index and one line per public summary page with framework and catalog status (none runtime-tested by BSV; gated source not listed).", "/llms.txt"),
     ("2026-10-04", "Request form: AI frameworks with BSV toolkit items can be added with one tap, like trading platforms. Robot Pilot: saving a session now says when the 20-session browser log removes the oldest, instead of dropping them silently.", "/requests/#rq-form"),
     ("2026-10-04", "AI toolkits: the Handoff Packet checker can start a blank packet for any AI toolkit item, filling only what the catalog states (job id, NOT_STARTED, source path, framework, catalog status as a limitation); owner approval and results stay blank. In the browser only.", "/library/toolkit/ai-team-handoff/"),

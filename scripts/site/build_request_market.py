@@ -244,7 +244,7 @@ def generator_coverage() -> dict:
         real, idiom = t in HTF_REAL, t in HTF_IDIOM
         targets.append({"id": t, "label": label, "extension": ext, "check": {"kind": kind, "script": script, "note": note},
                         "higherTimeframe": {"status": "CLOSED_BARS_CHECKED" if real else ("CLOSED_BAR_IDIOM_STATIC" if idiom else "UNSUPPORTED_TODO"),
-                                            "note": "Computed from closed higher-timeframe bars only (no repaint, no lookahead); checked in the library on synthetic bars, including a cut-off run and a stop on too-coarse bars." if real
+                                            "note": ("Computed from closed higher-timeframe bars only (no repaint, no lookahead) in per-bar JavaScript state; checked in BSV's node:vm stub of the documented custom-indicator API (not Tradovate) against an independent reference on every bar, a forming-bar mutant, and no value on too-coarse bars." if t == "tradovate" else "Computed from closed higher-timeframe bars only (no repaint, no lookahead); checked in the library on synthetic bars, including a cut-off run and a stop on too-coarse bars.") if real
                                             else (HTF_IDIOM_NOTE[t] if idiom else "Blocks that use a higher timeframe are left as unsupported stubs with a TODO line (empty value / false signal); never computed on the chart timeframe."),
                                             **({"docs": HTF_IDIOM_DOCS[t], "check": "scripts/site/check_htf.py"} if idiom else {})},
                         "runtimeTestedByBSV": False})
