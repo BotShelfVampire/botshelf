@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "Trader Tool Blocks: visual.zone drawn on Tradovate when its source is a pivot (two lines, the last confirmed pivot high and low), checked against a reference on every bar in BSV's stub of the documented API; range zones stay TODO there. Not run on Tradovate (UNTESTED_RUNTIME).", "/trading/build/"),
     ("2026-10-04", "Capability manifests now include the AI toolkit: one record per AI toolkit entry, all labelled UNTESTED with the catalog status quoted; BSV has not run any of them.", "/capabilities/#ai"),
     ("2026-10-04", "AI toolkit pages get an \"Ask for another framework\" link and each Robot Pilot curriculum module gets a mission-request link; the request form opens with the item named and sends nothing until you press send with a verified email.", "/requests/#rq-form"),
     ("2026-10-04", "AI toolkits: the AI Team Handoff Packet source page (free email verification) gets a checker for a filled packet that applies the packet's own rules in the browser; nothing is uploaded, and it checks structure and wording, not whether the facts are true.", "/library/toolkit/ai-team-handoff/"),
