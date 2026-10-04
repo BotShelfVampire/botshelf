@@ -205,6 +205,7 @@ TARGET_CHECKS = {  # which BSV check covers each target (facts from build_stage 
     "backtrader": ("LIBRARY_RUN", "scripts/site/check_backtrader.py", "Executed inside the backtrader library on synthetic bars; not a broker or live feed."),
     "backtesting-py": ("LIBRARY_RUN", "scripts/site/check_backtesting_py.py", "Executed inside the Backtesting.py library on synthetic bars; not a broker or live feed."),
     "nautilus": ("LIBRARY_RUN", "scripts/site/check_nautilus.py", "Executed inside the NautilusTrader BacktestEngine on synthetic bars; not a broker, venue or live feed."),
+    "pine-v6": ("SUBSET_EVALUATOR", "scripts/site/check_pine.mjs", "BSV-written Pine v6-subset parser/evaluator (documented ta.* functions, sessions, request.security closed-bar idiom); not TradingView."),
     "thinkscript": ("SUBSET_EVALUATOR", "scripts/site/check_thinkscript.mjs", "BSV-written thinkScript-subset parser/evaluator; not thinkorswim."),
     "amibroker": ("SUBSET_EVALUATOR", "scripts/site/check_amibroker_afl.mjs", "BSV-written AFL-subset parser/evaluator; not AmiBroker."),
     "tradovate": ("API_STUB_RUN", "scripts/site/check_tradovate.mjs", "Run in node:vm against a BSV stub of the documented custom-indicator API; not Tradovate."),
