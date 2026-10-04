@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded',function(){
 });})();
 """
 CHANGES = [  # material public changes, dated (JST), from this branch's LIVE deploys
+    ("2026-10-04", "AI toolkit: the hub lists which jobs each framework has items for, each summary page carries CreativeWork structured data (title, URL, MIT; no ratings), and the Request Market shows AI toolkit items by framework counted from the catalog (not demand). Robot Pilot states the 20-session browser cap next to Save.", "/library/toolkit/#tk-matrix"),
+    ("2026-10-04", "Ranges and breakouts (structure.range, signal.breakout) and range-sourced zones rendered on Tradovate, checked bar by bar against an independent reference in BSV's stub of the documented API (not run on Tradovate; UNTESTED_RUNTIME).", "/trading/build/"),
     ("2026-10-04", "AI toolkit pages list related items (same job on other frameworks, more for the same framework); the hub links to asking for a framework or tool not listed; /library/toolkit/toolkit.v1.json states license, source access and runtimeTestedByBSV false per entry. The Robot Pilot CSV adds the pass criteria ticked / recorded per session.", "/library/toolkit/"),
     ("2026-10-04", "Higher timeframe on Tradovate: indicators marked with a higher timeframe are computed from closed higher-timeframe bars only, checked against an independent reference on every bar in BSV's stub of the documented API (not run on Tradovate; UNTESTED_RUNTIME). Coverage: 4 targets with checked closed-bar values.", "/trading/build/coverage/"),
     ("2026-10-04", "llms.txt lists the AI toolkit: the hub, its JSON index and one line per public summary page with framework and catalog status (none runtime-tested by BSV; gated source not listed).", "/llms.txt"),
