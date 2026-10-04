@@ -41,7 +41,7 @@ Checks: `check_backtrader.py`, `check_backtesting_py.py` and `check_nautilus.py`
 
 ## Ranges and breakouts (structure.range, signal.breakout)
 
-Since 2026-10-04 these are rendered on backtrader, Backtesting.py and NautilusTrader only (the targets where a BSV library check runs them); every other target keeps the TODO line.
+Since 2026-10-04 these are rendered on backtrader, Backtesting.py and NautilusTrader (the targets where a BSV library check runs them) and on Tradovate (per-bar state `this.bars[i]`; check_tradovate.mjs compares both range lines and the breakout with an independent run-by-run reference on every bar and catches a window-never-resets mutant; node:vm stub of the documented API, not Tradovate, UNTESTED_RUNTIME); every other target keeps the TODO line.
 
 - `structure.range` (`track: ["high", "low"]`, `during`: a session or signal block): during each window where `during` is true, the high and low of the window's bars so far (including the bar that just closed); when a new window starts the values reset; after a window they keep the finished window's values until the next window starts. NaN before the first window.
 - `signal.breakout` (`direction`: either / above / below): true on a closed bar outside the window whose close is beyond the finished window's high (or low) while the previous close was not. It can fire again if price comes back inside and crosses again; nothing fires during the window.
@@ -49,7 +49,7 @@ Since 2026-10-04 these are rendered on backtrader, Backtesting.py and NautilusTr
 
 ## Pivots, zones and webhooks (structure.pivot, visual.zone, alert.webhook)
 
-Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader; `structure.pivot` and pivot-sourced `visual.zone` also on Tradovate (per-bar state, see below; range zones stay TODO there because Tradovate has no range block). Every other target keeps the TODO line.
+Since 2026-10-04 rendered on backtrader, Backtesting.py and NautilusTrader; `structure.pivot` and `visual.zone` (pivot or range source) also on Tradovate (per-bar state, see below). Every other target keeps the TODO line.
 
 - `structure.pivot` (`left`, `right`: 1–50; `source`: `close` or `high_low`): a pivot high is a bar whose value is strictly above the `left` bars before it and at least as high as the `right` bars after it (a flat top counts once, at its first bar); pivot lows mirror this. A pivot is published only on the bar `right` bars later (no lookahead) and the last confirmed pivot high / low is held (`<id>.high`, `<id>.low`).
 - `visual.zone` (`source`: a pivot or a high/low range): two lines with the source's high and low (NautilusTrader: values only, no chart). Tradovate: a pivot zone is two lines `Z<n>H` / `Z<n>L` with the last confirmed pivot high / low (no box); check_tradovate.mjs compares them with its reference on every bar and catches a swapped-lines mutant.

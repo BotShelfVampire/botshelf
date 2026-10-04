@@ -131,14 +131,14 @@ function htfPrep(recipe, t) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate'; return fn(r); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate'; r.bsvRangeJs = t === 'tradovate'; return fn(r); }
 // structure.range (high/low of each window where a session/signal is true; reset when a new window starts; after the
 // window the last window's values stay) and signal.breakout (first close beyond the finished window's high or low).
 // Rendered only where a BSV check runs them; elsewhere they stay TODO.
 function rangeRealTargets() { return ['backtrader', 'backtesting-py', 'nautilus']; }
 function rangeKeys(b) { const t = Array.isArray(b?.params?.track) ? b.params.track : []; return t.filter((x, i) => (x === 'high' || x === 'low') && t.indexOf(x) === i); }
 function rangeOk(recipe, b) {
-  if (!recipe.bsvRangeReal || !b || b.type !== 'structure.range') return false;
+  if (!(recipe.bsvRangeReal || recipe.bsvRangeJs) || !b || b.type !== 'structure.range') return false;  // Python targets + Tradovate (per-bar state checked in node:vm)
   const d = blockMap(recipe).get(b.params?.during), t = Array.isArray(b.params?.track) ? b.params.track : [];
   return !!d && isBoolType(d.type) && t.length > 0 && rangeKeys(b).length === t.length;
 }
@@ -2245,7 +2245,7 @@ function renderTradovate(recipe) {
   const map = blockMap(recipe);
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot');
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
-  const zones = recipe.blocks.filter(b => zoneOk(recipe, b)); // pivot zones: two lines, the held pivot high and low
+  const zones = recipe.blocks.filter(b => zoneOk(recipe, b)); // zones: two lines, the source's high and low (pivot or range)
   const id = (x) => String(x).replace(/[^A-Za-z0-9_]/g, '_');
   const px = { open: 's.o', high: 's.h', low: 's.l', close: 's.c', hl2: '(s.h + s.l) / 2', hlc3: '(s.h + s.l + s.c) / 3', ohlc4: '(s.o + s.h + s.l + s.c) / 4' };
   const at = (expr, who) => who === 's' ? expr : expr.replace(/\bs\./g, who + '.');
@@ -2342,7 +2342,7 @@ function renderTradovate(recipe) {
       case 'visual.plot': case 'alert.condition':
         break;
       case 'visual.zone':
-        if (zoneOk(recipe, b)) { L.push(`    // zone ${k}: drawn as Z lines from ${id(q.source)} (last confirmed pivot high / low)`); break; }
+        if (zoneOk(recipe, b)) { L.push(`    // zone ${k}: drawn as Z lines from ${id(q.source)} (${map.get(q.source).type === 'structure.range' ? 'the window high / low' : 'last confirmed pivot high / low'})`); break; }
         L.push(`    // TODO unsupported block ${b.type}: ${k}`, `    s.V_${k} = NaN;`);
         break;
       case 'structure.pivot': {
@@ -2352,6 +2352,20 @@ function renderTradovate(recipe) {
         L.push(`    s.N_${k} = this.bsvPivot(s, i, ${q.left}, ${q.right}, "${hk}", "${lk}"); // is bar i - ${q.right} a new pivot high / low? known only now: no lookahead`,
           `    s.V_${k}_high = s.N_${k}[0] ? this.bars[i - ${q.right}].${hk} : p ? p.V_${k}_high : NaN; // last confirmed pivot high, held`,
           `    s.V_${k}_low = s.N_${k}[1] ? this.bars[i - ${q.right}].${lk} : p ? p.V_${k}_low : NaN; // last confirmed pivot low, held`);
+        break;
+      }
+      case 'structure.range': {
+        if (!rangeOk(recipe, b)) { L.push(`    // TODO unsupported block ${b.type}: ${k}`, `    s.V_${k} = NaN;`); break; }
+        L.push(`    s.R_${k} = ${bool(q.during)}; // inside the window`,
+          `    if (s.R_${k}) { const fresh = !p || !p.R_${k}; s.V_${k}_high = fresh ? s.h : Math.max(p.V_${k}_high, s.h); s.V_${k}_low = fresh ? s.l : Math.min(p.V_${k}_low, s.l); } // so far in this window; a new window resets`,
+          `    else { s.V_${k}_high = p ? p.V_${k}_high : NaN; s.V_${k}_low = p ? p.V_${k}_low : NaN; } // after the window: the finished window, held (NaN before the first)`);
+        break;
+      }
+      case 'signal.breakout': {
+        if (!breakoutOk(recipe, b)) { L.push(`    // TODO unsupported block ${b.type}: ${k}`, `    s.S_${k} = false;`); break; }
+        const r = id(q.range), d = q.direction || 'either', ok = `!!p && !s.R_${r} && Number.isFinite(s.V_${r}_high)`;
+        L.push(`    const up_${k} = ${ok} && s.c > s.V_${r}_high && p.c <= s.V_${r}_high, dn_${k} = ${ok} && s.c < s.V_${r}_low && p.c >= s.V_${r}_low;`,
+          `    s.S_${k} = ${d === 'either' ? `up_${k} || dn_${k}` : d === 'above' ? `up_${k}` : `dn_${k}`}; // first close beyond the finished window, on a closed bar outside it`);
         break;
       }
       case 'signal.liquidity_sweep': {

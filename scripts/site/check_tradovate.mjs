@@ -35,7 +35,7 @@ function refEma(x, p) { const a = 2 / (p + 1); let e = NaN; return x.map((v, i) 
 function refRma(x, p) { let r = NaN; return x.map((v, i) => { if (i === p - 1) r = x.slice(0, p).reduce((s, w) => s + w, 0) / p; else if (i >= p) r = (r * (p - 1) + v) / p; return i >= p - 1 ? r : NaN; }); }
 const TR = bars.map((b, i) => i === 0 ? NaN : Math.max(b.high, bars[i - 1].close) - Math.min(b.low, bars[i - 1].close));
 function reference(recipe) {
-  const V = new Map(), S = new Map(), byId = new Map(recipe.blocks.map(b => [b.id, b]));
+  const V = new Map(), S = new Map(), RG = new Set(), byId = new Map(recipe.blocks.map(b => [b.id, b]));
   const isBool = (t) => /^(signal|filter|alert)\./.test(t || '');
   const val = (ref) => pxOf[ref] || (isBool(byId.get(ref)?.type) ? get(ref, S).map(Number) : get(ref, V));
   const boolOf = (ref) => isBool(byId.get(ref)?.type) ? get(ref, S) : val(ref).map(v => fin(v) && v !== 0);
@@ -74,6 +74,24 @@ function reference(recipe) {
       case 'signal.threshold': { const L = val(p.left), x = Number(p.value), op = ['>', '>=', '<', '<=', '==', '!='].includes(p.op) ? p.op : '>=';
         S.set(b.id, L.map(v => fin(v) && { '>': v > x, '>=': v >= x, '<': v < x, '<=': v <= x, '==': v === x, '!=': v !== x }[op])); break; }
       case 'signal.combine': { const list = (p.signals || []).map(boolOf); S.set(b.id, new Array(NB).fill(0).map((_, i) => list.length ? (p.mode === 'any' ? list.some(a => a[i]) : list.every(a => a[i])) : false)); break; }
+      case 'structure.range': { // written separately: each run of bars inside the window gets running extremes; after the run they are held
+        const tr = Array.isArray(p.track) ? p.track : [];
+        if (!(tr.length && tr.every((x, i) => (x === 'high' || x === 'low') && tr.indexOf(x) === i)) || !isBool(byId.get(p.during)?.type)) break;
+        const ins = boolOf(p.during), hi = new Array(NB).fill(NaN), lo = new Array(NB).fill(NaN);
+        for (let i = 0; i < NB;) {
+          if (!ins[i]) { if (i) { hi[i] = hi[i - 1]; lo[i] = lo[i - 1]; } i++; continue; }
+          let j = i; while (j < NB && ins[j]) { hi[j] = Math.max(...bars.slice(i, j + 1).map(x => x.high)); lo[j] = Math.min(...bars.slice(i, j + 1).map(x => x.low)); j++; }
+          i = j;
+        }
+        V.set(b.id + '.high', hi); V.set(b.id + '.low', lo); RG.add(b.id); break;
+      }
+      case 'signal.breakout': {
+        const r = byId.get(p.range); compute(r); if (!r || !RG.has(r.id) || !['either', 'above', 'below'].includes(p.direction || 'either')) break;
+        const tr = r.params.track; if (!(tr.includes('high') && tr.includes('low'))) break;
+        const ins = boolOf(r.params.during), hi = V.get(r.id + '.high'), lo = V.get(r.id + '.low'), c = pxOf.close, d = p.direction || 'either';
+        S.set(b.id, bars.map((_, i) => { if (i === 0 || ins[i] || !fin(hi[i])) return false; const up = c[i] > hi[i] && c[i - 1] <= hi[i], dn = c[i] < lo[i] && c[i - 1] >= lo[i]; return d === 'either' ? up || dn : d === 'above' ? up : dn; }));
+        break;
+      }
       case 'structure.pivot': { // written separately from the generator: test every bar j against its whole window, publish on j + right, hold
         const hv = (p.source || 'close') === 'close' ? pxOf.close : pxOf.high, lv = (p.source || 'close') === 'close' ? pxOf.close : pxOf.low, ph = new Map(), pl = new Map();
         for (let j = p.left; j < NB - p.right; j++) {
@@ -133,8 +151,8 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const { ex } = L;
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot'), alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const byIdR = new Map(recipe.blocks.map(b => [b.id, b]));
-  const zones = recipe.blocks.filter(b => b.type === 'visual.zone' && byIdR.get(b.params?.source)?.type === 'structure.pivot'); // pivot zones are rendered; range zones stay TODO
-  recipe.blocks.filter(b => b.type === 'visual.zone' && !zones.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block visual.zone: ${String(b.id).replace(/[^A-Za-z0-9_]/g, '_')}`), f, `${b.id}: range zone left as TODO on Tradovate`));
+  const zones = recipe.blocks.filter(b => b.type === 'visual.zone' && /^structure\.(pivot|range)$/.test(byIdR.get(b.params?.source)?.type || '')); // pivot and range zones are rendered
+  recipe.blocks.filter(b => b.type === 'visual.zone' && !zones.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block visual.zone: ${String(b.id).replace(/[^A-Za-z0-9_]/g, '_')}`), f, `${b.id}: zone without a pivot / range source left as TODO`));
   const keys = [...plots.map((_, k) => 'P' + (k + 1)), ...zones.flatMap((_, n) => ['Z' + (n + 1) + 'H', 'Z' + (n + 1) + 'L']), ...alerts.map((_, k) => 'A' + (k + 1))];
   ok(Object.keys(ex).every(k => EXPORT_KEYS.has(k)), f, 'only documented Indicator fields: ' + Object.keys(ex));
   ok(/^[A-Za-z][A-Za-z0-9]*$/.test(ex.name) && typeof ex.description === 'string' && ex.description.length > 0, f, 'name/description');
@@ -169,16 +187,24 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
       let worst = 0, warm = 0; for (let i = 0; i < NB; i++) { if (!fin(want[i])) { if (fin(got[i])) warm++; continue; } worst = Math.max(worst, Math.abs(got[i] - want[i]) / Math.max(1, Math.abs(want[i]))); }
       ok(worst < 1e-9 && warm === 0, f, `${b.id} (${b.type}) equals reference on every bar: worst ${worst}, values while warming up ${warm}`);
     }
-    if (/^(signal\.(cross|threshold|combine|liquidity_sweep|divergence)|filter\.session)$/.test(b.type)) {
+    if (/^(signal\.(cross|threshold|combine|liquidity_sweep|divergence|breakout)|filter\.session)$/.test(b.type)) {
       const want = ref.S.get(b.id), got = A.calc.bars.map(s => !!s['S_' + k]);
       const diff = want.reduce((n, w, i) => n + (!!w !== got[i]), 0);
       ok(diff === 0, f, `${b.id} (${b.type}) equals reference (${diff} bars differ)`);
-      if (/sweep|divergence/.test(b.type)) { ok(want.some(Boolean), f, `${b.id} fires on the synthetic bars (comparison not vacuous)`); pivSeen++; }
+      if (/sweep|divergence|breakout/.test(b.type)) { ok(want.some(Boolean), f, `${b.id} fires on the synthetic bars (comparison not vacuous)`); pivSeen++; }
     }
-    if (b.type === 'structure.pivot') for (const e of ['high', 'low']) {
+    if (b.type === 'structure.pivot' || (b.type === 'structure.range' && ref.V.has(b.id + '.high'))) for (const e of ['high', 'low']) {
       const want = ref.V.get(b.id + '.' + e), got = A.calc.bars.map(s => s['V_' + k + '_' + e]);
       const bad = want.reduce((n, w, i) => n + !((!fin(w) && !fin(got[i])) || Math.abs(w - got[i]) < 1e-12), 0);
-      ok(bad === 0 && want.some(fin), f, `${b.id}.${e} (structure.pivot) equals reference (${bad} bars differ)`);
+      ok(bad === 0 && want.some(fin), f, `${b.id}.${e} (${b.type}) equals reference (${bad} bars differ)`);
+    }
+    if (b.type === 'structure.range' && ref.V.has(b.id + '.high')) { // mutant: a window that never resets must be caught
+      const mc = code.replace(new RegExp(`const fresh = !p \\|\\| !p\\.R_${k};`), 'const fresh = !p;');
+      let M4 = null; try { M4 = load(mc, f); } catch (e) {}
+      if (mc !== code && M4) { const c6 = new M4.ex.calculator(); c6.props = {}; c6.init(); for (let i = 0; i < NB; i++) c6.map(entity(bars[i]), i);
+        const w = ref.V.get(b.id + '.high'), caught = c6.bars.some((x, i) => fin(w[i]) ? !(Math.abs(x['V_' + k + '_high'] - w[i]) < 1e-12) : fin(x['V_' + k + '_high']));
+        ok(caught, f, `mutant caught: ${b.id} window never resets`); if (caught) mutCaught++; }
+      else ok(false, f, `range mutant could not be built for ${b.id}`);
     }
   }
   plots.forEach((pl, k) => { const want = ref.val(pl.params?.source), got = A.out.map(o => o['P' + (k + 1)]); ok(got.every((g, i) => fin(want[i]) ? Math.abs(g - want[i]) < 1e-9 : g === undefined), f, `P${k + 1} plots ${pl.params?.source}`); });
