@@ -1,9 +1,14 @@
 {
   "schemaVersion": "0.1",
   "name": "Trend Pullback Composite",
-  "description": "Uptrend state (EMA 21 above EMA 89), a pullback (RSI at or below 45 on one of the last 5 bars), then RSI crossing back above 45 on a closed bar.",
+  "description": "Uptrend state (EMA 21 above EMA 89), a real dip (RSI at or below 40 on one of the last 5 bars), then recovery: RSI crossing back above 45 on a closed bar.",
   "overlay": true,
   "changelog": [
+    {
+      "date": "2026-10-04",
+      "en": "Follow-up: the pullback level is now 40 (its own block, rsi_pullback_level, editable in the Builder) and the trigger stays at 45, so the recipe means a real dip, then recovery. With both at 45 the pullback condition was redundant (the trigger already needs RSI at or below 45 on the bar before). BSV test data: the alert condition still holds on every checker's bars, fewer times than with 45. Download the starters again.",
+      "ja": "追加の修正：押し目の水準を40にしました（専用のブロック rsi_pullback_level で、Builderで変更できます）。トリガーは45のままなので、「本当の押し目のあとの回復」を意味する条件になりました。どちらも45だったときは、トリガーが1本前のRSI 45以下をすでに求めるため、押し目の条件が実質的に効いていませんでした。BSVのテストデータでは、すべてのチェッカーのデータで条件が成立します（45のときより回数は少なくなります）。ひな形はダウンロードし直してください。"
+    },
     {
       "date": "2026-10-04",
       "en": "Functional fix: the old condition needed the EMA 21 / 89 cross-up event and RSI at or below 45 on the same bar, which almost never happens (BSV test data: never). Now: trend state EMA 21 above EMA 89, pullback = RSI at or below 45 on one of the last 5 bars (bars is editable), trigger = RSI crosses back above 45 on a closed bar. With both levels at 45 the cross already implies the pullback; lower the pullback level (rsi_pullback_level) to require a deeper dip. Download the starters again.",
@@ -50,7 +55,7 @@
       "params": {
         "left": "rsi",
         "op": "<=",
-        "value": 45
+        "value": 40
       }
     },
     {
