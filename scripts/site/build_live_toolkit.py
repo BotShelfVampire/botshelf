@@ -174,7 +174,7 @@ def recipe_records(repo: Path, copy: dict) -> list[dict]:
             "type": "recipe", "status": "STRUCTURAL", "featured": False, "repo_path": f"trader-toolkit/recipes/{name}.json",
             "summary": T(r.get("description", r["name"]), ja), "overlay": r.get("overlay"),
             "blocks": [(b["id"], b["type"]) for b in r["blocks"]], "outputs": outputs, "json": p.read_text(),
-            "gated": True, "files": [p], "refs": [],
+            "gated": True, "files": [p], "refs": [], "changelog": r.get("changelog", []),
         })
     return out
 
@@ -287,6 +287,9 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
         if r["type"] == "recipe":
             rows = "".join(f'<tr><td><code>{esc(i)}</code></td><td><code>{esc(t)}</code></td></tr>' for i, t in r["blocks"])
             sections.append(f'<h2>{both(T("Blocks in this recipe", "このレシピのブロック"))}</h2><table class="qa-table"><thead><tr><th>id</th><th>type</th></tr></thead><tbody>{rows}</tbody></table>')
+            if r.get("changelog"):  # dated functional changes, from the recipe JSON (newest first)
+                sections.append(f'<h2 id="changelog">{both(T("Changelog", "変更履歴"))}</h2><ul>'
+                                + "".join(f'<li><strong>{esc(c["date"])}</strong> {both(T(c["en"], c["ja"]))}</li>' for c in sorted(r["changelog"], key=lambda c: c["date"], reverse=True)) + "</ul>")
             if '"timeframeRef"' in r["json"]:  # higher-timeframe honesty notice (2026-10-04 correction)
                 real = [lab for t, lab, _ in TARGETS if t in HTF_REAL]
                 idiom = [lab for t, lab, _ in TARGETS if t in HTF_IDIOM]

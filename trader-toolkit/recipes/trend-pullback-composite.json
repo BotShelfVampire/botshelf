@@ -1,8 +1,15 @@
 {
   "schemaVersion": "0.1",
   "name": "Trend Pullback Composite",
-  "description": "Fast/slow EMA trend state plus RSI pullback condition.",
+  "description": "Uptrend state (EMA 21 above EMA 89), a pullback (RSI at or below 45 on one of the last 5 bars), then RSI crossing back above 45 on a closed bar.",
   "overlay": true,
+  "changelog": [
+    {
+      "date": "2026-10-04",
+      "en": "Functional fix: the old condition needed the EMA 21 / 89 cross-up event and RSI at or below 45 on the same bar, which almost never happens (BSV test data: never). Now: trend state EMA 21 above EMA 89, pullback = RSI at or below 45 on one of the last 5 bars (bars is editable), trigger = RSI crosses back above 45 on a closed bar. With both levels at 45 the cross already implies the pullback; lower the pullback level (rsi_pullback_level) to require a deeper dip. Download the starters again.",
+      "ja": "機能の修正：以前の条件は、EMA 21／89の上抜けの瞬間とRSI 45以下が同じ足で起きることを求めていて、ほとんど成立しませんでした（BSVのテストデータでは一度も成立せず）。新しい条件：トレンド状態はEMA 21がEMA 89より上、押し目は直近5本のどこかでRSIが45以下（本数は変更できます）、トリガーは確定足でRSIが45を上抜けたとき。どちらの水準も45のままだと、上抜けの時点で押し目の条件も満たされます。より深い押し目を求めるときは押し目の水準（rsi_pullback_level）を下げてください。ひな形はダウンロードし直してください。"
+    }
+  ],
   "blocks": [
     {
       "id": "ema_fast",
@@ -30,20 +37,65 @@
     },
     {
       "id": "trend_up",
-      "type": "signal.cross",
+      "type": "signal.threshold",
       "params": {
         "left": "ema_fast",
-        "right": "ema_slow",
-        "direction": "above"
+        "op": ">",
+        "right": "ema_slow"
       }
     },
     {
-      "id": "pullback",
+      "id": "rsi_pullback_level",
       "type": "signal.threshold",
       "params": {
         "left": "rsi",
         "op": "<=",
         "value": 45
+      }
+    },
+    {
+      "id": "pullback",
+      "type": "signal.recent",
+      "params": {
+        "signal": "rsi_pullback_level",
+        "bars": 5
+      }
+    },
+    {
+      "id": "rsi_above_trigger",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": ">",
+        "value": 45
+      }
+    },
+    {
+      "id": "rsi_at_or_below_trigger",
+      "type": "signal.threshold",
+      "params": {
+        "left": "rsi",
+        "op": "<=",
+        "value": 45
+      }
+    },
+    {
+      "id": "below_trigger_before",
+      "type": "signal.recent",
+      "params": {
+        "signal": "rsi_at_or_below_trigger",
+        "bars": 1
+      }
+    },
+    {
+      "id": "trigger",
+      "type": "signal.combine",
+      "params": {
+        "mode": "all",
+        "signals": [
+          "rsi_above_trigger",
+          "below_trigger_before"
+        ]
       }
     },
     {
@@ -53,7 +105,8 @@
         "mode": "all",
         "signals": [
           "trend_up",
-          "pullback"
+          "pullback",
+          "trigger"
         ]
       }
     },

@@ -26,6 +26,33 @@
     "overlay": {
       "type": "boolean"
     },
+    "changelog": {
+      "type": "array",
+      "description": "Dated record of functional changes to this recipe, shown on its recipe page.",
+      "items": {
+        "type": "object",
+        "required": [
+          "date",
+          "en",
+          "ja"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "en": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "ja": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      }
+    },
     "blocks": {
       "type": "array",
       "minItems": 1,
@@ -55,6 +82,7 @@
               "signal.cross",
               "signal.threshold",
               "signal.combine",
+              "signal.recent",
               "signal.breakout",
               "signal.liquidity_sweep",
               "signal.divergence",
