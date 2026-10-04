@@ -67,7 +67,7 @@ Since 2026-10-04 rendered on backtrader, Backtesting.py, NautilusTrader and Trad
 
 ## Value panels (visual.table)
 
-Since 2026-10-04 the generator renders `visual.table` (a value panel: the listed fields' values on the latest completed bar) on 6 of the 22 targets. These are the targets where a BSV check covers the output:
+Since 2026-10-04 the generator renders `visual.table` (a value panel: the listed fields' values on the latest completed bar) on 7 of the 22 targets. These are the targets where a BSV check covers the output:
 
 | Target | How the panel is shown | What BSV checked |
 | --- | --- | --- |
@@ -76,9 +76,10 @@ Since 2026-10-04 the generator renders `visual.table` (a value panel: the listed
 | NautilusTrader | `run_backtest()` prints the panels after `engine.run()` | executed in NautilusTrader 1.231.0; values equal the reference (`check_nautilus.py`) |
 | thinkorswim | one `AddLabel` per field; `[1]` because labels use the last real (forming) bar | BSV thinkScript-subset evaluator: label text carries the closed bar's value (`check_thinkscript.mjs`); not thinkorswim |
 | AmiBroker | `printf` to the Interpretation window with `LastValue(Ref(x, -1))` and `NumToStr(…, 1.6, False)` | BSV AFL-subset evaluator: printed values for the last completed bar (`check_amibroker_afl.mjs`); not AmiBroker |
+| Tradovate | not drawn: the published custom-indicator API has no panel or label call, so the fields are kept in per-bar state (`this.bars[i - 1].T_<id>` = the bar that just closed) | BSV stub of the documented API in node:vm: every bar's field values equal the reference, unchanged by forming-bar updates, and a panel that reads the bar before is caught (`check_tradovate.mjs`); not Tradovate |
 | JForex | one console line per closed bar (shift 1), switch `logPanels` | compiles with javac 21 against the BSV JForex stubs only; not run |
 
-A field is shown only when it and every block it depends on is rendered by the generator. A field that depends on a block that is not rendered yet, or on a higher timeframe, gets a TODO line instead of a value that would be wrong. When no field can be shown, the panel is left out with a TODO line. Of the 4 recipes with a panel, only Volatility Regime Map has fields that can be shown today. The other three depend on `data.higher_timeframe`, `structure.range` or `signal.breakout`, which are not rendered yet. On the other 16 targets `visual.table` is still a TODO (Pine, MQL5/MQL4 and the C# platforms have no BSV check for panel output yet). Runtime-tested by BSV: 0.
+A field is shown only when it and every block it depends on is rendered by the generator. A field that depends on a block that is not rendered yet, or on a higher timeframe, gets a TODO line instead of a value that would be wrong. When no field can be shown, the panel is left out with a TODO line. Of the 4 recipes with a panel, the panels that are not left out (counted from the generator output on 2026-10-04, after ranges, breakouts and closed-bar higher timeframes were added): backtrader, Backtesting.py, NautilusTrader and Tradovate 4; thinkorswim and AmiBroker 2; JForex 1. (Correction: this paragraph said earlier that only Volatility Regime Map could be shown; that was out of date.) On the other 15 targets `visual.table` is still a TODO (Pine, MQL5/MQL4 and the C# platforms have no BSV check for panel output yet). Runtime-tested by BSV: 0.
 
 While adding the AmiBroker panel check, BSV found and fixed a bug in its own AFL-subset evaluator: `Ref(x, -1)` was evaluated as missing values, so earlier cross checks did not exercise crosses. Replayed alerts went from 8 to 13 after the fix, with no failures.
 

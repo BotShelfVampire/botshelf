@@ -2247,6 +2247,7 @@ function renderTradovate(recipe) {
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const zones = recipe.blocks.filter(b => zoneOk(recipe, b)); // zones: two lines, the source's high and low (pivot or range)
   const hooks = recipe.blocks.filter(b => webhookOk(recipe, b)); // webhooks: W dots + the JSON payload built per bar (never sent)
+  const tables = tableBlocks(recipe); // value panels: no panel call in the published API, so the values are kept in per-bar state
   const id = (x) => String(x).replace(/[^A-Za-z0-9_]/g, '_');
   const px = { open: 's.o', high: 's.h', low: 's.l', close: 's.c', hl2: '(s.h + s.l) / 2', hlc3: '(s.h + s.l + s.c) / 3', ohlc4: '(s.o + s.h + s.l + s.c) / 4' };
   const at = (expr, who) => who === 's' ? expr : expr.replace(/\bs\./g, who + '.');
@@ -2263,6 +2264,7 @@ function renderTradovate(recipe) {
   L.push(`// ${recipe.overlay ? 'Overlay recipe: the indicator draws on the price chart.' : 'Separate-pane recipe: areaChoice "new" puts it in a new area.'}`);
   L.push('// Indicator only: it plots values. It places no orders and makes no network calls.');
   if (alerts.length) L.push('// Alerts: the published custom-indicator API has no alert call, so each alert condition is drawn as dots on the bar that just closed (A1, A2, …). Set up notifications in Tradovate yourself if your version offers them.');
+  if (tables.length) L.push('// Value panels: the published custom-indicator API has no panel or label call, so each panel is kept as values, not drawn: this.bars[i - 1].T_<id> holds the fields of the bar that just closed (true / false for signals, NaN while warming up).', ...tables.flatMap(t => tableTodos(t, '//')));
   if (hooks.length) L.push('// Webhooks: this indicator makes no network calls. Each webhook condition is drawn as dots on the bar that just closed (W1, W2, …), and its JSON payload for that bar is built in this.bars[i - 1].J_<id> with {{...}} filled in, for you to copy into your own Tradovate alert or automation. It is never sent. Never put secrets in a payload.');
   L.push('');
   L.push('const predef = require("./tools/predef");');
@@ -2344,6 +2346,12 @@ function renderTradovate(recipe) {
         break;
       case 'visual.plot': case 'alert.condition':
         break;
+      case 'visual.table': {
+        const t = tables.find(x => x.id === b.id);
+        if (!t || !t.fields.length) { L.push(`    // TODO unsupported block ${b.type}: ${k} (no field can be shown yet)`); break; }
+        L.push(`    s.T_${k} = { ${t.fields.map(x => `${JSON.stringify(x.id)}: ${x.bool ? `!!${bool(x.id)}` : val(x.id)}`).join(', ')} }; // panel ${tsNote(t.title)}: this bar's values (read this.bars[i - 1].T_${k} for the bar that just closed)`);
+        break;
+      }
       case 'alert.webhook':
         if (!webhookOk(recipe, b)) { L.push(`    // TODO unsupported block ${b.type}: ${k}`, `    s.S_${k} = false;`); break; }
         L.push(`    s.S_${k} = ${bool(q.when)}; // webhook condition on this bar`,

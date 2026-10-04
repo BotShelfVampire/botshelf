@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-let checks = 0, failures = 0, files = 0, hooksSeen = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0, zoneSeen = 0, htfSeen = 0;
+let checks = 0, failures = 0, files = 0, panelsSeen = 0, hooksSeen = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0, zoneSeen = 0, htfSeen = 0;
 const fail = (f, m) => { failures++; console.error('FAIL', f, m); };
 const ok = (c, f, m) => { checks++; if (!c) fail(f, m); };
 const fin = Number.isFinite;
@@ -249,6 +249,24 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     alertsSeen += fired.length;
     ok(JSON.stringify(fired) === JSON.stringify(expect), f, `${key}: fired ${fired} expected ${expect}`);
   });
+  // value panels: per-bar values of every shown field equal the reference; reading the bar before (a stale panel) must be caught
+  const tbls = recipe.blocks.filter(b => b.type === 'visual.table' && new RegExp(`s\\.T_${String(b.id).replace(/[^A-Za-z0-9_]/g, '_')} = \\{`).test(code));
+  recipe.blocks.filter(b => b.type === 'visual.table' && !tbls.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block visual.table: ${String(b.id).replace(/[^A-Za-z0-9_]/g, '_')}`), f, `${b.id}: panel without a showable field left as TODO`));
+  const panelBad = (calc) => tbls.reduce((n, t) => { const k = String(t.id).replace(/[^A-Za-z0-9_]/g, '_'); let m = 0;
+    for (let i = 0; i < NB; i++) { const T = calc.bars[i]['T_' + k] || {}; for (const fid of Object.keys(A.calc.bars[NB - 1]['T_' + k] || {})) {
+      const isB = /^(signal|filter|alert)\./.test(byIdR.get(fid)?.type || ''), w = isB ? !!ref.S.get(fid)[i] : (ref.V.get(fid) || [])[i], g = T[fid];
+      if (isB ? g !== w : !((!fin(w) && !fin(g)) || Math.abs(w - g) / Math.max(1, Math.abs(w)) < 1e-9)) m++; } } return n + m; }, 0);
+  if (tbls.length) {
+    const fids = tbls.flatMap(t => Object.keys(A.calc.bars[NB - 1]['T_' + String(t.id).replace(/[^A-Za-z0-9_]/g, '_')] || {}));
+    ok(fids.length > 0 && fids.every(x => byIdR.has(x) || ref.V.has(x)), f, `panel fields known to the reference (${fids})`);
+    ok(panelBad(A.calc) === 0, f, `panel values equal the reference on every bar (${panelBad(A.calc)} differ)`);
+    ok(panelBad(B.calc) === 0, f, 'panel values unchanged after forming-bar updates');
+    panelsSeen += tbls.length;
+    const mc = code.replace(/(s\.T_\w+ = \{)([^\n]*)/g, (m0, a, b) => a + b.replace(/\bs\.([VS])_/g, '(p || s).$1_'));
+    if (mc === code) ok(false, f, 'panel mutant could not be built');
+    else { const M = load(mc, f), c2 = new M.ex.calculator(); c2.props = {}; c2.init(); for (let i = 0; i < NB; i++) c2.map(entity(bars[i]), i);
+      const caught = panelBad(c2) > 0; ok(caught, f, 'mutant caught: panel reads the bar before'); if (caught) mutCaught++; }
+  }
   // webhooks: dots on the closed bar where the condition held; the payload of that bar equals a separately written fill; never sent
   const fill = (pl, b) => { const g = (v) => String(Number(v.toPrecision(10))), F = { symbol: 'SYMBOL', timeframe: 'TIMEFRAME', time: new Date(b.time).toISOString().slice(0, 19), open: g(b.open), high: g(b.high), low: g(b.low), close: g(b.close) };
     return JSON.stringify(Object.fromEntries(Object.entries(pl).map(([k, x]) => [k, typeof x === 'string' ? x.split(/(\{\{[^}]*\}\})/).map(t => /^\{\{.*\}\}$/.test(t) ? F[t.slice(2, -2)] : t).join('') : x]))); };
@@ -280,5 +298,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(!same, f, `mutant caught: ${mn}`); if (!same) mutCaught++;
   }
 }
-console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, webhook_payloads: hooksSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, htf_values: htfSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
+console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, webhook_payloads: hooksSeen, panels: panelsSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, htf_values: htfSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
 process.exit(failures ? 1 : 0);
