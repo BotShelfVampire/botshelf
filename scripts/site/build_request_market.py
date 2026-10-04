@@ -7,7 +7,7 @@
 - Publishes the demand-request schema at its $id URL (/schemas/demand-request-v0.1.json).
 - Adds /requests/ to the sitemap and a "Request a tool" link on /trading/build/.
 """
-import argparse, hashlib, json, re, sys
+import argparse, hashlib, json, re, sys, urllib.parse
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import build_live_toolkit as blt
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded',function(){prefill();load();window.
 def ai_supply() -> str:
     """AI toolkit supply by framework (#6 tranche 14): counted from ai-toolkit/catalog.json; a catalogue fact, not demand."""
     cat = json.loads((Path(__file__).resolve().parents[2] / "ai-toolkit/catalog.json").read_text())["entries"]
-    rows = "".join(f'<tr data-ai-fw="{blt.esc(f)}"><td>{blt.esc(f)}</td><td>{sum(1 for e in cat if e["platform"] == f)}</td><td class="small">'
+    rows = "".join(f'<tr data-ai-fw="{blt.esc(f)}"><td><a data-ai-fw-link href="/library/toolkit/?framework={blt.esc(urllib.parse.quote(f))}#tk-q">{blt.esc(f)}</a></td><td>{sum(1 for e in cat if e["platform"] == f)}</td><td class="small">'
                    + blt.esc(", ".join(f"{s} {n}" for s, n in sorted({e["status"]: sum(1 for x in cat if x["platform"] == f and x["status"] == e["status"]) for e in cat if e["platform"] == f}.items()))) + '</td></tr>'
                    for f in dict.fromkeys(e["platform"] for e in cat))
     return (f'<h3 id="ai-supply">{both("AI toolkit items by framework", "フレームワークごとのAIツールキットの項目")}</h3>'
