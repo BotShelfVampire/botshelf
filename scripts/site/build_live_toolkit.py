@@ -476,7 +476,8 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
             out += f'<p class="section-label">Same job, other frameworks<span data-lang-show="ja" hidden> · 同じ仕事・ほかのフレームワーク</span></p><ul class="tk-list">' + "".join(li(x) for x in sj) + "</ul>"
         if sf:
             out += f'<p class="section-label">More for {esc(r["framework"])}<span data-lang-show="ja" hidden> · {esc(r["framework"])} のほかの項目</span></p><ul class="tk-list">' + "".join(li(x) for x in sf) + "</ul>"
-        out += f'<p><a class="btn-fat" data-tk-fw-hub href="/library/toolkit/?framework={esc(urllib.parse.quote(r["framework"]))}#tk-q">All {esc(r["framework"])} items in the toolkit →</a></p>'
+        out += f'<p><a class="btn-fat" data-tk-fw-hub href="/library/toolkit/?framework={esc(urllib.parse.quote(r["framework"]))}#tk-q">All {esc(r["framework"])} items in the toolkit →</a>' \
+            f' <a class="btn-fat" data-tk-job-hub="{esc(r["job"])}" href="/library/toolkit/?job={esc(urllib.parse.quote(r["job"]))}#tk-q">All items for {esc(jobs[r["job"]]["en"])} →</a></p>'
         return f'<section class="section" id="tk-related">{out}</section>'
 
     for r in recs:
