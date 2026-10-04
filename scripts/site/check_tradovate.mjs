@@ -11,9 +11,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { execFileSync } from 'node:child_process';
+import os from 'node:os';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const dir = path.join(root, 'trader-toolkit/recipes');
-let checks = 0, failures = 0, files = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0, zoneSeen = 0;
+let checks = 0, failures = 0, files = 0, alertsSeen = 0, pivSeen = 0, mutCaught = 0, zoneSeen = 0, htfSeen = 0;
 const fail = (f, m) => { failures++; console.error('FAIL', f, m); };
 const ok = (c, f, m) => { checks++; if (!c) fail(f, m); };
 const fin = Number.isFinite;
@@ -42,8 +43,22 @@ function reference(recipe) {
   function get(ref, m) { compute(byId.get(ref)); return m.get(ref) || new Array(NB).fill(m === S ? false : NaN); }
   function compute(b) {
     if (!b || done.has(b.id)) return; done.add(b.id);
-    if ((b.params || {}).timeframeRef) return;  // higher timeframe: Tradovate output leaves it empty (TODO stub), never chart-timeframe values
     const p = b.params || {};
+    if (p.timeframeRef) { // higher timeframe, written separately: group the bars into UTC-aligned periods; bar i sees only the periods before its own
+      const tf = String(byId.get(p.timeframeRef)?.params?.timeframe ?? '').trim().toUpperCase(), dm = /^(\d*)D$/.exec(tf);
+      const M = /^\d+$/.test(tf) ? +tf : dm ? (+dm[1] || 1) * 1440 : null;
+      if (!M || M > 10080 || (dm && (+dm[1] || 1) > 7) || !/^indicator\.(sma|ema|rsi|atr)$/.test(b.type) || STEP >= M * 60e3) return; // unsupported or too-coarse chart bars: no value
+      const per = [], idx = [];
+      bars.forEach(x => { const k = Math.floor(x.time / (M * 60e3)), q = per[per.length - 1]; if (!q || q.k !== k) per.push({ k, o: x.open, h: x.high, l: x.low, c: x.close }); else { q.h = Math.max(q.h, x.high); q.l = Math.min(q.l, x.low); q.c = x.close; } idx.push(per.length - 1); });
+      const hx = { open: per.map(q => q.o), high: per.map(q => q.h), low: per.map(q => q.l), close: per.map(q => q.c) };
+      hx.hl2 = per.map(q => (q.h + q.l) / 2); hx.hlc3 = per.map(q => (q.h + q.l + q.c) / 3); hx.ohlc4 = per.map(q => (q.o + q.h + q.l + q.c) / 4);
+      const x = hx[p.source || 'close'], n = p.length; let ser;
+      if (b.type === 'indicator.sma') ser = refSma(x, n); else if (b.type === 'indicator.ema') ser = refEma(x, n);
+      else if (b.type === 'indicator.rsi') { const g = x.slice(1).map((w, i) => Math.max(w - x[i], 0)), l = x.slice(1).map((w, i) => Math.max(x[i] - w, 0)), G = refRma(g, n), Lo = refRma(l, n); ser = [NaN, ...G.map((u, i) => !fin(u) ? NaN : u + Lo[i] === 0 ? 50 : 100 * u / (u + Lo[i]))]; }
+      else { const tr = per.slice(1).map((q, i) => Math.max(q.h, per[i].c) - Math.min(q.l, per[i].c)); ser = [NaN, ...refRma(tr, n)]; }
+      V.set(b.id, bars.map((_, i) => idx[i] > 0 ? ser[idx[i] - 1] : NaN));
+      return;
+    }
     switch (b.type) {
       case 'indicator.sma': V.set(b.id, refSma(pxOf[p.source || 'close'], p.length)); break;
       case 'indicator.ema': V.set(b.id, refEma(pxOf[p.source || 'close'], p.length)); break;
@@ -178,6 +193,22 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     if (mc !== code && M2) { const c3 = new M2.ex.calculator(); c3.props = {}; c3.init(); const o3 = []; for (let i = 0; i < NB; i++) o3.push(c3.map(entity(bars[i]), i)); const caught = zoneBad(o3) > 0; ok(caught, f, 'mutant caught: zone lines swapped'); if (caught) mutCaught++; }
     else ok(false, f, 'zone swap mutant could not be built');
   }
+  // higher timeframe: values must not be vacuous; using the forming higher-timeframe bar (a repainting mutant) must be caught; too-coarse chart bars give no value
+  const htfB = recipe.blocks.filter(b => /^indicator\./.test(b.type) && (b.params || {}).timeframeRef && ref.V.has(b.id));
+  if (htfB.length) {
+    htfB.forEach(b => { ok(ref.V.get(b.id).some(fin), f, `${b.id}: higher-timeframe reference has values (not vacuous)`); htfSeen++; });
+    const mc = code.replace(/this\.BsvHtf\(p\.H_(\w+), ("\w+"), (\d+), p\.hb_(\w+),/g, 'this.BsvHtf(p.H_$1, $2, $3, s.hb_$4,');
+    let M3 = null; try { M3 = load(mc, f); } catch (e) {}
+    if (mc !== code && M3) { const c4 = new M3.ex.calculator(); c4.props = {}; c4.init(); for (let i = 0; i < NB; i++) c4.map(entity(bars[i]), i);
+      const caught = htfB.some(b => { const k = String(b.id).replace(/[^A-Za-z0-9_]/g, '_'), w = ref.V.get(b.id); return c4.bars.some((x, i) => fin(w[i]) ? !(Math.abs(x['V_' + k] - w[i]) <= 1e-9 * Math.max(1, Math.abs(w[i]))) : fin(x['V_' + k])); });
+      ok(caught, f, 'mutant caught: higher timeframe reads the forming bar'); if (caught) mutCaught++; }
+    else ok(false, f, 'higher-timeframe mutant could not be built');
+    const cr = JSON.parse(JSON.stringify(recipe)); cr.blocks.forEach(b => { if (b.type === 'data.higher_timeframe') b.params.timeframe = '15'; });
+    const cp = path.join(os.tmpdir(), 'bsv-tradovate-coarse-' + f); fs.writeFileSync(cp, JSON.stringify(cr));
+    const ccode = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), cp, '--target', 'tradovate'], { encoding: 'utf8' }); fs.unlinkSync(cp);
+    const C = load(ccode, f), c5 = new C.ex.calculator(); c5.props = {}; c5.init(); for (let i = 0; i < NB; i++) c5.map(entity(bars[i]), i);
+    ok(/BsvHtf\(/.test(ccode) && htfB.every(b => c5.bars.every(x => !fin(x['V_' + String(b.id).replace(/[^A-Za-z0-9_]/g, '_')]))), f, 'higher timeframe equal to the chart step (15 min): no value, never chart-timeframe values');
+  }
   // live updates: re-running the forming bar must not change any output, and alerts only read the closed bar
   ok(JSON.stringify(A.out) === JSON.stringify(B.out), f, 'outputs unchanged after forming-bar updates');
   alerts.forEach((al, k) => {
@@ -203,5 +234,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     ok(!same, f, `mutant caught: ${mn}`); if (!same) mutCaught++;
   }
 }
-console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
+console.log(JSON.stringify({ target: 'tradovate', recipes: files, checks, failures, replay_alerts: alertsSeen, sweep_divergence_signals: pivSeen, zones: zoneSeen, htf_values: htfSeen, mutants_caught: mutCaught, note: 'BSV stub of the documented Tradovate custom-indicator API in node:vm, not Tradovate' }));
 process.exit(failures ? 1 : 0);

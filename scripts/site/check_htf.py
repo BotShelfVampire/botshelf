@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_live_toolkit as blt  # noqa: E402
 import build_request_market as brm  # noqa: E402
-REAL = {"backtrader", "backtesting-py", "nautilus"}
+REAL = {"backtrader", "backtesting-py", "nautilus", "tradovate"}
 IDIOM = {"pine-v6", "mql5", "mql4", "ninjatrader", "ctrader", "amibroker", "thinkscript"}
 src = (ROOT / "trader-toolkit/generator/render.mjs").read_text()
 checks = failures = 0
