@@ -246,6 +246,21 @@ def main():
         ok(f"- Filtered hub views use the page filters as URL parameters (framework, job, status, q), for example {ORIGIN}/library/toolkit/?framework=" in lt, "llms.txt: filtered AI hub views described")
         pjs = "".join(rd(x.lstrip("/")) for x in re.findall(r'<script src="(/[^"]*pilot[^"]*\.js)"', rd("robot-pilot/index.html")))
         ok("root.confirm('Delete the '" in pjs and "This cannot be undone." in pjs, "robot pilot: Clear asks before deleting saved sessions")
+        # batch 16: per-page link to the framework's hub view, toolkit.v1 filters, coverage ask links + platform prefill, dated log files
+        ok(all(f'data-tk-fw-hub href="/library/toolkit/?framework={blt.esc(urllib.parse.quote(e["framework"]))}#tk-q"' in rd(f"library/toolkit/{e['id']}/index.html") for e in tv), "AI toolkit pages: link to the hub filtered by the page's framework")
+        tvf = json.loads(rd("library/toolkit/toolkit.v1.json")).get("filters", {})
+        ok(tvf.get("framework") == list(dict.fromkeys(e["framework"] for e in tv)) and set(tvf.get("status", [])) == {e["status"] for e in tv} and len(tvf.get("job", [])) > 0 and all(f'value="{blt.esc(j)}"' in hub for j in tvf["job"]) and "{param}={value}" in tvf.get("url", ""), "toolkit.v1.json: filter values equal the hub options")
+        ctp = rd("trading/build/coverage/index.html")
+        ok(re.findall(r'data-ask-plat="([a-z0-9-]+)" href="/requests/\?area=trading&amp;platform=', ctp) == [x["id"] for x in json.loads(rd("trading/build/coverage.json"))["targets"]], "coverage page: one ask link per target")
+        if shutil.which("node"):
+            ad = rjs[rjs.index("function addPlat"):rjs.index("\n", rjs.index("function addPlat"))]
+            ad = rjs[rjs.index("function list("):rjs.index("\n", rjs.index("function list("))] + "\n" + ad
+            h2 = ("var J={value:''};var P={value:''};var $=function(s){return s==='#rq-platforms'?P:(s==='#rq-job'?J:null)};var chips=[{getAttribute:function(){return 'MT5'}}];"
+                  "var document={querySelector:function(){return null},querySelectorAll:function(){return chips}};var location={href:''};var out=[];" + ad + "\n" + pf +
+                  ";['?area=trading&platform=MT5','?area=trading&platform=Evil','?area=trading&platform=MT5'].forEach(function(c){location.href='https://x'+c;prefill();out.push(P.value)});console.log(JSON.stringify(out))")
+            g2 = json.loads(subprocess.run(["node", "-e", h2], capture_output=True, text=True, timeout=30).stdout or "[]")
+            ok(g2 == ["MT5", "MT5", "MT5"], f"requests: platform prefill adds a known chip value once, ignores unknown values (node) {g2}")
+        ok(pjs.count("'bsv-practice-log-' + new Date().toISOString().slice(0, 10) + '.") == 2, "robot pilot: CSV and JSON downloads carry the date")
         ok(op["signals"]["noResultSearches"]["collected"] is False and op["signals"]["pageViews"]["collected"] is False, "opportunities: uncollected signals marked, not invented")
         # generator coverage (#8 tranche 7): every target listed once, check scripts exist, TODO totals agree with gaps
         cv = json.loads((s / "trading/build/coverage.json").read_text()); repo = bd.Path(__file__).resolve().parents[2]
