@@ -13,9 +13,10 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../.
 const dir = path.join(root, 'trader-toolkit/recipes');
 const FN = { 'ta.ema': [2, 2], 'ta.sma': [2, 2], 'ta.rsi': [2, 2], 'ta.atr': [1, 1], 'ta.crossover': [2, 2], 'ta.crossunder': [2, 2], time: [3, 3], na: [1, 1],
   'request.security': [3, 4], 'timeframe.in_seconds': [0, 1], 'runtime.error': [1, 1], plot: [1, 2], alertcondition: [1, 3], indicator: [1, 2],
-  'ta.highest': [2, 2], 'ta.lowest': [2, 2], 'ta.barssince': [1, 1], 'ta.valuewhen': [3, 3] };
+  'ta.highest': [2, 2], 'ta.lowest': [2, 2], 'ta.barssince': [1, 1], 'ta.valuewhen': [3, 3],
+  'table.new': [3, 3], 'table.cell': [4, 4], 'str.tostring': [2, 2], 'str.format_time': [3, 3], alert: [2, 2] };
 const NAMED = new Set(['title', 'message', 'overlay', 'lookahead', 'color']);
-const CONSTS = new Set(['na', 'bar_index', 'color.red', 'color.green', 'open', 'high', 'low', 'close', 'hl2', 'hlc3', 'ohlc4', 'true', 'false', 'syminfo.tickerid', 'timeframe.period', 'barmerge.lookahead_on']);
+const CONSTS = new Set(['na', 'bar_index', 'color.red', 'color.green', 'open', 'high', 'low', 'close', 'hl2', 'hlc3', 'ohlc4', 'true', 'false', 'syminfo.tickerid', 'timeframe.period', 'barmerge.lookahead_on', 'time', 'syminfo.ticker', 'barstate.islast', 'position.top_right', 'alert.freq_once_per_bar_close']);
 const KW = new Set(['and', 'or', 'not', 'if', 'else', 'for', 'while', 'var', 'varip', 'import', 'export', 'switch', 'true', 'false', 'method', 'type', 'continue', 'break', 'in', 'to', 'by', 'enum']);
 let checks = 0, failures = 0, files = 0, QUIET = false;
 const fail = (f, m) => { failures++; if (!QUIET) console.error('FAIL', f, m); };
@@ -70,7 +71,7 @@ function parse(code) {
     if (ind === 0) cur = stmts; else if (cur === stmts) throw new Error('indented line outside a block');
     let m;
     if (ind === 0 && (m = /^if (.+)$/.exec(body))) { const st = { t: 'if', c: parseExpr(tokenize(m[1])), body: [] }; stmts.push(st); cur = st.body; continue; }
-    if ((m = /^(?:(float|bool) )?([A-Za-z_][A-Za-z0-9_]*) = (.+)$/.exec(body))) { cur.push({ t: 'def', n: m[2], ty: m[1] || null, e: parseExpr(tokenize(m[3])) }); continue; }
+    if ((m = /^(?:(float|bool) |var (table) )?([A-Za-z_][A-Za-z0-9_]*) = (.+)$/.exec(body))) { cur.push({ t: 'def', n: m[3], ty: m[1] || m[2] || null, e: parseExpr(tokenize(m[4])) }); continue; }
     if (/:=/.test(body)) throw new Error('reassignment (:=) is outside the BSV subset');
     cur.push({ t: 'expr', e: parseExpr(tokenize(body)) });
   }
@@ -78,7 +79,7 @@ function parse(code) {
 }
 const walk = (e, fn) => { if (!e) return; fn(e); if (e.t === 'call') e.args.forEach(a => walk(a, fn)); else if (e.t === 'named' || e.t === 'neg' || e.t === 'not' || e.t === 'off') walk(e.e, fn); else if (e.t === 'bin') { walk(e.l, fn); walk(e.r, fn); } else if (e.t === 'if') { walk(e.c, fn); walk(e.a, fn); walk(e.b, fn); } };
 function statics(f, stmts) {
-  const defined = new Set(); let indicators = 0;
+  const defined = new Set(), tables = new Set(); let indicators = 0;
   const chk = (e) => walk(e, (x) => {
     if (x.t === 'id') ok(defined.has(x.v) || CONSTS.has(x.v), f, `undefined or undocumented name ${x.v}`);
     if (x.t === 'off') ok(Number.isInteger(x.n) && x.n >= 1, f, `offset [${x.n}] must look back`);
@@ -88,11 +89,19 @@ function statics(f, stmts) {
         ok(x.args[0].t === 'id' && x.args[0].v === 'syminfo.tickerid' && x.args[1].t === 'str' && ex && ex.t === 'off' && ex.n === 1 && la && la.e.t === 'id' && la.e.v === 'barmerge.lookahead_on', f, 'request.security only as (syminfo.tickerid, tf, expr[1], lookahead = barmerge.lookahead_on): closed higher bars');
         walk(ex, y => { if (y.t === 'call') ok(y.f !== 'request.security', f, 'nested request.security'); }); }
       if (x.f === 'time') { const tz = x.args[2]; let good = tz && tz.t === 'str'; try { if (good) new Intl.DateTimeFormat('en-US', { timeZone: tz.v }); } catch { good = false; } ok(x.args[0].t === 'id' && x.args[0].v === 'timeframe.period' && x.args[1].t === 'str' && /^\d{4}-\d{4}$/.test(x.args[1].v) && good, f, 'time(timeframe.period, "HHMM-HHMM", <valid IANA time zone>)'); }
+      if (x.f === 'str.tostring') ok(x.args[1] && x.args[1].t === 'str' && x.args[1].v === '#.########', f, 'str.tostring(x, "#.########") only');
+      if (x.f === 'str.format_time') ok(x.args[0].t === 'id' && x.args[0].v === 'time' && x.args[1].t === 'str' && x.args[1].v === 'yyyy-MM-dd HH:mm' && x.args[2].t === 'str' && x.args[2].v === 'UTC', f, 'str.format_time(time, "yyyy-MM-dd HH:mm", "UTC") only');
       if (x.f === 'indicator') indicators++; }
   });
   for (const s of stmts) {
-    if (s.t === 'def') { chk(s.e); if (s.e.t === 'id' && s.e.v === 'na') ok(s.ty === 'float', f, `${s.n} = na needs a declared type (float ${s.n} = na)`); ok(!defined.has(s.n) && !KW.has(s.n) && !CONSTS.has(s.n) && !FN[s.n], f, `redeclares or shadows ${s.n}`); defined.add(s.n); }
-    else if (s.t === 'if') { chk(s.c); ok(s.body.length === 1 && s.body[0].t === 'expr' && s.body[0].e.t === 'call' && s.body[0].e.f === 'runtime.error', f, 'if blocks only guard with runtime.error'); s.body.forEach(b => chk(b.e)); }
+    if (s.t === 'def' && s.ty === 'table') ok(s.e.t === 'call' && s.e.f === 'table.new' && s.e.args[0].t === 'id' && s.e.args[0].v === 'position.top_right', f, `var table ${s.n} = table.new(position.top_right, ...) only`);
+    else if (s.t === 'def') ok(!(s.e.t === 'call' && s.e.f === 'table.new'), f, 'table.new only in a var table declaration (created once)');
+    if (s.t === 'def') { chk(s.e); if (s.e.t === 'id' && s.e.v === 'na') ok(s.ty === 'float', f, `${s.n} = na needs a declared type (float ${s.n} = na)`); ok(!defined.has(s.n) && !KW.has(s.n) && !CONSTS.has(s.n) && !FN[s.n], f, `redeclares or shadows ${s.n}`); defined.add(s.n); if (s.ty === 'table') tables.add(s.n); }
+    else if (s.t === 'if') { chk(s.c); const calls = s.body.every(b => b.t === 'expr' && b.e.t === 'call'), fs0 = s.body.map(b => b.e.f);
+      const guard = calls && s.body.length === 1 && fs0[0] === 'runtime.error';
+      const panel = calls && s.c.t === 'id' && s.c.v === 'barstate.islast' && s.body.length > 0 && s.body.every(b => b.e.f === 'table.cell' && b.e.args[0].t === 'id' && tables.has(b.e.args[0].v) && b.e.args[1].t === 'num' && b.e.args[2].t === 'num');
+      const hook = calls && s.c.t === 'id' && defined.has(s.c.v) && s.body.length === 1 && fs0[0] === 'alert' && s.body[0].e.args[1].t === 'id' && s.body[0].e.args[1].v === 'alert.freq_once_per_bar_close';
+      ok(guard || panel || hook, f, 'if blocks only: a runtime.error guard, a barstate.islast panel of table.cell calls, or alert(msg, alert.freq_once_per_bar_close) (completed bars only)'); s.body.forEach(b => chk(b.e)); }
     else { chk(s.e); ok(s.e.t === 'call' && ['indicator', 'plot', 'alertcondition'].includes(s.e.f), f, `bare expression statement ${s.e.f || s.e.t}`); }
   }
   ok(indicators === 1, f, 'exactly one indicator() declaration (no strategy, no orders)');
@@ -106,6 +115,7 @@ const tfMs = (s) => /^\d+$/.test(s) ? Number(s) * 60e3 : (/^(\d*)D$/.test(s) ? (
 function compress(bars, ms) { const out = [], gidx = []; let key = null; bars.forEach(b => { const k = Math.floor(b.time / ms); if (k !== key) { key = k; out.push({ time: k * ms, open: b.open, high: b.high, low: b.low, close: b.close }); } else { const o = out[out.length - 1]; o.high = Math.max(o.high, b.high); o.low = Math.min(o.low, b.low); o.close = b.close; } gidx.push(out.length - 1); }); return { bars: out, gidx }; }
 const minuteIn = (t, tz) => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(t)); return +p.find(x => x.type === 'hour').value * 60 + +p.find(x => x.type === 'minute').value; };
 class PineRuntimeError extends Error {}
+const TICKER = 'BSVTEST', fmt8 = (v) => { if (!fin(v)) return 'NaN'; const s = (Math.round(v * 1e8) / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, ''); return s === '-0' ? '0' : s; }; // str.tostring(x, "#.########"): up to 8 decimals, no trailing zeros
 function evalPine(stmts, bars, sink) {
   const env = new Map(), spacing = bars.length > 1 ? (bars[1].time - bars[0].time) / 1000 : NaN;
   const ctxOf = (bs) => ({ n: bs.length, bars: bs, px: { open: bs.map(b => b.open), high: bs.map(b => b.high), low: bs.map(b => b.low), close: bs.map(b => b.close) } });
@@ -118,7 +128,8 @@ function evalPine(stmts, bars, sink) {
         if (local && env.has(k)) throw new Error('chart variable inside request.security');
         if (env.has(k)) return env.get(k); if (px[k]) return px[k];
         if (k === 'hl2') return px.high.map((h, i) => (h + px.low[i]) / 2); if (k === 'hlc3') return px.high.map((h, i) => (h + px.low[i] + px.close[i]) / 3); if (k === 'ohlc4') return px.open.map((o, i) => (o + px.high[i] + px.low[i] + px.close[i]) / 4);
-        if (k === 'true') return 1; if (k === 'false') return 0; if (k === 'na') return NaN; if (k === 'bar_index') return c.bars.map((_, i) => i); return k; }
+        if (k === 'true') return 1; if (k === 'false') return 0; if (k === 'na') return NaN; if (k === 'bar_index') return c.bars.map((_, i) => i);
+        if (k === 'time') return c.bars.map(b => b.time); if (k === 'barstate.islast') return c.bars.map((_, i) => +(i === n - 1)); if (k === 'syminfo.ticker') return TICKER; if (k === 'timeframe.period') return String(spacing / 60); return k; }
       case 'off': { const x = arr(r(e.e)); return x.map((_, i) => i - e.n >= 0 ? x[i - e.n] : NaN); }
       case 'neg': return arr(r(e.e)).map(v => -v);
       case 'not': return arr(r(e.e)).map(v => fin(v) ? +!v : NaN);
@@ -144,13 +155,20 @@ function evalPine(stmts, bars, sink) {
         if (f === 'plot') { sink.plots.push({ v: arr(A[0]) }); return 0; }
         if (f === 'alertcondition') { sink.alerts.push({ cond: arr(A[0]), message: (e.args.find(a => a.t === 'named' && a.n === 'message') || {}).e?.v }); return 0; }
         if (f === 'indicator') return 0;
+        if (f === 'table.new') return { table: true };
+        if (f === 'str.tostring') return arr(A[0]).map(fmt8);
+        if (f === 'str.format_time') return arr(A[0]).map(t => fin(t) ? new Date(t).toISOString().slice(0, 16).replace('T', ' ') : '');
       }
     }
     throw new Error('cannot evaluate ' + e.t);
   };
   for (const s of stmts) {
     if (s.t === 'def') env.set(s.n, run(s.e, top));
-    else if (s.t === 'if') { const cnd = run(s.c, top); if ((Array.isArray(cnd) ? cnd : [cnd]).some(v => v && fin(v))) run(s.body[0].e, top); }
+    else if (s.t === 'if') { const cv = run(s.c, top), cnd = Array.isArray(cv) ? cv : N(top.n, cv), hit = cnd.map((v, i) => v && fin(v) ? i : -1).filter(i => i >= 0);
+      for (const b of s.body) { const e = b.e, aN = (x) => { const v = run(x, top); return Array.isArray(v) ? v : N(top.n, v); };
+        if (e.f === 'table.cell') { const A = e.args.map(aN); hit.forEach(i => (sink.cells = sink.cells || []).push({ t: e.args[0].v, c: A[1][i], r: A[2][i], text: A[3][i] })); }
+        else if (e.f === 'alert') { const msg = aN(e.args[0]); hit.forEach(i => (sink.hooks = sink.hooks || []).push({ i, msg: msg[i] })); }
+        else if (hit.length) run(e, top); } }
     else run(s.e, top);
   }
   return env;
@@ -168,7 +186,7 @@ const refInd = (bs, b) => { const p = b.params || {}, x = srcOf(bs, p.source);
   if (b.type === 'indicator.rsi') { const G = refRma(x.slice(1).map((w, i) => Math.max(w - x[i], 0)), p.length), L = refRma(x.slice(1).map((w, i) => Math.max(x[i] - w, 0)), p.length); return [NaN, ...G.map((u, i) => 100 * u / (u + L[i]))]; }
   const tr = bs.map((h, i) => i === 0 ? h.high - h.low : Math.max(h.high, bs[i - 1].close) - Math.min(h.low, bs[i - 1].close)); return [NaN, ...refRma(tr.slice(1), p.length)]; };
 const same = (a, b) => a === b || (Number.isNaN(a) && Number.isNaN(b)) || Math.abs(a - b) < 1e-9, tr = (v) => !!(v && fin(v));
-let todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, mutantsCaught = 0, alertsSeen = 0, rangeChecked = 0, breakoutsSeen = 0, zonesSeen = 0, pivSigSeen = 0;
+let todoLines = 0, indChecked = 0, sigChecked = 0, htfChecked = 0, mutantsCaught = 0, alertsSeen = 0, rangeChecked = 0, breakoutsSeen = 0, zonesSeen = 0, pivSigSeen = 0, panelsSeen = 0, hooksSeen = 0;
 for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   const recipe = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), by = Object.fromEntries(recipe.blocks.map(b => [b.id, b]));
   const code = execFileSync('node', [path.join(root, 'trader-toolkit/generator/render.mjs'), path.join(dir, f), '--target', 'pine-v6'], { encoding: 'utf8' });
@@ -242,6 +260,25 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
   ok(sink.plots.length >= plotsB.length && plotsB.every((b, k) => sink.plots[k].v.every((x, i) => same(x, (env.get(b.params.source) || srcOf(bs, b.params.source))[i]))), f, 'one plot per visual.plot, plotting its source');
   ok(sink.alerts.length === alertsB.length && alertsB.every((b, k) => sink.alerts[k].cond.every((x, i) => tr(x) === tr(env.get(b.params.when)[i])) && sink.alerts[k].message === (b.params.message || b.id)), f, 'one alertcondition per alert.condition, on its signal, with its message');
   sink.alerts.forEach(a => { alertsSeen += a.cond.filter(tr).length; });
+  // value panels: every field of the recipe (a range = its high and low) is a row, the value is the bar that just closed (n - 2), from the series checked above
+  const fieldIds = (tb) => (tb.params.fields || []).flatMap(x => by[x]?.type === 'structure.range' ? (by[x].params.track || []).map(k => `${x}.${k}`) : [String(x)]);
+  const boolT = (x) => /^(signal\.|filter\.session)/.test(by[x]?.type || '');
+  const wantCells = (tb, e, n) => [{ c: 0, r: 0, text: String(tb.params.title || tb.id) }, ...fieldIds(tb).flatMap((x, k) => { const v = e.get(x.replace('.', '_')); return [{ c: 0, r: k + 1, text: x }, { c: 1, r: k + 1, text: boolT(x) ? (tr(v[n - 2]) ? 'true' : 'false') : fmt8(v[n - 2]) }]; })];
+  const tabB = recipe.blocks.filter(b => b.type === 'visual.table' && code.includes(`var table T_${b.id} = `));
+  const badT = (sk, e, n) => { let d = 0; for (const tb of tabB) { const got = (sk.cells || []).filter(x => x.t === `T_${tb.id}`), w = wantCells(tb, e, n); if (got.length !== w.length) d++; else w.forEach((x, k) => { if (got[k].c !== x.c || got[k].r !== x.r || got[k].text !== x.text) d++; }); } return d; };
+  recipe.blocks.filter(b => b.type === 'visual.table' && !tabB.includes(b)).forEach(b => ok(false, f, `${b.id}: value panel not rendered`));
+  if (tabB.length) { ok(badT(sink, env, bs.length) === 0, f, `value panels show every field at the bar that just closed (${badT(sink, env, bs.length)} cells differ)`);
+    for (const tb of tabB) { const w = wantCells(tb, env, bs.length).filter(x => x.c === 1); ok(w.some(x => x.text !== 'NaN'), f, `${tb.id}: panel values are not all na (not vacuous)`); panelsSeen++; }
+    let pdT = 0; for (let n = 1000; n <= bs.length; n += 389) { const sk = { plots: [], alerts: [] }; evalPine(stmts, bs.slice(0, n), sk); pdT += badT(sk, env, n); } ok(pdT === 0, f, `value panels on prefix runs show the closed bar of the full run (no lookahead; ${pdT} differ)`);
+    if (tabB.some(tb => fieldIds(tb).some(x => !boolT(x)))) { const mc = code.replace(/\[1\], "#\.########"\)\)$/gm, ', "#.########"))'), ms = parse(mc); let caught = false; for (let n = 1000; n <= bs.length && !caught; n += 37) { const sk = { plots: [], alerts: [] }; evalPine(ms, bs.slice(0, n), sk); caught = mc !== code && badT(sk, env, n) > 0; } ok(caught, f, 'mutant caught: panel shows the forming bar (no [1])'); if (caught) mutantsCaught++; } }
+  // webhooks: alert() on exactly the bars where the condition holds, the JSON = the recipe payload with {{...}} filled from the bar (independent of the script)
+  const hookB = recipe.blocks.filter(b => b.type === 'alert.webhook' && new RegExp(`^if ${b.id}$`, 'm').test(code));
+  const wantJson = (pl, i) => Object.fromEntries(Object.entries(pl).map(([k, x]) => [k, typeof x !== 'string' ? x : x.replace(/\{\{([^}]*)\}\}/g, (m0, nm) => nm === 'symbol' ? TICKER : nm === 'timeframe' ? String((bs[1].time - bs[0].time) / 60e3) : nm === 'time' ? new Date(bs[i].time).toISOString().slice(0, 16).replace('T', ' ') : fmt8(bs[i][nm]))]));
+  const badH = (sk) => { let d = 0; for (const hb of hookB) { const w = env.get(hb.params.when), want = w.map((v, i) => tr(v) ? i : -1).filter(i => i >= 0), got = sk.hooks || []; if (got.length !== want.length) { d++; continue; } got.forEach((h, k) => { let j = null; try { j = JSON.parse(h.msg); } catch { d++; return; } if (h.i !== want[k] || JSON.stringify(j) !== JSON.stringify(wantJson(hb.params.payload, h.i))) d++; }); } return d; };
+  recipe.blocks.filter(b => b.type === 'alert.webhook' && !hookB.includes(b)).forEach(b => ok(code.includes(`// TODO unsupported block alert.webhook: ${b.id}`), f, `${b.id}: webhook left as TODO`));
+  if (hookB.length) { ok(badH(sink) === 0 && (sink.hooks || []).length > 0, f, `webhook alert() fires on its condition with the recipe JSON (${(sink.hooks || []).length} sent, ${badH(sink)} differ)`); hooksSeen += (sink.hooks || []).length;
+    for (const [mn, from, to] of [['price from the open', /str\.tostring\(close, /, 'str.tostring(open, '], ['webhook on the condition before', /^if (\w+)$/m, 'if $1[1]']]) { if (!from.test(code)) continue; const mc = code.replace(from, to), sk = { plots: [], alerts: [] }; evalPine(parse(mc), bs, sk); const caught = mc !== code && badH(sk) > 0; ok(caught, f, `mutant caught: ${mn}`); if (caught) mutantsCaught++; }
+    { const mc = code.replace('alert.freq_once_per_bar_close', 'alert.freq_all'), fb = failures, cb = checks; QUIET = true; statics('mutant', parse(mc)); QUIET = false; const st = failures > fb; failures = fb; checks = cb; ok(st, f, 'mutant caught: alert every tick (alert.freq_all) is rejected'); if (st) mutantsCaught++; } }
   // prefix runs: every variable's last value equals the full run (nothing reads future bars)
   let pd = 0; for (let n = 1000; n <= bs.length; n += 97) { const ep = evalPine(stmts, bs.slice(0, n), { plots: [], alerts: [] }); for (const [k, v] of env) if (Array.isArray(v) && !same(ep.get(k)[n - 1], v[n - 1])) pd++; }
   ok(pd === 0, f, `prefix runs give the same last-bar values (no lookahead; ${pd} differ)`);
@@ -255,5 +292,5 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json')).sort()) {
     const caught = mc !== code && e2.get(cx.id).some((x, i) => tr(x) !== tr(env.get(cx.id)[i])); ok(caught, f, `flipped-cross mutant caught (${cx.id})`); if (caught) mutantsCaught++; }
   else if (recipe.blocks.some(b => b.type === 'signal.cross' && env.get(b.id))) ok(false, f, 'crosses never fire on the test bars (vacuous)');
 }
-console.log(JSON.stringify({ target: 'pine-v6', recipes: files, checks, failures, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, alert_bars: alertsSeen, ranges: rangeChecked, breakouts: breakoutsSeen, zones: zonesSeen, sweep_divergence: pivSigSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, note: "BSV Pine-subset parser/evaluator, not TradingView" }));
+console.log(JSON.stringify({ target: 'pine-v6', recipes: files, checks, failures, indicators: indChecked, signals: sigChecked, htf_values: htfChecked, alert_bars: alertsSeen, ranges: rangeChecked, breakouts: breakoutsSeen, zones: zonesSeen, sweep_divergence: pivSigSeen, panels: panelsSeen, webhook_payloads: hooksSeen, todo_lines: todoLines, mutants_caught: mutantsCaught, note: "BSV Pine-subset parser/evaluator, not TradingView" }));
 process.exit(failures ? 1 : 0);
