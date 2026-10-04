@@ -136,6 +136,13 @@
   // session evidence AND valid against the published schema are added; an evidenceId already in the log is skipped;
   // the log keeps its last 20 sessions, as the Save button does. Pure function: nothing is uploaded.
   var LOG_MAX = 20;
+  // Save (#7 tranche 12): append one session; report how many of the oldest fall out of the 20-session browser log so the
+  // page can say so instead of dropping them silently. Pure function.
+  function appendLog(list, ev) {
+    var out = (Array.isArray(list) ? list : []).filter(function (e) { return e && typeof e === 'object' && !Array.isArray(e); }).concat([ev]);
+    var dropped = Math.max(0, out.length - LOG_MAX);
+    return { list: out.slice(-LOG_MAX), dropped: dropped };
+  }
   function mergeLog(list, docs, evSchema) {
     var out = (Array.isArray(list) ? list : []).filter(function (e) { return e && typeof e === 'object' && !Array.isArray(e); }).slice();
     var seen = {}, added = 0, skipped = 0, rejected = [];
@@ -152,7 +159,7 @@
     return { list: out.slice(-LOG_MAX), added: added, skipped: skipped, rejected: rejected, dropped: dropped };
   }
 
-  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf, summarize: summarize, toCsv: toCsv, toJson: toJson, mergeLog: mergeLog };
+  var api = { build: build, missions: missions, validate: validate, checkDoc: checkDoc, kindOf: kindOf, summarize: summarize, toCsv: toCsv, toJson: toJson, mergeLog: mergeLog, appendLog: appendLog, LOG_MAX: LOG_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BSVPilot = api;
   if (!root.document) return;
@@ -179,7 +186,7 @@
     f.addEventListener('submit', function (e) { e.preventDefault(); show(current()); });
     $('#rp-dl-ev').addEventListener('click', function () { var o = current(); if (show(o)) dl(o.evidence.evidenceId + '.teleop-session-evidence.json', o.evidence); });
     $('#rp-dl-rec').addEventListener('click', function () { var o = current(); if (show(o)) dl(o.profile.practiceRecords[0].recordId + '.practice-record.json', o.profile); });
-    $('#rp-save').addEventListener('click', function () { var o = current(); if (!show(o)) return; var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} a.push(o.evidence); try { root.localStorage.setItem(KEY, JSON.stringify(a.slice(-20))); } catch (e) {} $('#rp-saved').textContent = a.length + ' saved in this browser'; });
+    $('#rp-save').addEventListener('click', function () { var o = current(); if (!show(o)) return; var a = []; try { a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); } catch (e) {} var r = appendLog(a, o.evidence); try { root.localStorage.setItem(KEY, JSON.stringify(r.list)); } catch (e) {} $('#rp-saved').textContent = r.list.length + ' saved in this browser' + (r.dropped ? ' (limit ' + LOG_MAX + ': the oldest ' + r.dropped + ' removed from this browser; download the JSON backup to keep everything) / 上限' + LOG_MAX + '件のため古い' + r.dropped + '件をこのブラウザから削除しました。すべて残すにはJSONバックアップを保存してください' : ''); });
     try { var a = JSON.parse(root.localStorage.getItem(KEY) || '[]'); if (a.length) $('#rp-saved').textContent = a.length + ' saved in this browser'; } catch (e) {}
     function pct(x) { return x === null ? '—' : (Math.round(x * 1000) / 10) + '%'; }
     function td(tr, v) { var c = root.document.createElement('td'); c.textContent = String(v); tr.appendChild(c); }
