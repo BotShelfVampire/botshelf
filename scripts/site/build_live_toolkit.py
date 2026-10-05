@@ -460,6 +460,9 @@ def build_ai(site: Path, repo: Path, copy: dict) -> dict:
                f'<button type="button" class="btn" id="ho-start" data-ho-tpl="{esc(ho_tpl)}">Start a packet</button></p>'
                + lib_both(T("Fills only what the catalog states (job id, NOT_STARTED, the source path, the framework, the catalog status as a limitation) into an empty box. Everything else stays blank for you, including owner approval.", "カタログに書かれていること（job id、NOT_STARTED、ソースの場所、フレームワーク、カタログの状態を limitations に）だけを、空の入力欄に入れます。owner approval を含め、ほかは空のままです。"), "p", "muted")
                + '<p><label for="ho-text">Filled packet</label></p><p><textarea id="ho-text" rows="14" cols="80" spellcheck="false"></textarea></p>'
+               + lib_both(T("Optional: paste an eval-run JSON (BSV schema 1.0) from a team runner --eval-record file. Check applies the same structure rules as scripts/validate-eval-run.mjs in this browser only. It does not judge whether facts are true.",
+                            "任意: チームランナーの --eval-record で書いた eval-run JSON（BSV schema 1.0）を貼り付けます。Check は scripts/validate-eval-run.mjs と同じ形のルールを、このブラウザだけで適用します。事実が正しいかどうかは判定しません。"), "p", "muted")
+               + '<p><label for="ho-eval">Eval record JSON (optional)</label></p><p><textarea id="ho-eval" rows="8" cols="80" spellcheck="false" placeholder="{ &quot;schema_version&quot;: &quot;1.0&quot;, ... }"></textarea></p>'
                '<p><button type="button" class="btn" id="ho-check">Check</button></p><div id="ho-out" aria-live="polite"></div></section>')
     lic = (repo / "LICENSE").read_bytes()
     st = copy["status"]

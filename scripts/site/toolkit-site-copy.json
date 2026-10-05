@@ -546,15 +546,15 @@
   "langgraph-team-runner": {
    "job": "orchestration",
    "summary": {
-    "en": "Runs any of the 10 Library AI Team tasks as a LangGraph graph on a local model (LM Studio or Ollama): produce, check the required sections, pause for your approval, then save. You paste the team prompt from its Library page.",
-    "ja": "Library AI Teamの10種類の仕事を、ローカルモデル（LM StudioまたはOllama）上のLangGraphのグラフとして動かします。作成→必要な項目の確認→あなたの承認待ち→保存の順です。Teamのプロンプトは各Libraryページから貼り付けます。"
+    "en": "Runs any of the 10 Library AI Team tasks as a LangGraph graph on a local model (LM Studio or Ollama): produce, check the required sections, pause for your approval, then save. Optional --eval-record writes a BSV schema 1.0 evidence file (passed only if every section is present and you typed yes; facts are not checked). You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、ローカルモデル（LM StudioまたはOllama）上のLangGraphのグラフとして動かします。作成→必要な項目の確認→あなたの承認待ち→保存の順です。任意の --eval-record で BSV schema 1.0 の証拠ファイルを書けます（全セクションがあり yes のときだけ passed。事実は未検証）。Teamのプロンプトは各Libraryページから貼り付けます。"
    }
   },
   "crewai-team-runner": {
    "job": "orchestration",
    "summary": {
-    "en": "Runs any of the 10 Library AI Team tasks as a two-agent CrewAI crew (lead + checker) on a local model, checks the required sections and saves only after your approval. You paste the team prompt from its Library page.",
-    "ja": "Library AI Teamの10種類の仕事を、ローカルモデル上のCrewAIの2人構成（担当＋確認役）で動かします。必要な項目を確認し、あなたが承認したときだけ保存します。Teamのプロンプトは各Libraryページから貼り付けます。"
+    "en": "Runs any of the 10 Library AI Team tasks as a two-agent CrewAI crew (lead + checker) on a local model, checks the required sections and saves only after your approval. Optional --eval-record writes a BSV schema 1.0 evidence file (passed only if every section is present and you typed yes; facts are not checked). You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、ローカルモデル上のCrewAIの2人構成（担当＋確認役）で動かします。必要な項目を確認し、あなたが承認したときだけ保存します。任意の --eval-record で BSV schema 1.0 の証拠ファイルを書けます（全セクションがあり yes のときだけ passed。事実は未検証）。Teamのプロンプトは各Libraryページから貼り付けます。"
    }
   },
   "n8n-team-runner": {
@@ -567,15 +567,15 @@
   "openai-agents-team-runner": {
    "job": "orchestration",
    "summary": {
-    "en": "Runs any of the 10 Library AI Team tasks with the OpenAI Agents SDK on a local model (LM Studio or Ollama), tracing disabled and no tools: produce, check the required sections, then save only after your approval. You paste the team prompt from its Library page.",
-    "ja": "Library AI Teamの10種類の仕事を、OpenAI Agents SDKとローカルモデル（LM StudioまたはOllama）で動かします。トレースは無効、ツールはなしです。作成→必要な項目の確認→あなたが承認したときだけ保存、の順です。Teamのプロンプトは各Libraryページから貼り付けます。"
+    "en": "Runs any of the 10 Library AI Team tasks with the OpenAI Agents SDK on a local model (LM Studio or Ollama), tracing disabled and no tools: produce, check the required sections, then save only after your approval. Optional --eval-record writes a BSV schema 1.0 evidence file (passed only if every section is present and you typed yes; facts are not checked). You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事を、OpenAI Agents SDKとローカルモデル（LM StudioまたはOllama）で動かします。トレースは無効、ツールはなしです。作成→必要な項目の確認→あなたが承認したときだけ保存、の順です。任意の --eval-record で BSV schema 1.0 の証拠ファイルを書けます（全セクションがあり yes のときだけ passed。事実は未検証）。Teamのプロンプトは各Libraryページから貼り付けます。"
    }
   },
   "ai-team-handoff": {
    "job": "handoff",
    "summary": {
-    "en": "Plain-text packet for handing a job between AI workers, frameworks or human reviewers without repeating finished work: scope and approval boundaries, current state, completed work, evidence, one next action and a do-not-repeat list.",
-    "ja": "AIの作業役・フレームワーク・人のレビュー担当のあいだで、終わった作業を繰り返さずに仕事を引き継ぐためのテキストです。範囲と承認の境界、現在の状態、終わった作業、根拠、次の一手（1つ）、繰り返さないことの一覧をまとめます。"
+    "en": "Plain-text packet for handing a job between AI workers, frameworks or human reviewers without repeating finished work: scope and approval boundaries, current state, completed work, evidence, one next action and a do-not-repeat list. The gated source page can also check an optional BSV eval-run schema 1.0 JSON (same rules as scripts/validate-eval-run.mjs) in the browser only.",
+    "ja": "AIの作業役・フレームワーク・人のレビュー担当のあいだで、終わった作業を繰り返さずに仕事を引き継ぐためのテキストです。範囲と承認の境界、現在の状態、終わった作業、根拠、次の一手（1つ）、繰り返さないことの一覧をまとめます。ゲート付きソースページでは、任意で BSV eval-run schema 1.0 の JSON もブラウザだけで確かめられます（scripts/validate-eval-run.mjs と同じ形のルール）。"
    }
   },
   "ai-team-regression": {
