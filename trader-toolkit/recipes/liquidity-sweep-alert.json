@@ -1,7 +1,7 @@
 {
   "schemaVersion": "0.1",
   "name": "Liquidity Sweep Alert Starter",
-  "description": "Pivot/sweep concept with ATR context and a pivot zone. Rendered on targets that support pivots (including NinjaTrader and cTrader); other targets keep honest TODOs.",
+  "description": "Pivot/sweep concept with ATR context and a pivot zone. Rendered on targets that support pivots (including NinjaTrader, cTrader and MT4); other targets keep honest TODOs.",
   "overlay": true,
   "blocks": [
     {
