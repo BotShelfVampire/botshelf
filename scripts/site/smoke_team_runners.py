@@ -7,7 +7,7 @@ loop, the approval gate and what is saved. It says nothing about answer quality 
 usage: python smoke_team_runners.py  (langgraph + openai, crewai in the running interpreter)
   env BSV_SMOKE_AGENTS_PY = python with openai-agents (separate venv: it needs openai 3, crewai pins openai 2)
   env BSV_SMOKE_NODE + BSV_SMOKE_N8N = node binary + n8n CLI script (npm package n8n)
-Also: the --eval-record option of the 3 Python runners (eval_record.py) writes records that pass
+Also: the --eval-record option of the 3 Python runners and n8n record_execution.py (eval_record.py) write records that pass
 scripts/validate-eval-run.mjs and say what happened (section check, yes/no). Facts are not checked by it."""
 import http.server, importlib.metadata as md, json, os, pathlib, shutil, socket, subprocess, sys, tempfile, threading
 
@@ -173,8 +173,10 @@ def n8n_once(reply):
     Task input -> user_input) is done on the JSON; then the real n8n CLI imports and executes it."""
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="bsv-smoke-n8n-"))
     d = tmp / "runner"; shutil.copytree(REPO / "ai-toolkit" / "n8n" / "team-runner", d, ignore=shutil.ignore_patterns("out", "__pycache__"))
-    for old, new in MUTATE:
-        f = d / "make_workflow.py"; t = f.read_text(); assert old in t, old; f.write_text(t.replace(old, new, 1))
+    for m in MUTATE:
+        if len(m) == 3:
+            continue  # record_execution.py / eval_record.py mutants: applied in n8n_evidence
+        old, new = m; f = d / "make_workflow.py"; t = f.read_text(); assert old in t, old; f.write_text(t.replace(old, new, 1))
     st = Stub(lambda s, b: reply)
     (tmp / "prompt.txt").write_text(SYSTEM)
     env = dict(os.environ, HOME=str(tmp), N8N_USER_FOLDER=str(tmp / "n8n"), N8N_DIAGNOSTICS_ENABLED="false", N8N_VERSION_NOTIFICATIONS_ENABLED="false",
@@ -193,7 +195,7 @@ def n8n_once(reply):
         i = subprocess.run([NODE, N8N, "import:workflow", "--input=" + str(tmp / "wf.json")], capture_output=True, text=True, env=env, timeout=240, cwd=tmp)
         res["import"] = i.returncode == 0 and "Successfully imported 1 workflow" in (i.stdout + i.stderr)
         e = subprocess.run([NODE, N8N, "execute", "--id=" + wf["id"], "--rawOutput"], capture_output=True, text=True, env=env, timeout=240, cwd=tmp)
-        k = e.stdout.find("{\n"); out = json.loads(e.stdout[k:]) if k >= 0 else {}
+        k = e.stdout.find("{\n"); out = json.loads(e.stdout[k:]) if k >= 0 else {}; res["raw"] = e.stdout
         run = out.get("data", {}).get("resultData", {}).get("runData", {})
         res["status"] = (out.get("status"), out.get("finished"), out.get("data", {}).get("resultData", {}).get("lastNodeExecuted"))
         res["check"] = run.get("Section check", [{}])[0].get("data", {}).get("main", [[{}]])[0][0].get("json", {})
@@ -221,8 +223,64 @@ def n8n():
     ok(r2.get("check", {}).get("missing") == [] and r2["check"].get("all_sections_present") is True and r2["check"].get("draft") == FULL
        and "Nothing was saved or sent" in r2["check"].get("next_step", ""), "n8n: complete answer = no missing section, review step; got %r" % r2.get("check"))
     ok(len(PROXY.hits) == h0, "n8n: no outside call through the proxy; got %r" % PROXY.hits[h0:])
+    N8N_RAW.update(part=r.get("raw", ""), full=r2.get("raw", ""))
     v = subprocess.run([NODE, N8N, "--version"], capture_output=True, text=True, timeout=120).stdout.strip().splitlines()
     return {"requests": len(cc), "n8n": v[-1] if v else None}
+
+
+N8N_RAW = {}
+
+
+def n8n_evidence():
+    """record_execution.py (n8n has no --eval-record): the JSON printed by the real `n8n execute --rawOutput` runs above
+    (PART and FULL replies) -> eval record; validated like the Python runners' records; refusals leave the record untouched."""
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="bsv-smoke-n8nrec-")); d = tmp / "runner"
+    shutil.copytree(REPO / "ai-toolkit" / "n8n" / "team-runner", d, ignore=shutil.ignore_patterns("out", "__pycache__"))
+    for m in MUTATE:
+        if len(m) == 3:
+            fn, old, new = m; f = d / fn; t = f.read_text(); assert old in t, old; f.write_text(t.replace(old, new, 1))
+    before = sorted(str(p.relative_to(d)) for p in d.rglob("*") if p.is_file())
+    (tmp / "part.json").write_text(N8N_RAW.get("part", "")); (tmp / "full.json").write_text(N8N_RAW.get("full", ""))
+    rec_p = tmp / "record.json"; h0 = len(PROXY.hits)
+    rr = lambda ex, ap, rp=rec_p: subprocess.run([sys.executable, str(d / "record_execution.py"), "--execution", str(ex), "--approved", ap, "--eval-record", str(rp)],
+                                                 capture_output=True, text=True, timeout=60, cwd=tmp, env=dict(os.environ, HTTPS_PROXY=PROXY.url, HTTP_PROXY=PROXY.url))
+    try:
+        r1, r2, r3 = rr(tmp / "full.json", "yes"), rr(tmp / "part.json", "yes"), rr(tmp / "full.json", "no")
+        ok([x.returncode for x in (r1, r2, r3)] == [0, 0, 0] and "run-001 passed" in r1.stdout and "run-002 failed" in r2.stdout and "run-003 failed" in r3.stdout,
+           "n8n evidence: 3 executions recorded with run id + result; got %r" % [(x.returncode, x.stdout[-120:], x.stderr[-200:]) for x in (r1, r2, r3)])
+        rec = json.loads(rec_p.read_text()) if rec_p.exists() else {}
+        v = subprocess.run([NODE, str(REPO / "scripts" / "validate-eval-run.mjs"), str(rec_p)], capture_output=True, text=True, timeout=60)
+        ok(v.returncode == 0 and v.stdout.startswith("PASS"), "n8n evidence: record passes scripts/validate-eval-run.mjs; got %s" % (v.stdout + v.stderr)[-300:])
+        ok(schema_keys(rec) == [], "n8n evidence: record has every key the schema requires, nothing extra; got %r" % schema_keys(rec))
+        runs = rec.get("runs", []); ch = [x.get("deterministic_checks", {}) for x in runs]
+        ok([x.get("result") for x in runs] == ["passed", "failed", "failed"]
+           and [x.get("blocking_failures_observed") for x in runs] == [[], ["missing_required_section"], ["not_approved_by_user"]]
+           and [c.get("missing_sections") for c in ch] == [[], ["Blockers"], []] and [c.get("approved_by_user") for c in ch] == [True, True, False]
+           and all(c.get("saved") is False and c.get("revisions") == 0 for c in ch),
+           "n8n evidence: passed only when complete AND --approved yes; got %r" % [(x.get("result"), x.get("blocking_failures_observed")) for x in runs])
+        w, txt = rec.get("workflow", {}), rec_p.read_text() if rec_p.exists() else ""
+        ok(w.get("runtime") == "n8n" and w.get("job") == "doc-review" and w.get("tools") == [] and any("saves nothing" in b for b in w.get("approval_boundaries", []))
+           and not any("./out" in b for b in w.get("approval_boundaries", [])) and "./out" not in json.dumps(rec.get("acceptance"))
+           and rec.get("summary", {}).get("status") == "evaluation_failed" and (rec["summary"]["total_runs"], rec["summary"]["passed_runs"]) == (3, 1)
+           and rec["summary"]["human_reviewer"] == "" and all(x.get("external_action_occurred") is False for x in runs)
+           and INPUT not in txt and FULL not in txt and SYSTEM not in txt,
+           "n8n evidence: n8n boundaries (no ./out claim), summary 3/1/2, input / draft / prompt only as sha256; got %r" % w.get("approval_boundaries"))
+        snap = rec_p.read_text() if rec_p.exists() else ""
+        ex = json.loads(N8N_RAW.get("full", "{")[N8N_RAW.get("full", "{").find("{\n"):] or "{}")
+        bad1 = json.loads(json.dumps(ex)); bad1["data"]["resultData"]["runData"]["Task input"][0]["data"]["main"][0][0]["json"]["user_input"] = "PASTE THE TASK INPUT HERE"
+        bad2 = json.loads(json.dumps(ex)); bad2["status"] = "error"; bad2["finished"] = False
+        (tmp / "b1.json").write_text(json.dumps(bad1)); (tmp / "b2.json").write_text(json.dumps(bad2))
+        q1, q2 = rr(tmp / "b1.json", "yes"), rr(tmp / "b2.json", "yes")
+        other = json.loads(snap or "{}"); other.setdefault("workflow", {})["runtime"] = "langgraph"; (tmp / "other.json").write_text(json.dumps(other)); q3 = rr(tmp / "full.json", "yes", tmp / "other.json")
+        ok([q1.returncode, q2.returncode, q3.returncode] == [2, 2, 2] and all("Not recorded" in q.stdout for q in (q1, q2, q3)) and rec_p.read_text() == snap
+           and json.loads((tmp / "other.json").read_text()) == other,
+           "n8n evidence: placeholder input / failed execution / another runner's record = refused, records untouched; got %r" % [(q.returncode, q.stdout[-100:]) for q in (q1, q2, q3)])
+        after = sorted(str(p.relative_to(d)) for p in d.rglob("*") if p.is_file() and "__pycache__" not in str(p))
+        ok(after == [x for x in before if "__pycache__" not in x], "n8n evidence: nothing written into the runner folder; got %r" % sorted(set(after) - set(before)))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    ok(len(PROXY.hits) == h0, "n8n evidence: no outside call through the proxy; got %r" % PROXY.hits[h0:])
+    return {"runs_recorded": len(runs) if rec else 0, "validator": "PASS" if v.returncode == 0 else "FAIL"}
 
 
 RUNNERS = {"langgraph": ("langgraph/team-runner", "runner.py", "local-model", None, None),
@@ -297,9 +355,10 @@ def evidence_one(name):
 
 def evidence():
     copies = {n: (REPO / "ai-toolkit" / RUNNERS[n][0] / "eval_record.py").read_bytes() for n in RUNNERS}
-    ok(len(set(copies.values())) == 1, "eval_record.py: the 3 runner copies are byte-identical")
+    copies["n8n"] = (REPO / "ai-toolkit" / "n8n" / "team-runner" / "eval_record.py").read_bytes()
+    ok(len(set(copies.values())) == 1, "eval_record.py: the 4 runner copies (LangGraph, CrewAI, OpenAI Agents SDK, n8n) are byte-identical")
     ok(all(not __import__("re").search(rb"^\s*(import|from)\s+(?!(datetime|hashlib|json|os|pathlib)\b)", c, __import__("re").M) for c in copies.values()), "eval_record.py: standard library only")
-    return {n: evidence_one(n) for n in RUNNERS}
+    out = {n: evidence_one(n) for n in RUNNERS}; out["n8n"] = n8n_evidence(); return out
 
 
 MUTANTS = [("langgraph", langgraph, "runner.py", [('user += "\\n\\nReviewer feedback: " + state["feedback"]', 'pass')]),
@@ -317,6 +376,11 @@ MUTANTS = [("langgraph", langgraph, "runner.py", [('user += "\\n\\nReviewer feed
            ("evidence", lambda: evidence_one("langgraph"), "eval_record.py", [("eval_record.py", '"total_runs": len(done)', '"total_runs": len(rec["runs"]) + 1')]),
            ("evidence", lambda: evidence_one("langgraph"), "eval_record.py", [("eval_record.py", "    if (w.get(\"job\"), w.get(\"runtime\"), w.get(\"revision\")) != ", "    if (w.get(\"job\"), w.get(\"runtime\"), w.get(\"revision\")) == ")]),
            ("evidence", lambda: evidence_one("crewai"), "crew_runner.py", [('"missing": missing, "draft": draft}', '"missing": [], "draft": draft}')]),
+           ("n8n-evidence", n8n_evidence, "record_execution.py", [("record_execution.py", '"approved": a.approved == "yes"', '"approved": True')]),
+           ("n8n-evidence", n8n_evidence, "record_execution.py", [("record_execution.py", 'result = {"missing": chk["missing"]', 'result = {"missing": []')]),
+           ("n8n-evidence", n8n_evidence, "record_execution.py", [("record_execution.py", 'in ("", PLACEHOLDER)', 'in ("",)')]),
+           ("n8n-evidence", n8n_evidence, "record_execution.py", [("record_execution.py", 'if ex.get("status") != "success" or ex.get("finished") is not True or', 'if')]),
+           ("n8n-evidence", n8n_evidence, "record_execution.py", [("record_execution.py", '    rec["workflow"]["approval_boundaries"] = list(BOUNDARIES)', '    pass')]),
            ("evidence", lambda: evidence_one("openai-agents"), "agents_runner.py", [('            eval_record.precheck(a.eval_record, "openai-agents", a.task, system, __file__)', "            pass")])]
 
 

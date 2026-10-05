@@ -103,7 +103,7 @@
     if (/^(langgraph|crewai|openai-agents)-team-runner$/.test(item.id)) {
       lim += '; optional --eval-record PATH writes a BSV eval-run schema 1.0 file (passed only if every required section is present and you typed yes; facts, numbers and quotes are not checked)';
     } else if (item.id === 'n8n-team-runner') {
-      lim += '; this n8n runner has no --eval-record (result stays in the n8n execution view; copy into docs/eval-run-template.json by hand if you need a record)';
+      lim += '; no --eval-record flag: record_execution.py --execution <n8n execute --rawOutput file> --approved yes|no --eval-record PATH writes a BSV eval-run schema 1.0 file (passed only if every required section is present and you approved; facts, numbers and quotes are not checked)';
     } else if (item.id === 'ai-team-regression') {
       lim += '; pair with an eval-run schema 1.0 record when a team runner wrote one (--eval-record); the checklist evidence check still needs a human review of facts';
     }
