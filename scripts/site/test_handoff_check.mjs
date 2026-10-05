@@ -36,12 +36,25 @@ ok(rp.status === 'NOT_STARTED' && !rp.errors.some(e => /Missing section|status m
 ok(pp.sections.JOB.id === 'toolkit:letta-memory' && pp.sections['CURRENT STATE']['authoritative source'] === 'BotShelfVampire/botshelf ai-toolkit/letta/memory-blocks.md' && /UNTESTED_RUNTIME/.test(pp.sections.EVIDENCE.limitations) && /Not runtime-tested by BSV/.test(pp.sections.EVIDENCE.limitations), 'started packet: id, source and status filled from the item');
 const filledKeys = Object.values(pp.sections).reduce((n, s) => n + Object.values(s).filter(Boolean).length, 0);
 ok(filledKeys === 7 && pp.sections['NEXT ACTION']['owner approval needed'] === 'YES | NO' && !pp.sections.JOB.objective && !pp.sections.EVIDENCE['source revision'] && !pp.sections['WORK COMPLETED'].results, 'started packet: only the 6 catalog facts filled (+ the template\'s YES | NO left as is), results/evidence blank (' + filledKeys + ')');
+
+const ex = JSON.parse(fs.readFileSync(path.join(root, 'docs/eval-run-example-failed.json'), 'utf8'));
+const er0 = H.checkEvalRun(ex);
+ok(er0.ok && er0.summary && er0.summary.status === 'evaluation_failed', 'example failed eval record: structure OK ' + JSON.stringify(er0.errors));
+ok(H.checkEvalRun(Object.assign({}, ex, { schema_version: '0.9' })).errors.some(e => /schema_version/.test(e)), 'bad schema_version caught');
+ok(H.checkEvalRun(Object.assign({}, ex, { summary: Object.assign({}, ex.summary, { total_runs: 99 }) })).errors.some(e => /total_runs/.test(e)), 'wrong total_runs caught');
+const badPass = JSON.parse(JSON.stringify(ex)); badPass.runs[0].result = 'passed'; badPass.runs[0].blocking_failures_observed = ['x'];
+ok(H.checkEvalRun(badPass).errors.some(e => /cannot pass with blocking/.test(e)), 'passed with blocking failures caught');
+const tr = H.startPacket(block, { id: 'langgraph-team-runner', path: 'ai-toolkit/langgraph/team-runner', framework: 'LangGraph', status: 'UNTESTED_RUNTIME' });
+ok(/optional --eval-record PATH/.test(H.parse(tr).sections.EVIDENCE.limitations) && /facts, numbers and quotes are not checked/.test(H.parse(tr).sections.EVIDENCE.limitations), 'team-runner startPacket names --eval-record and facts-not-checked');
+const n8 = H.startPacket(block, { id: 'n8n-team-runner', path: 'ai-toolkit/n8n/team-runner', framework: 'n8n', status: 'UNTESTED_RUNTIME' });
+ok(/no --eval-record/.test(H.parse(n8).sections.EVIDENCE.limitations), 'n8n startPacket says no --eval-record');
+
 ok(sp.split('\n').length === block.split('\n').length && H.startPacket(sp, item) === sp, 'started packet: same lines as the template, idempotent');
 const site = process.argv[2];
 if (site) {
   const src = fs.readFileSync(path.join(site, 'library/source/ai-team-handoff.html'), 'utf8'), pub = fs.readFileSync(path.join(site, 'library/toolkit/ai-team-handoff/index.html'), 'utf8');
   const js = fs.readdirSync(path.join(site, 'library/source')).filter(f => /^handoff-check\.[0-9a-f]{8}\.js$/.test(f));
-  ok(js.length === 1 && src.includes(`src="/library/source/${js[0]}"`) && src.includes('id="ho-text"') && /nothing is uploaded/.test(src), 'checker on the gated source page, script from /library/source/');
+  ok(js.length === 1 && src.includes(`src="/library/source/${js[0]}"`) && src.includes('id="ho-text"') && src.includes('id="ho-eval"') && /validate-eval-run/.test(src) && /nothing is uploaded/.test(src), 'checker on the gated source page with eval box, script from /library/source/');
   ok(!pub.includes('handoff-check') && !pub.includes('id="ho-text"'), 'checker not on the public summary page');
   const others = fs.readdirSync(path.join(site, 'library/source')).filter(f => f.endsWith('.html') && f !== 'ai-team-handoff.html');
   ok(others.every(f => !fs.readFileSync(path.join(site, 'library/source', f), 'utf8').includes('handoff-check')), 'checker only on that packet');
@@ -52,6 +65,12 @@ if (site) {
   const dt = (src.match(/id="ho-start" data-ho-tpl="([^"]*)"/) || [])[1] || '';
   ok(dt.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') === block && src.includes('id="ho-item"'), 'start-from-item: template on the button equals the packet');
   ok(!/style="/.test(src.slice(src.indexOf('id="ho-checker"'), src.indexOf('</section>', src.indexOf('id="ho-checker"')))), 'no inline styles (CSP)');
+
+  const lg = fs.readFileSync(path.join(site, 'library/toolkit/langgraph-team-runner/index.html'), 'utf8');
+  ok(/--eval-record/.test(lg) && /schema 1.0/.test(lg), 'public langgraph summary names --eval-record');
+  const ho = fs.readFileSync(path.join(site, 'library/toolkit/ai-team-handoff/index.html'), 'utf8');
+  ok(/eval-run schema 1.0/.test(ho) || /eval-run JSON/.test(ho), 'public handoff summary names eval-run check');
 }
+
 console.log(JSON.stringify({ test: 'handoff-check', checks, failures }));
 process.exit(failures ? 1 : 0);

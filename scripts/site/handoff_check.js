@@ -43,13 +43,74 @@
     });
     return { ok: errors.length === 0, status: st || null, errors: errors, warnings: warnings, filled: filled, fields: total };
   }
+
+  // BSV eval-run schema 1.0 (same rules as scripts/validate-eval-run.mjs). Browser-only; does not judge facts.
+  function checkEvalRun(data) {
+    var errors = [], warnings = [];
+    var isObject = function (v) { return v !== null && typeof v === 'object' && !Array.isArray(v); };
+    if (!isObject(data)) { errors.push('eval record must be a JSON object / eval記録はJSONオブジェクトである必要があります'); return { ok: false, errors: errors, warnings: warnings, summary: null }; }
+    if (data.schema_version !== '1.0') errors.push('schema_version must be 1.0');
+    ['workflow', 'acceptance', 'baseline_comparison', 'summary'].forEach(function (k) { if (!isObject(data[k])) errors.push(k + ' must be an object'); });
+    if (!Array.isArray(data.cases)) errors.push('cases must be an array');
+    if (!Array.isArray(data.runs)) errors.push('runs must be an array');
+    var ids = {};
+    if (Array.isArray(data.cases)) {
+      data.cases.forEach(function (item, index) {
+        if (!isObject(item)) { errors.push('cases[' + index + '] must be an object'); return; }
+        if (!item.case_id) errors.push('cases[' + index + '].case_id is required');
+        if (item.case_id && ids[item.case_id]) errors.push('duplicate case_id: ' + item.case_id);
+        if (item.case_id) ids[item.case_id] = true;
+        ['expected_facts', 'forbidden_claims', 'required_fields'].forEach(function (key) {
+          if (!Array.isArray(item[key])) errors.push('cases[' + index + '].' + key + ' must be an array');
+        });
+      });
+    }
+    if (Array.isArray(data.runs)) {
+      var runIds = {};
+      data.runs.forEach(function (run, index) {
+        if (!isObject(run)) { errors.push('runs[' + index + '] must be an object'); return; }
+        if (run.run_id && runIds[run.run_id]) errors.push('duplicate run_id: ' + run.run_id);
+        if (run.run_id) runIds[run.run_id] = true;
+        if (run.case_id && !ids[run.case_id]) errors.push('runs[' + index + '] references unknown case_id: ' + run.case_id);
+        if (['not_run', 'passed', 'failed'].indexOf(run.result) < 0) errors.push('runs[' + index + '].result is invalid');
+        if (!Array.isArray(run.blocking_failures_observed)) errors.push('runs[' + index + '].blocking_failures_observed must be an array');
+        if (run.result === 'passed' && run.blocking_failures_observed && run.blocking_failures_observed.length) errors.push('runs[' + index + '] cannot pass with blocking failures');
+      });
+    }
+    var summary = null;
+    if (isObject(data.summary) && Array.isArray(data.runs)) {
+      var completed = data.runs.filter(function (run) { return run && (run.result === 'passed' || run.result === 'failed'); });
+      var passed = completed.filter(function (run) { return run.result === 'passed'; }).length;
+      var failed = completed.length - passed;
+      if (data.summary.total_runs !== completed.length) errors.push('summary.total_runs must equal ' + completed.length);
+      if (data.summary.passed_runs !== passed) errors.push('summary.passed_runs must equal ' + passed);
+      if (data.summary.failed_runs !== failed) errors.push('summary.failed_runs must equal ' + failed);
+      if (failed > 0 && data.summary.status === 'limited_pass') errors.push('limited_pass is invalid while failed runs remain');
+      if (completed.length === 0 && data.summary.status !== 'design_only') errors.push('status must be design_only when no runs are complete');
+      summary = { status: data.summary.status, total_runs: data.summary.total_runs, passed_runs: data.summary.passed_runs, failed_runs: data.summary.failed_runs, human_reviewer: data.summary.human_reviewer || '' };
+      if (!data.summary.human_reviewer) warnings.push('summary.human_reviewer is empty: structure can pass while facts are still unchecked / human_reviewer が空です（形は通っても事実は未確認）');
+      if (Array.isArray(data.summary.known_limitations) && !data.summary.known_limitations.some(function (k) { return /not checked|NOT checked|未/i.test(String(k)); })) {
+        warnings.push('known_limitations do not say facts are unchecked / known_limitations に事実未検証の記載がありません');
+      }
+    }
+    return { ok: errors.length === 0, errors: errors, warnings: warnings, summary: summary };
+  }
+
   // Start a blank packet for one AI toolkit item: only facts known from the catalog are filled in (job id, NOT_STARTED, the
   // BSV source path, the framework, the catalog status as a limitation). Everything else, including owner approval, stays blank.
   function startPacket(template, item) {
+    var lim = 'Not runtime-tested by BSV (catalog status ' + item.status + '); file presence and CI syntax checks are not runtime verification';
+    if (/^(langgraph|crewai|openai-agents)-team-runner$/.test(item.id)) {
+      lim += '; optional --eval-record PATH writes a BSV eval-run schema 1.0 file (passed only if every required section is present and you typed yes; facts, numbers and quotes are not checked)';
+    } else if (item.id === 'n8n-team-runner') {
+      lim += '; this n8n runner has no --eval-record (result stays in the n8n execution view; copy into docs/eval-run-template.json by hand if you need a record)';
+    } else if (item.id === 'ai-team-regression') {
+      lim += '; pair with an eval-run schema 1.0 record when a team runner wrote one (--eval-record); the checklist evidence check still needs a human review of facts';
+    }
     var set = { 'JOB': { 'id': 'toolkit:' + item.id, 'status': 'NOT_STARTED' },
       'CURRENT STATE': { 'authoritative source': 'BotShelfVampire/botshelf ' + item.path, 'live deploy / environment': item.framework + ' (your own; BSV does not run it)',
         'verified facts': 'AI toolkit catalog status ' + item.status },
-      'EVIDENCE': { 'limitations': 'Not runtime-tested by BSV (catalog status ' + item.status + '); file presence and CI syntax checks are not runtime verification' } };
+      'EVIDENCE': { 'limitations': lim } };
     var cur = null;
     return String(template || '').replace(/\r\n?/g, '\n').split('\n').map(function (line) {
       var t = line.trim();
@@ -59,7 +120,7 @@
       return line;
     }).join('\n');
   }
-  var api = { checkHandoff: checkHandoff, parse: parse, startPacket: startPacket, SECTIONS: SECTIONS, STATUS: STATUS };
+  var api = { checkHandoff: checkHandoff, checkEvalRun: checkEvalRun, parse: parse, startPacket: startPacket, SECTIONS: SECTIONS, STATUS: STATUS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BSVHandoff = api;
   if (!root.document) return;
@@ -85,6 +146,21 @@
       r.errors.forEach(function (e) { var li = root.document.createElement('li'); li.textContent = 'Problem: ' + e; ul.appendChild(li); });
       r.warnings.forEach(function (w) { var li = root.document.createElement('li'); li.textContent = 'Check: ' + w; ul.appendChild(li); });
       if (ul.children.length) out.appendChild(ul);
+      var ev = root.document.getElementById('ho-eval');
+      if (ev && String(ev.value || '').trim()) {
+        var er, parsed;
+        try { parsed = JSON.parse(ev.value); er = checkEvalRun(parsed); }
+        catch (e) { er = { ok: false, errors: ['eval JSON: ' + (e && e.message ? e.message : e)], warnings: [], summary: null }; }
+        var eh = root.document.createElement('p'); eh.className = 'rq-msg ' + (er.ok ? 'ok' : 'err');
+        eh.textContent = (er.ok ? 'Eval record: structure OK' : 'Eval record: ' + er.errors.length + ' problem(s)')
+          + (er.summary ? (' · ' + er.summary.status + ' ' + er.summary.passed_runs + '/' + er.summary.total_runs + ' passed') : '')
+          + ' · same rules as scripts/validate-eval-run.mjs; facts are not judged.';
+        out.appendChild(eh);
+        var eul = root.document.createElement('ul');
+        er.errors.forEach(function (e) { var li = root.document.createElement('li'); li.textContent = 'Eval problem: ' + e; eul.appendChild(li); });
+        er.warnings.forEach(function (w) { var li = root.document.createElement('li'); li.textContent = 'Eval check: ' + w; eul.appendChild(li); });
+        if (eul.children.length) out.appendChild(eul);
+      }
     });
   });
 })(typeof window !== 'undefined' ? window : globalThis);
