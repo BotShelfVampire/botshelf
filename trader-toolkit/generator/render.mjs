@@ -142,14 +142,15 @@ function htfPrep(recipe, t) {
   });
   return out;
 }
-function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6' || t === 'mql5'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeMql5 = t === 'mql5'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; r.bsvScanTarget = scanRealTargets().includes(t) ? t : null; r.bsvScanCs = (t === 'ninjatrader' || t === 'ctrader' || t === 'mql4') && recipe.blocks.some(b => b.type === 'scanner.symbol_set'); return scanNotice(fn(r)); }
+function renderFor(t, fn, recipe) { const r = htfPrep(recipe, t); r.bsvRangeReal = rangeRealTargets().includes(t); r.bsvPivotReal = r.bsvRangeReal || t === 'tradovate' || t === 'amibroker' || t === 'thinkscript' || t === 'pine-v6' || t === 'mql5' || t === 'ninjatrader' || t === 'ctrader'; r.bsvRangePine = t === 'pine-v6'; r.bsvRangeMql5 = t === 'mql5'; r.bsvRangeJs = t === 'tradovate'; r.bsvRangeAfl = t === 'amibroker'; r.bsvRangeTs = t === 'thinkscript'; r.bsvScanTarget = scanRealTargets().includes(t) ? t : null; r.bsvScanCs = (t === 'ninjatrader' || t === 'ctrader' || t === 'mql4') && recipe.blocks.some(b => b.type === 'scanner.symbol_set'); return scanNotice(fn(r)); }
 // scanner.symbol_set (batch 28): scan one signal on several symbols, each at its own bar that just closed. Rendered only on targets that
 // can read other symbols natively and where a BSV check runs the scan: Pine v6 (request.security per listed symbol, at most 40 unique
 // request.* calls per script), MQL5 (SymbolSelect + per-symbol indicator handles, or every Market Watch symbol), and the three Python
 // targets (a dict of symbol -> bars). Every other target gets an explicit notice instead of a silent TODO.
 // Batch 30: NinjaTrader 8 (AddDataSeries per listed symbol, evaluated in each symbol's own OnBarUpdate) and cTrader (MarketData.GetBars per
-// symbol, once per new chart bar). On these two, pivots and divergence are generated only inside recipes with a symbol scan (bsvScanCs),
-// so every other recipe's output stays byte-identical; both are run in the BSV C# evaluators (check_cs_scan.py), not on the platforms.
+// symbol, once per new chart bar). Batch 36: pivots, liquidity sweeps and pivot zones are rendered on every NinjaTrader / cTrader recipe
+// (same closed-bar rule as Pine / MQL5); divergence is available on those recipes too via bsvPivotReal. Checked in check_cs_scan.py
+// (compile all 14 + run the scan recipe and the liquidity-sweep recipe), not on the platforms.
 // Batch 32: MQL4 the same way (iRSI / iMA / iClose on each listed symbol, or every Market Watch symbol, once per closed chart bar; pivots and
 // divergence only inside scan recipes), run in the BSV MQL4 model (check_mql4.mjs), not on MetaTrader 4.
 function scanRealTargets() { return ['pine-v6', 'mql5', 'backtrader', 'backtesting-py', 'nautilus', 'ninjatrader', 'ctrader', 'mql4']; }
@@ -223,7 +224,7 @@ function pyRangeLines() {
 // visual.zone (two lines: the high and low of a range or pivot) and alert.webhook (a JSON payload printed once per
 // completed bar where the condition holds; the starter never sends it). Rendered only where a BSV check runs them.
 function pivotOk(recipe, b) {
-  if (!(recipe.bsvRangeReal || recipe.bsvPivotReal || recipe.bsvScanCs) || !b || b.type !== 'structure.pivot') return false;  // Python targets + Tradovate (per-bar state checked in node:vm); NinjaTrader / cTrader only in scan recipes
+  if (!(recipe.bsvRangeReal || recipe.bsvPivotReal || recipe.bsvScanCs) || !b || b.type !== 'structure.pivot') return false;  // Python + Tradovate + AmiBroker + thinkScript + Pine + MQL5 + NinjaTrader + cTrader (BSV checks); MQL4 still scan-only via bsvScanCs
   const q = b.params || {}, n = (x) => Number.isInteger(x) && x >= 1 && x <= 50;
   return n(q.left) && n(q.right) && ['close', 'high_low'].includes(q.source || 'close');
 }
@@ -864,6 +865,7 @@ function renderCTrader(recipe) {
   const map = blockMap(recipe);
   const cls = className(recipe);
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot');
+  const zones = recipe.blocks.filter(b => zoneOk(recipe, b));
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const inds = recipe.blocks.filter(b => ['indicator.ema', 'indicator.sma', 'indicator.rsi', 'indicator.atr'].includes(b.type));
   const series = { open: 'Bars.OpenPrices', high: 'Bars.HighPrices', low: 'Bars.LowPrices', close: 'Bars.ClosePrices', hl2: 'Bars.MedianPrices', hlc3: 'Bars.TypicalPrices' };
@@ -909,6 +911,11 @@ function renderCTrader(recipe) {
     L.push(`        [Output(${q(String(p.params?.title || p.id).replace(/"/g, ''))})]`);
     L.push(`        public IndicatorDataSeries Out_${p.id} { get; set; }`);
   }
+  for (const z of zones) {
+    const tit = String(z.params?.title || z.id).replace(/"/g, '');
+    L.push('', `        [Output(${q(tit + ' high')})]`, `        public IndicatorDataSeries Out_${z.id}_high { get; set; }`,
+      '', `        [Output(${q(tit + ' low')})]`, `        public IndicatorDataSeries Out_${z.id}_low { get; set; }`);
+  }
   L.push('');
   L.push('        protected override void Initialize()');
   L.push('        {');
@@ -952,6 +959,7 @@ function renderCTrader(recipe) {
   L.push('            if (index < Warmup)');
   L.push('                return;');
   for (const p of plots) L.push(`            Out_${p.id}[index] = ${val(p.params?.source, 'index')};`);
+  for (const z of zones) L.push(`            Out_${z.id}_high[index] = V_${z.params.source}_high(index);`, `            Out_${z.id}_low[index] = V_${z.params.source}_low(index);`);
   if (alerts.length) {
     L.push('            if (!IsLastBar)');
     L.push('                return;');
@@ -1029,6 +1037,17 @@ function renderCTrader(recipe) {
           `        private bool S_${b.id}(int i) { return ${d === 'both' ? `S_${b.id}_bear(i) || S_${b.id}_bull(i)` : d === 'bearish' ? `S_${b.id}_bear(i)` : `S_${b.id}_bull(i)`}; }`);
         break;
       }
+      case 'signal.liquidity_sweep': {
+        if (!sweepOk(recipe, b)) { L.push('', `        private bool S_${b.id}(int i) { return false; } // TODO unsupported block ${b.type}: ${b.id}`); break; }
+        const v = p.pivot, fr = Number(p.minAtrFraction || 0);
+        L.push('', `        // ${b.id}: sweep candidate: the wick goes beyond the last pivot known before bar i by at least ${fr} x ATR and the close is back inside`,
+          `        private bool S_${b.id}(int i) { if (i < 1) return false; double a = ${val(p.atr, 'i')}; if (double.IsNaN(a)) return false; double m = ${fr} * a; double ph = V_${v}_high(i - 1); double pl = V_${v}_low(i - 1); double h = ${CX('high', 'i')}; double l = ${CX('low', 'i')}; double c = ${CX('close', 'i')}; return (!double.IsNaN(ph) && h > ph && h - ph >= m && c < ph) || (!double.IsNaN(pl) && l < pl && pl - l >= m && c > pl); }`);
+        break;
+      }
+      case 'visual.zone':
+        if (!zoneOk(recipe, b)) L.push('', `        private double V_${b.id}(int i) { return double.NaN; } // TODO unsupported block ${b.type}: ${b.id}`);
+        else L.push('', `        // ${b.id}: zone drawn as two Output lines from ${p.source} (${map.get(p.source).type === 'structure.range' ? 'the window high / low' : 'last confirmed pivot high / low'})`);
+        break;
       case 'scanner.symbol_set':
         if (scan !== b) L.push('', `        private double V_${b.id}(int i) { return double.NaN; } // TODO unsupported block ${b.type}: ${b.id} - ${scanWhyNot(recipe, b)}`);
         else L.push('', `        // ${b.id}: symbol scan of ${scanSignal(recipe, b)} (Initialize loads the bars of each listed symbol, Calculate scans once per new chart bar)`);
@@ -1570,6 +1589,7 @@ function renderNinja(recipe) {
   const map = blockMap(recipe);
   const cls = 'Bsv' + className(recipe);
   const plots = recipe.blocks.filter(b => b.type === 'visual.plot');
+  const zones = recipe.blocks.filter(b => zoneOk(recipe, b));
   const alerts = recipe.blocks.filter(b => b.type === 'alert.condition');
   const inds = recipe.blocks.filter(b => ['indicator.ema', 'indicator.sma', 'indicator.rsi', 'indicator.atr'].includes(b.type));
   const series = { open: 'Open', high: 'High', low: 'Low', close: 'Close', hl2: 'Median', hlc3: 'Typical' };
@@ -1585,7 +1605,10 @@ function renderNinja(recipe) {
     const ms = { open: 'Opens', high: 'Highs', low: 'Lows', close: 'Closes', hl2: 'Medians', hlc3: 'Typicals' };
     for (const k of Object.keys(series)) series[k] = `${ms[k]}[_s]`;
   }
-  const NX = (src, at) => `${src === 'high' ? 'Highs' : src === 'low' ? 'Lows' : 'Closes'}[_s][${at}]`;
+  const NX = (src, at) => scan
+    ? `${src === 'high' ? 'Highs' : src === 'low' ? 'Lows' : 'Closes'}[_s][${at}]`
+    : `${src === 'high' ? 'High' : src === 'low' ? 'Low' : 'Close'}[${at}]`;
+  const NBars = scan ? 'CurrentBars[_s]' : 'CurrentBar';
   const L = [];
   L.push('// ORIGINAL BSV STARTER — NinjaTrader 8 NinjaScript indicator. Compile in the NinjaScript Editor before use.');
   L.push('// Generated by BSV Trader Tool Blocks. Not runtime tested by BSV. Not investment advice.');
@@ -1621,7 +1644,12 @@ function renderNinja(recipe) {
   L.push(`                IsOverlay = ${recipe.overlay ? 'true' : 'false'};`);
   L.push('                IsSuspendedWhileInactive = true;');
   plots.forEach((p, k) => L.push(`                AddPlot(Brushes.${brushes[k % brushes.length]}, ${q(plotName(p))});`));
-  if (scan) L.push('                MaximumBarsLookBack = MaximumBarsLookBack.Infinite; // pivots / divergence look further back than the default 256 bars');
+  zones.forEach((z, i) => {
+    const tit = String(z.params?.title || z.id);
+    L.push(`                AddPlot(Brushes.${brushes[(plots.length + i * 2) % brushes.length]}, ${q(tit + ' high')});`);
+    L.push(`                AddPlot(Brushes.${brushes[(plots.length + i * 2 + 1) % brushes.length]}, ${q(tit + ' low')});`);
+  });
+  if (scan || zones.length || recipe.blocks.some(b => pivotOk(recipe, b))) L.push('                MaximumBarsLookBack = MaximumBarsLookBack.Infinite; // pivots / divergence / zones look further back than the default 256 bars');
   L.push('            }');
   if (scan) {
     L.push('            else if (State == State.Configure)', '            {',
@@ -1694,6 +1722,11 @@ function renderNinja(recipe) {
   L.push('                return;');
   L.push('            // Calculate.OnBarClose: barsAgo 0 is the bar that just closed.');
   plots.forEach((p, k) => L.push(`            Values[${k}][0] = ${val(p.params?.source, '0')};`));
+  zones.forEach((z, i) => {
+    const base = plots.length + i * 2;
+    L.push(`            Values[${base}][0] = V_${z.params.source}_high(0);`);
+    L.push(`            Values[${base + 1}][0] = V_${z.params.source}_low(0);`);
+  });
   for (const a of alerts) {
     L.push(`            // ${a.id}: Alert() only fires in State.Realtime; once per closed bar.`);
     L.push(`            if (${bool(a.params?.when, '0')})`);
@@ -1711,10 +1744,10 @@ function renderNinja(recipe) {
         const hl = (p.source || 'close') === 'high_low', R = p.right, Lf = p.left, xh = at => NX(hl ? 'high' : 'close', at), xl = at => NX(hl ? 'low' : 'close', at);
         L.push('', `        // ${b.id}: barsAgo a confirms a pivot at a + ${R}: above the ${Lf} bars before it and at least as high as the ${R} after it (a flat top counts once);`,
           `        // known only at a, so no lookahead. The last confirmed pivot is found by scanning back (NaN before the first). Same rule as the Pine / MQL5 targets.`,
-          `        private bool S_${b.id}_ph(int a) { int c = a + ${R}; if (c + ${Lf} > CurrentBars[_s]) return false; double v = ${xh('c')}; for (int k = 1; k <= ${Lf}; k++) if (${xh('c + k')} >= v) return false; for (int k = 1; k <= ${R}; k++) if (${xh('c - k')} > v) return false; return true; }`,
-          `        private bool S_${b.id}_pl(int a) { int c = a + ${R}; if (c + ${Lf} > CurrentBars[_s]) return false; double v = ${xl('c')}; for (int k = 1; k <= ${Lf}; k++) if (${xl('c + k')} <= v) return false; for (int k = 1; k <= ${R}; k++) if (${xl('c - k')} < v) return false; return true; }`,
-          `        private double V_${b.id}_high(int a) { for (int k = a; k + ${R + Lf} <= CurrentBars[_s]; k++) if (S_${b.id}_ph(k)) return ${xh(`k + ${R}`)}; return double.NaN; }`,
-          `        private double V_${b.id}_low(int a) { for (int k = a; k + ${R + Lf} <= CurrentBars[_s]; k++) if (S_${b.id}_pl(k)) return ${xl(`k + ${R}`)}; return double.NaN; }`);
+          `        private bool S_${b.id}_ph(int a) { int c = a + ${R}; if (c + ${Lf} > ${NBars}) return false; double v = ${xh('c')}; for (int k = 1; k <= ${Lf}; k++) if (${xh('c + k')} >= v) return false; for (int k = 1; k <= ${R}; k++) if (${xh('c - k')} > v) return false; return true; }`,
+          `        private bool S_${b.id}_pl(int a) { int c = a + ${R}; if (c + ${Lf} > ${NBars}) return false; double v = ${xl('c')}; for (int k = 1; k <= ${Lf}; k++) if (${xl('c + k')} <= v) return false; for (int k = 1; k <= ${R}; k++) if (${xl('c - k')} < v) return false; return true; }`,
+          `        private double V_${b.id}_high(int a) { for (int k = a; k + ${R + Lf} <= ${NBars}; k++) if (S_${b.id}_ph(k)) return ${xh(`k + ${R}`)}; return double.NaN; }`,
+          `        private double V_${b.id}_low(int a) { for (int k = a; k + ${R + Lf} <= ${NBars}; k++) if (S_${b.id}_pl(k)) return ${xl(`k + ${R}`)}; return double.NaN; }`);
         break;
       }
       case 'signal.divergence': {
@@ -1722,11 +1755,22 @@ function renderNinja(recipe) {
         const pb = map.get(p.pivot), pq = pb.params, R = pq.right, Lf = pq.left, hl = (pq.source || 'close') === 'high_low', o = p.oscillator, d = p.direction || 'both', v = pb.id;
         const xh = at => NX(hl ? 'high' : 'close', at), xl = at => NX(hl ? 'low' : 'close', at);
         L.push('', `        // ${b.id}: regular divergence, true on the bar that confirms the new pivot (barsAgo a + ${R}), compared with the pivot before it (scanning back).`,
-          `        private bool S_${b.id}_bear(int a) { if (!S_${v}_ph(a)) return false; for (int k = a + 1; k + ${R + Lf} <= CurrentBars[_s]; k++) if (S_${v}_ph(k)) { double o1 = ${val(o, `a + ${R}`)}; double o0 = ${val(o, `k + ${R}`)}; return !double.IsNaN(o1) && !double.IsNaN(o0) && ${xh(`a + ${R}`)} > ${xh(`k + ${R}`)} && o1 < o0; } return false; }`,
-          `        private bool S_${b.id}_bull(int a) { if (!S_${v}_pl(a)) return false; for (int k = a + 1; k + ${R + Lf} <= CurrentBars[_s]; k++) if (S_${v}_pl(k)) { double o1 = ${val(o, `a + ${R}`)}; double o0 = ${val(o, `k + ${R}`)}; return !double.IsNaN(o1) && !double.IsNaN(o0) && ${xl(`a + ${R}`)} < ${xl(`k + ${R}`)} && o1 > o0; } return false; }`,
+          `        private bool S_${b.id}_bear(int a) { if (!S_${v}_ph(a)) return false; for (int k = a + 1; k + ${R + Lf} <= ${NBars}; k++) if (S_${v}_ph(k)) { double o1 = ${val(o, `a + ${R}`)}; double o0 = ${val(o, `k + ${R}`)}; return !double.IsNaN(o1) && !double.IsNaN(o0) && ${xh(`a + ${R}`)} > ${xh(`k + ${R}`)} && o1 < o0; } return false; }`,
+          `        private bool S_${b.id}_bull(int a) { if (!S_${v}_pl(a)) return false; for (int k = a + 1; k + ${R + Lf} <= ${NBars}; k++) if (S_${v}_pl(k)) { double o1 = ${val(o, `a + ${R}`)}; double o0 = ${val(o, `k + ${R}`)}; return !double.IsNaN(o1) && !double.IsNaN(o0) && ${xl(`a + ${R}`)} < ${xl(`k + ${R}`)} && o1 > o0; } return false; }`,
           `        private bool S_${b.id}(int ago) { return ${d === 'both' ? `S_${b.id}_bear(ago) || S_${b.id}_bull(ago)` : d === 'bearish' ? `S_${b.id}_bear(ago)` : `S_${b.id}_bull(ago)`}; }`);
         break;
       }
+      case 'signal.liquidity_sweep': {
+        if (!sweepOk(recipe, b)) { L.push('', `        private bool S_${b.id}(int ago) { return false; } // TODO unsupported block ${b.type}: ${b.id}`); break; }
+        const v = p.pivot, fr = Number(p.minAtrFraction || 0);
+        L.push('', `        // ${b.id}: sweep candidate: the wick goes beyond the last pivot known before this bar by at least ${fr} x ATR and the close is back inside`,
+          `        private bool S_${b.id}(int a) { double atr = ${val(p.atr, 'a')}; if (double.IsNaN(atr)) return false; double m = ${fr} * atr; double ph = V_${v}_high(a + 1); double pl = V_${v}_low(a + 1); double h = ${NX('high', 'a')}; double l = ${NX('low', 'a')}; double c = ${NX('close', 'a')}; return (!double.IsNaN(ph) && h > ph && h - ph >= m && c < ph) || (!double.IsNaN(pl) && l < pl && pl - l >= m && c > pl); }`);
+        break;
+      }
+      case 'visual.zone':
+        if (!zoneOk(recipe, b)) L.push('', `        private double V_${b.id}(int ago) { return double.NaN; } // TODO unsupported block ${b.type}: ${b.id}`);
+        else L.push('', `        // ${b.id}: zone drawn as two plots from ${p.source} (${map.get(p.source).type === 'structure.range' ? 'the window high / low' : 'last confirmed pivot high / low'})`);
+        break;
       case 'scanner.symbol_set':
         if (scan !== b) L.push('', `        private double V_${b.id}(int ago) { return double.NaN; } // TODO unsupported block ${b.type}: ${b.id} - ${scanWhyNot(recipe, b)}`);
         else L.push('', `        // ${b.id}: symbol scan of ${scanSignal(recipe, b)} on ${ssyms.join(', ')} (AddDataSeries in State.Configure, evaluated in each symbol's OnBarUpdate)`);

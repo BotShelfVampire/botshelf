@@ -31,7 +31,7 @@ namespace NinjaTrader.NinjaScript
     {
         public string Name, Description; public bool IsOverlay, IsSuspendedWhileInactive; public Calculate Calculate; public MaximumBarsLookBack MaximumBarsLookBack = MaximumBarsLookBack.TwoHundredFiftySix;
         public State State { get; set; } public int BarsInProgress { get; set; } public int[] CurrentBars = new int[64]; public BarsPeriod BarsPeriod = new();
-        public List<string> BsvAdded = new(); public List<string> BsvAlerts = new(); public Func<int, int, int, double> BsvPx; public Func<int, int, DateTime> BsvTime; public Func<int, int, double> BsvRsi;
+        public List<string> BsvAdded = new(); public List<string> BsvAlerts = new(); public Func<int, int, int, double> BsvPx; public Func<int, int, DateTime> BsvTime; public Func<int, int, double> BsvRsi; public Func<int, int, double> BsvAtr;
         public double Px(int s, int m, int k) => BsvPx(s, m, k); public DateTime TimeOf(int s, int m) => BsvTime(s, m);
         public Indexed<PriceSeries> Opens => new(s => new PriceSeries(this, s, 0)); public Indexed<PriceSeries> Highs => new(s => new PriceSeries(this, s, 1));
         public Indexed<PriceSeries> Lows => new(s => new PriceSeries(this, s, 2)); public Indexed<PriceSeries> Closes => new(s => new PriceSeries(this, s, 3));
@@ -61,12 +61,13 @@ namespace NinjaTrader.NinjaScript.Indicators
     public sealed class RSI : ISeries<double> { readonly IndValue v; public RSI(IndValue v) { this.v = v; } public double this[int ago] => v[ago]; }
     public sealed class EMA : ISeries<double> { public double this[int ago] => throw new NotSupportedException(); }
     public sealed class SMA : ISeries<double> { public double this[int ago] => throw new NotSupportedException(); }
-    public sealed class ATR : ISeries<double> { public double this[int ago] => throw new NotSupportedException(); }
+    public sealed class ATR : ISeries<double> { readonly IndValue v; public ATR(IndValue v) { this.v = v; } public double this[int ago] => v[ago]; }
     public abstract class Indicator : NinjaScriptBase
     {
         static int Sr(ISeries<double> s) => s is PriceSeries p ? (p.K == 3 ? p.S : throw new NotSupportedException("RSI of close only")) : throw new NotSupportedException();
         public RSI RSI(ISeries<double> input, int period, int smooth) { int s = Sr(input); return new RSI(new IndValue(this, s, m => BsvRsi(s, m))); }
         public EMA EMA(ISeries<double> input, int period) => new(); public SMA SMA(ISeries<double> input, int period) => new();
-        public ATR ATR(int period) => new(); public ATR ATR(int barsArray, int period) => new();
+        public ATR ATR(int period) => new ATR(new IndValue(this, 0, m => BsvAtr(0, m)));
+        public ATR ATR(int barsArray, int period) => new ATR(new IndValue(this, barsArray, m => BsvAtr(barsArray, m)));
     }
 }
