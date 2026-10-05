@@ -53,7 +53,7 @@ namespace BsvEval
     // one symbol: bar m opens at T0 + (m + Off) * Step with the reference values of bar m; Count = bars opened so far (the last one forming)
     public sealed class SimBars : Bars
     {
-        public string Name; public int Off; public double[][] Px; public double[] Rsi; public DateTime T0; public TimeSpan Step; public int N; public bool RoundUp;
+        public string Name; public int Off; public double[][] Px; public double[] Rsi; public double[] Atr; public DateTime T0; public TimeSpan Step; public int N; public bool RoundUp;
         public int Count => N; public TimeFrame TimeFrame => TimeFrame.Minute15;
         public TimeSeries OpenTimes => new Times(this);
         public DataSeries OpenPrices => new Col(this, 0); public DataSeries HighPrices => new Col(this, 1); public DataSeries LowPrices => new Col(this, 2); public DataSeries ClosePrices => new Col(this, 3);
@@ -74,13 +74,28 @@ namespace BsvEval
         double DataSeries.this[int i] => this[i];
         public double LastValue => this[B.N - 1]; public int Count => B.N; public IndicatorDataSeries Result => this;
     }
+    public sealed class OutSeries : IndicatorDataSeries
+    {
+        readonly System.Collections.Generic.Dictionary<int, double> v = new();
+        public double this[int i] { get => v.TryGetValue(i, out var x) ? x : double.NaN; set => v[i] = value; }
+        double DataSeries.this[int i] => this[i];
+        public double LastValue => throw new NotSupportedException(); public int Count => v.Count;
+    }
+    public sealed class AtrRes : IndicatorDataSeries, AverageTrueRange
+    {
+        readonly SimBars B; public AtrRes(SimBars b) { B = b; if (b.Atr == null) throw new NotSupportedException("ATR values not supplied"); }
+        public double this[int i] { get => i >= 0 && i < B.N ? B.Atr[i] : double.NaN; set => throw new NotSupportedException(); }
+        double DataSeries.this[int i] => this[i];
+        public double LastValue => this[B.N - 1]; public int Count => B.N; public IndicatorDataSeries Result => this;
+    }
     public sealed class Acc : IIndicatorsAccessor
     {
+        public SimBars Chart;
         public ExponentialMovingAverage ExponentialMovingAverage(DataSeries s, int p) => throw new NotSupportedException();
         public SimpleMovingAverage SimpleMovingAverage(DataSeries s, int p) => throw new NotSupportedException();
         public RelativeStrengthIndex RelativeStrengthIndex(DataSeries s, int p) { var c = (SimBars.Col)s; if (c.K != 3) throw new NotSupportedException("RSI of close only"); return new Res(c.B); }
-        public AverageTrueRange AverageTrueRange(int p, MovingAverageType t) => throw new NotSupportedException();
-        public AverageTrueRange AverageTrueRange(Bars b, int p, MovingAverageType t) => throw new NotSupportedException();
+        public AverageTrueRange AverageTrueRange(int p, MovingAverageType t) => new AtrRes(Chart);
+        public AverageTrueRange AverageTrueRange(Bars b, int p, MovingAverageType t) => new AtrRes((SimBars)b);
     }
     public sealed class Md : MarketData
     {

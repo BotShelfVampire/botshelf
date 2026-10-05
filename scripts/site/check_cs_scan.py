@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""BSV C# checks for the NinjaTrader 8 and cTrader targets (batch 30).
+"""BSV C# checks for the NinjaTrader 8 and cTrader targets (batch 30 + 36).
 1) Static: every recipe's `ninjatrader` output compiles (dotnet, warnings as errors) against cs_eval/NinjaEval.cs, BSV's stand-in for the
-   NinjaScript members the generator uses (the cTrader outputs are compiled by check_ctrader_stubs.sh).
+   NinjaScript members the generator uses (the cTrader outputs are compiled by check_ctrader_stubs.sh). Pivot / liquidity-sweep / zone
+   recipes must not emit TODO unsupported lines on either target (batch 36).
 2) Run: the symbol-scan recipe's output for both targets is compiled with a functional stand-in (cs_eval/CAlgoEval.cs, NinjaEval.cs) and RUN
    on the BSV synthetic bars (bsv_py_reference): the chart plus three symbols whose bars start later (different bars at every chart time)
    and, on cTrader, one unknown symbol. Every alert / Print must equal the independent Python reference: chart alerts unchanged, each
    symbol listed exactly when the scanned signal holds on that symbol's bar that just closed. Variants: cTrader GetIndexByTime rounding
    both ways (the reference does not say), NinjaTrader shared-timestamp order both ways. Mutants must change the result.
+3) Chart-only: liquidity-sweep-alert on both targets, ATR from the Python reference, alerts / Prints compared bar-by-bar; mutants caught.
 Not NinjaTrader, not cTrader (UNTESTED_RUNTIME). usage: python check_cs_scan.py   (needs node and the .NET 8 SDK; DOTNET=... to override)"""
 import json, os, pathlib, re, shutil, subprocess, sys, tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -54,8 +56,23 @@ def main():
     ok(r.returncode == 0, "ninjatrader: all recipes compile against the BSV NinjaScript stand-in: " + (r.stdout + r.stderr)[-1500:])
     ok(all(not re.search(r"\b(EnterLong|EnterShort|ExitLong|ExitShort|SubmitOrder\w*)\b", v) for v in nt.values()), "ninjatrader: no order methods")
     shutil.rmtree(d, ignore_errors=True)
+    ct_all = {p.stem: render(p, "ctrader") for p in recipes}
+    # Pivot / sweep / divergence / pivot-sourced zones must render on NT + cTrader (range-sourced zones stay TODO).
+    for p in recipes:
+        rec = json.loads(p.read_text()); by = {b["id"]: b for b in rec["blocks"]}
+        for b in rec["blocks"]:
+            t = b["type"]
+            if t in ("structure.pivot", "signal.liquidity_sweep", "signal.divergence"):
+                must = True
+            elif t == "visual.zone" and by.get((b.get("params") or {}).get("source"), {}).get("type") == "structure.pivot":
+                must = True
+            else:
+                must = False
+            if not must: continue
+            for tgt, code in (("ninjatrader", nt[p.stem]), ("ctrader", ct_all[p.stem])):
+                ok(f"TODO unsupported block {t}" not in code, f"{tgt} {p.stem}: no TODO for {t} ({b['id']})")
     # 2) runs of the scan recipe
-    out = {"target": "ninjatrader+ctrader (BSV C# stand-ins)", "ninjatrader_compiled": len(nt)}
+    out = {"target": "ninjatrader+ctrader (BSV C# stand-ins)", "ninjatrader_compiled": len(nt), "ctrader_rendered": len(ct_all)}
     for p in recipes:
         rec = json.loads(p.read_text()); sc = [b for b in rec["blocks"] if b["type"] == "scanner.symbol_set"]
         if not sc: continue
@@ -117,6 +134,54 @@ def main():
         out.update({"scan_recipe": p.stem, "ctrader_scan_hits": hits_ct, "ninjatrader_scan_alerts": sum(1 for l in want_nt if not l.startswith("0|")),
                     "chart_alerts_nt": sum(1 for l in want_nt if l.startswith("0|")), "mutants_caught": caught_ct + caught_nt, "mutants": len(CT_MUT) + len(NT_MUT)})
         ok(hits_ct >= 3 and out["ninjatrader_scan_alerts"] >= 3, "scan must hit on the test bars")
+    # 3) chart-only liquidity-sweep (pivot + ATR + zone + alert) on both targets
+    sw_path = ROOT / "trader-toolkit/recipes/liquidity-sweep-alert.json"
+    sw_rec = json.loads(sw_path.read_text())
+    V, S, val, boo = R.reference(sw_rec)
+    sw = list(boo("sweep")); atr = [x if R.fin(x) else None for x in val("atr")]
+    alert_msg = next(b["params"]["message"] for b in sw_rec["blocks"] if b["type"] == "alert.condition")
+    data_sw = {"bars": [[b["open"], b["high"], b["low"], b["close"]] for b in R.bars], "atr": atr,
+               "t0": R.T0.strftime("%Y-%m-%dT%H:%M:%S"), "step_min": 15, "symbols": {}, "live_from": LIVE}
+    NB = len(R.bars)
+    # cTrader: Print only on live bars, on the closed bar (index - 1)
+    ct = ct_all["liquidity-sweep-alert"]; Wct = int(re.search(r"const int Warmup = (\d+);", ct).group(1))
+    want_ct = [f"{n}|{alert_msg}" for n in range(LIVE, NB) if n - 1 >= Wct and sw[n - 1]]
+    def ct_sw(code):
+        d, r = build({"CAlgoEval.cs": (EV / "CAlgoEval.cs").read_text(), "CtHarness.cs": (EV / "CtHarness.cs").read_text(), "g.cs": code}, exe=True, strict=False)
+        if r.returncode: shutil.rmtree(d, ignore_errors=True); return None, (r.stdout + r.stderr)[-800:]
+        res, lines = run(d, dict(data_sw, round_up=False)); shutil.rmtree(d, ignore_errors=True)
+        return lines, res.stderr[-800:]
+    got, err = ct_sw(ct)
+    ok(got == want_ct, f"ctrader liquidity-sweep-alert: Print lines = reference; {len(got or [])} vs {len(want_ct)}; first diff: "
+       + str(next(((a, b) for a, b in zip(got or [], want_ct) if a != b), None)) + " " + err)
+    CT_SW_MUT = [("sweep uses forming pivot", "V_pivot_high(i - 1); double pl = V_pivot_low(i - 1)", "V_pivot_high(i); double pl = V_pivot_low(i)"),
+                 ("sweep without close back inside", "c < ph", "true"),
+                 ("sweep without ATR distance", "h - ph >= m", "true")]
+    caught_sw = 0
+    for label, a, b in CT_SW_MUT:
+        gotm, _ = ct_sw(ct.replace(a, b, 1)) if a in ct else (want_ct, "")
+        ok(a in ct and gotm != want_ct, f"ctrader sweep mutant not caught: {label}"); caught_sw += (a in ct and gotm != want_ct)
+    # NinjaTrader: Alert on every closed bar from Warmup (stand-in does not gate on Realtime)
+    ntc = nt["liquidity-sweep-alert"]; Wnt = int(re.search(r"const int Warmup = (\d+);", ntc).group(1))
+    want_nt = [f"0|{m}|{alert_msg}" for m in range(Wnt, NB) if sw[m]]
+    def nt_sw(code):
+        d, r = build({"NinjaEval.cs": (EV / "NinjaEval.cs").read_text(), "NtHarness.cs": (EV / "NtHarness.cs").read_text(), "g.cs": code}, exe=True, strict=False)
+        if r.returncode: shutil.rmtree(d, ignore_errors=True); return None, (r.stdout + r.stderr)[-800:]
+        res, lines = run(d, dict(data_sw, reverse_ties=False)); shutil.rmtree(d, ignore_errors=True)
+        return sorted(lines), res.stderr[-800:]
+    got, err = nt_sw(ntc)
+    want_nt_s = sorted(want_nt)
+    ok(got == want_nt_s, f"ninjatrader liquidity-sweep-alert: Alert lines = reference; {len(got or [])} vs {len(want_nt_s)}; "
+       + str(sorted(set(got or []) ^ set(want_nt_s))[:4]) + " " + err)
+    NT_SW_MUT = [("sweep uses forming pivot", "V_pivot_high(a + 1); double pl = V_pivot_low(a + 1)", "V_pivot_high(a); double pl = V_pivot_low(a)"),
+                 ("sweep without close back inside", "c < ph", "true"),
+                 ("sweep without ATR distance", "h - ph >= m", "true")]
+    for label, a, b in NT_SW_MUT:
+        gotm, _ = nt_sw(ntc.replace(a, b, 1)) if a in ntc else (want_nt, "")
+        ok(a in ntc and gotm != want_nt_s, f"ninjatrader sweep mutant not caught: {label}"); caught_sw += (a in ntc and gotm != want_nt_s)
+    out.update({"sweep_recipe": "liquidity-sweep-alert", "ctrader_sweep_prints": len(want_ct), "ninjatrader_sweep_alerts": len(want_nt),
+                "sweep_mutants_caught": caught_sw, "sweep_mutants": len(CT_SW_MUT) + len(NT_SW_MUT)})
+    ok(len(want_ct) >= 3 and len(want_nt) >= 3, "sweep must fire on the test bars")
     out.update({"checks": N[0], "failures": len(FAILS), "fail": FAILS, "note": "BSV C# stand-ins built from the NinjaTrader 8 / cTrader references; not NinjaTrader or cTrader (UNTESTED_RUNTIME)"})
     print(json.dumps(out))
     return 1 if FAILS else 0
