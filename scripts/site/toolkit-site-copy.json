@@ -560,8 +560,8 @@
   "n8n-team-runner": {
    "job": "orchestration",
    "summary": {
-    "en": "Builds one importable n8n workflow per Library AI Team task (10 tasks): manual trigger, local OpenAI-compatible model over HTTP, a section check, then you review the result. No write, send or paid nodes. You paste the team prompt from its Library page.",
-    "ja": "Library AI Teamの10種類の仕事ごとに、読み込めるn8nワークフローを作ります。手動実行→ローカルのOpenAI互換モデルへHTTPで依頼→必要な項目の確認→あなたが結果を確認、の順です。保存・送信・有料のノードはありません。Teamのプロンプトは各Libraryページから貼り付けます。"
+    "en": "Builds one importable n8n workflow per Library AI Team task (10 tasks): manual trigger, local OpenAI-compatible model over HTTP, a section check, then you review the result. No write, send or paid nodes. Optional record_execution.py turns the n8n CLI execution output into a BSV schema 1.0 evidence file (passed only if every section is present and you pass --approved yes; facts are not checked). You paste the team prompt from its Library page.",
+    "ja": "Library AI Teamの10種類の仕事ごとに、読み込めるn8nワークフローを作ります。手動実行→ローカルのOpenAI互換モデルへHTTPで依頼→必要な項目の確認→あなたが結果を確認、の順です。保存・送信・有料のノードはありません。任意の record_execution.py で、n8n CLI の実行結果から BSV schema 1.0 の証拠ファイルを作れます（全セクションがあり --approved yes のときだけ passed。事実は未検証）。Teamのプロンプトは各Libraryページから貼り付けます。"
    }
   },
   "openai-agents-team-runner": {

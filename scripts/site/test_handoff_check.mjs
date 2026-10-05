@@ -47,7 +47,7 @@ ok(H.checkEvalRun(badPass).errors.some(e => /cannot pass with blocking/.test(e))
 const tr = H.startPacket(block, { id: 'langgraph-team-runner', path: 'ai-toolkit/langgraph/team-runner', framework: 'LangGraph', status: 'UNTESTED_RUNTIME' });
 ok(/optional --eval-record PATH/.test(H.parse(tr).sections.EVIDENCE.limitations) && /facts, numbers and quotes are not checked/.test(H.parse(tr).sections.EVIDENCE.limitations), 'team-runner startPacket names --eval-record and facts-not-checked');
 const n8 = H.startPacket(block, { id: 'n8n-team-runner', path: 'ai-toolkit/n8n/team-runner', framework: 'n8n', status: 'UNTESTED_RUNTIME' });
-ok(/no --eval-record/.test(H.parse(n8).sections.EVIDENCE.limitations), 'n8n startPacket says no --eval-record');
+ok(/record_execution\.py/.test(H.parse(n8).sections.EVIDENCE.limitations) && /no --eval-record flag/.test(H.parse(n8).sections.EVIDENCE.limitations), 'n8n startPacket names record_execution.py (no --eval-record flag)');
 
 ok(sp.split('\n').length === block.split('\n').length && H.startPacket(sp, item) === sp, 'started packet: same lines as the template, idempotent');
 const site = process.argv[2];

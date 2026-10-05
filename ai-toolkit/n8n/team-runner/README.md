@@ -28,7 +28,15 @@ python make_workflow.py --task doc-review --model <model id shown by your server
 
 4. In n8n, edit **Task input → user_input**, then click **Test workflow**. If n8n runs in Docker, use `http://host.docker.internal:1234/v1` as `--base-url`.
 
-Evidence record: the Python runners (LangGraph, CrewAI, OpenAI Agents SDK) can write an eval record with `--eval-record`. This n8n workflow does not; its result is the n8n execution view. To keep evidence, copy the Section check output into a record by hand ([template](https://github.com/BotShelfVampire/botshelf/blob/main/docs/eval-run-template.json)).
+Evidence record (optional): n8n writes no record itself. `record_execution.py` (standard library, same `eval_record.py` as the Python runners) adds one execution to a BSV eval record (schema 1.0, check with `node scripts/validate-eval-run.mjs record.json`):
+
+```bash
+n8n execute --id=<workflow id> --rawOutput > exec.json   # the id is in out/<task>.workflow.json
+# read the draft in exec.json (Section check), then:
+python record_execution.py --execution exec.json --approved yes --eval-record record.json
+```
+
+A run is `passed` only when every required section is present and you gave `--approved yes`. Facts, numbers, dates and quotes are not checked; the task input, prompt and draft are stored only as sha256. A failed execution, the placeholder task input, or a record of another task / runner / prompt is refused and the record is left unchanged. BSV ran this against real n8n 2.41.6 CLI executions with a local stub model (`scripts/site/smoke_team_runners.py`); not a real model run.
 
 ## References
 
