@@ -86,12 +86,12 @@ def run(task: str, system: str, user_input: str, ask, crew_fn=crew_once) -> dict
             out.mkdir(exist_ok=True)
             p = out / ("%s-%s.md" % (task, datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
             p.write_text(draft, encoding="utf-8")
-            return {"approved": True, "saved": str(p), "revisions": revisions, "missing": missing}
+            return {"approved": True, "saved": str(p), "revisions": revisions, "missing": missing, "draft": draft}
         if answer.lower().startswith("revise:") and revisions < MAX_REVISIONS:
             revisions += 1
             extra = "\n\nReviewer feedback: " + answer[7:].strip() + "\nPrevious answer:\n" + draft
             continue
-        return {"approved": False, "saved": None, "revisions": revisions, "missing": missing}
+        return {"approved": False, "saved": None, "revisions": revisions, "missing": missing, "draft": draft}
 
 
 def ask_cli(v: dict) -> str:
@@ -125,6 +125,7 @@ def main() -> int:
     ap.add_argument("--prompt", help="SYSTEM prompt file (default: prompts/<task>.txt)")
     ap.add_argument("--dry-run", action="store_true", help="show the plan and parsed sections; no model call")
     ap.add_argument("--self-test", action="store_true", help="control-flow test with a fake crew")
+    ap.add_argument("--eval-record", metavar="PATH", help="also add this run to an eval record (BSV schema 1.0 JSON; created if missing)")
     a = ap.parse_args()
     if a.self_test:
         return self_test()
@@ -141,8 +142,22 @@ def main() -> int:
                           "required_sections": required_sections(system), "flow": "lead -> checker -> section check -> your approval -> save"}, indent=1))
         return 0
     user_input = pathlib.Path(a.input).read_text(encoding="utf-8") if a.input else sys.stdin.read()
+    if a.eval_record:
+        import eval_record  # same folder; standard library only
+        try:
+            eval_record.precheck(a.eval_record, "crewai", a.task, system, __file__)
+        except ValueError as e:
+            print("Eval record problem, nothing run: %s" % e)
+            return 2
     r = run(a.task, system, user_input, ask_cli)
     print("Saved: " + r["saved"] if r["saved"] else "Not saved (not approved).")
+    if a.eval_record:
+        try:
+            _, er = eval_record.append(a.eval_record, "crewai", a.task, MODEL, BASE_URL, {"temperature": 0.2}, system, user_input, required_sections(system), r, __file__)
+        except ValueError as e:
+            print("Eval record not written: %s" % e)
+            return 2
+        print("Eval record: %s (%s %s; facts not checked)" % (a.eval_record, er["run_id"], er["result"]))
     return 0
 
 

@@ -6,7 +6,9 @@ and counts every attempt (must stay 0). Checks the wiring only: the requests the
 loop, the approval gate and what is saved. It says nothing about answer quality on a real model.
 usage: python smoke_team_runners.py  (langgraph + openai, crewai in the running interpreter)
   env BSV_SMOKE_AGENTS_PY = python with openai-agents (separate venv: it needs openai 3, crewai pins openai 2)
-  env BSV_SMOKE_NODE + BSV_SMOKE_N8N = node binary + n8n CLI script (npm package n8n)"""
+  env BSV_SMOKE_NODE + BSV_SMOKE_N8N = node binary + n8n CLI script (npm package n8n)
+Also: the --eval-record option of the 3 Python runners (eval_record.py) writes records that pass
+scripts/validate-eval-run.mjs and say what happened (section check, yes/no). Facts are not checked by it."""
 import http.server, importlib.metadata as md, json, os, pathlib, shutil, socket, subprocess, sys, tempfile, threading
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
@@ -75,19 +77,23 @@ def msgs(b):
     return {m["role"]: (m["content"] if isinstance(m["content"], str) else json.dumps(m["content"])) for m in b.get("messages", [])}
 
 
-def run_runner(sub, script, stub, answers, model, py=None, extra_env=None):
+def run_runner(sub, script, stub, answers, model, py=None, extra_env=None, record=None):
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="bsv-smoke-"))
     d = tmp / "runner"; shutil.copytree(REPO / "ai-toolkit" / sub, d, ignore=shutil.ignore_patterns("out", "__pycache__"))
-    for old, new in MUTATE:  # mutant runs only: break the copied runner, never the repo file
-        f = d / script; t = f.read_text(); assert old in t, old; f.write_text(t.replace(old, new, 1))
+    for m in MUTATE:  # mutant runs only: break the copied runner, never the repo file
+        fn, old, new = m if len(m) == 3 else (script,) + tuple(m)
+        f = d / fn; t = f.read_text(); assert old in t, old; f.write_text(t.replace(old, new, 1))
     (tmp / "prompt.txt").write_text('SYSTEM = """%s"""' % SYSTEM); (tmp / "input.txt").write_text(INPUT)
     env = dict(os.environ, BSV_LLM_BASE_URL=stub.url, BSV_LLM_MODEL=model, BSV_LLM_API_KEY="stub", HOME=str(tmp),
                HTTPS_PROXY=PROXY.url, HTTP_PROXY=PROXY.url, NO_PROXY="127.0.0.1,localhost",
                CREWAI_DISABLE_TELEMETRY="true", CREWAI_TRACING_ENABLED="false", OTEL_SDK_DISABLED="true", **(extra_env or {}))
-    p = subprocess.run([py or sys.executable, str(d / script), "--task", "doc-review", "--prompt", str(tmp / "prompt.txt"), "--input", str(tmp / "input.txt")],
+    p = subprocess.run([py or sys.executable, str(d / script), "--task", "doc-review", "--prompt", str(tmp / "prompt.txt"), "--input", str(tmp / "input.txt")]
+                       + (["--eval-record", str(record)] if record else []),
                        input="\n".join(answers) + "\n", capture_output=True, text=True, env=env, timeout=300, cwd=tmp)
     saved = sorted((d / "out").glob("*.md")) if (d / "out").exists() else []
-    res = {"rc": p.returncode, "stdout": p.stdout[-1500:], "stderr": p.stderr[-1500:], "saved": [s.read_text() for s in saved]}
+    extra = sorted(str(q.relative_to(d)) for q in d.rglob("*") if q.is_file() and "__pycache__" not in q.parts and q.parent.name != "out"
+                   and not (REPO / "ai-toolkit" / sub / q.relative_to(d)).exists())
+    res = {"rc": p.returncode, "stdout": p.stdout[-1500:], "stderr": p.stderr[-1500:], "saved": [s.read_text() for s in saved], "extra_files": extra}
     shutil.rmtree(tmp, ignore_errors=True)
     return res
 
@@ -219,6 +225,83 @@ def n8n():
     return {"requests": len(cc), "n8n": v[-1] if v else None}
 
 
+RUNNERS = {"langgraph": ("langgraph/team-runner", "runner.py", "local-model", None, None),
+           "crewai": ("crewai/team-runner", "crew_runner.py", "openai/local-model", None, None),
+           "openai-agents": ("openai-agents/team-runner", "agents_runner.py", "local-model", AGENTS_PY, {"OPENAI_API_KEY": "sk-bsv-smoke-dummy"})}
+SCHEMA = json.loads((REPO / "docs" / "eval-run.schema.json").read_text())
+
+
+def fixed(text, crew):
+    return (lambda s, b: ("Thought: done\nFinal Answer: " + text) if "Final Answer" in json.dumps(b) else text) if crew else (lambda s, b: text)
+
+
+def schema_keys(rec):
+    """Required keys of docs/eval-run.schema.json, at every level the schema names (the .mjs validator checks the rest)."""
+    miss = [k for k in SCHEMA["required"] if k not in rec]
+    for k in ("workflow", "acceptance", "baseline_comparison", "summary"):
+        miss += ["%s.%s" % (k, x) for x in SCHEMA["properties"][k]["required"] if x not in (rec.get(k) or {})]
+    for k in ("cases", "runs"):
+        for i, item in enumerate(rec.get(k) or []):
+            miss += ["%s[%d].%s" % (k, i, x) for x in SCHEMA["properties"][k]["items"]["required"] if x not in item]
+    for i, m in enumerate((rec.get("workflow") or {}).get("models") or []):
+        miss += ["models[%d].%s" % (i, x) for x in SCHEMA["properties"]["workflow"]["properties"]["models"]["items"]["required"] if x not in m]
+    extra = [k for k in rec if k not in SCHEMA["properties"]]
+    return miss + ["extra:" + k for k in extra]
+
+
+def evidence_one(name):
+    sub, script, model, py, env = RUNNERS[name]
+    crew = name == "crewai"
+    rd = pathlib.Path(tempfile.mkdtemp(prefix="bsv-smoke-rec-")); rec_p = rd / "record.json"
+    h0 = len(PROXY.hits)
+    try:
+        r0 = run_runner(sub, script, Stub(fixed(FULL, crew)), ["no"], model, py, env)
+        ok(r0["extra_files"] == [] and not rec_p.exists(), "%s: without --eval-record nothing extra is written; got %r" % (name, r0["extra_files"]))
+        r1 = run_runner(sub, script, Stub(fixed(FULL, crew)), ["yes"], model, py, env, rec_p)
+        r2 = run_runner(sub, script, Stub(fixed(PART, crew)), ["yes"], model, py, env, rec_p)
+        r3 = run_runner(sub, script, Stub(fixed(FULL, crew)), ["no"], model, py, env, rec_p)
+        ok(all(x["rc"] == 0 for x in (r1, r2, r3)) and "Eval record: " in r1["stdout"] and "run-001 passed" in r1["stdout"]
+           and "run-002 failed" in r2["stdout"] and "run-003 failed" in r3["stdout"], "%s: 3 runs with --eval-record report run id + result; got %r" % (name, [(x["rc"], x["stdout"][-160:], x["stderr"][-200:]) for x in (r1, r2, r3)]))
+        ok(r1["saved"] == [FULL] and r2["saved"] == [PART] and r3["saved"] == [], "%s: --eval-record does not change what is saved" % name)
+        rec = json.loads(rec_p.read_text()) if rec_p.exists() else {}
+        v = subprocess.run([NODE, str(REPO / "scripts" / "validate-eval-run.mjs"), str(rec_p)], capture_output=True, text=True, timeout=60)
+        ok(v.returncode == 0 and v.stdout.startswith("PASS"), "%s: record passes scripts/validate-eval-run.mjs; got %s" % (name, (v.stdout + v.stderr)[-300:]))
+        ok(schema_keys(rec) == [], "%s: record has every key the schema requires, nothing extra; missing %r" % (name, schema_keys(rec)))
+        runs = rec.get("runs", []); ch = [x.get("deterministic_checks", {}) for x in runs]
+        ok([x.get("result") for x in runs] == ["passed", "failed", "failed"]
+           and [x.get("blocking_failures_observed") for x in runs] == [[], ["missing_required_section"], ["not_approved_by_user"]],
+           "%s: passed only when complete AND approved; missing section / no = failed; got %r" % (name, [(x.get("result"), x.get("blocking_failures_observed")) for x in runs]))
+        ok([c.get("missing_sections") for c in ch] == [[], ["Blockers"], []] and [c.get("approved_by_user") for c in ch] == [True, True, False]
+           and [c.get("revisions") for c in ch] == [0, 2, 0] and [c.get("required_sections") for c in ch] == [2, 2, 2],
+           "%s: deterministic_checks = what the runner saw; got %r" % (name, ch))
+        ok(rec.get("summary", {}).get("status") == "evaluation_failed" and (rec["summary"]["total_runs"], rec["summary"]["passed_runs"], rec["summary"]["failed_runs"]) == (3, 1, 2)
+           and rec["summary"]["human_reviewer"] == "" and any("NOT checked" in k for k in rec["summary"]["known_limitations"]),
+           "%s: summary 3/1/2 evaluation_failed, no reviewer claimed, facts-not-checked limitation; got %r" % (name, rec.get("summary")))
+        w = rec.get("workflow", {})
+        ok(w.get("runtime") == name and w.get("job") == "doc-review" and w.get("tools") == [] and w.get("models", [{}])[0].get("name") == model
+           and all(x.get("external_action_occurred") is False and x.get("exit_code") == 0 for x in runs)
+           and all(c.get("required_fields") == ["Pass/fail for publish", "Blockers"] and c.get("input_or_redacted_reference") == "sha256:" + __import__("hashlib").sha256(INPUT.encode()).hexdigest() for c in rec.get("cases", []))
+           and runs[0]["raw_output_reference"].endswith(".md") and runs[2]["raw_output_reference"].startswith("not saved")
+           and INPUT not in rec_p.read_text() and FULL not in rec_p.read_text(),
+           "%s: workflow / cases / refs recorded, input and draft only as sha256" % name)
+        # a record for another runner must be refused BEFORE any model call
+        other = json.loads(rec_p.read_text()); other["workflow"]["runtime"] = "other"; rec_p.write_text(json.dumps(other))
+        st4 = Stub(fixed(FULL, crew)); r4 = run_runner(sub, script, st4, ["yes"], model, py, env, rec_p)
+        ok(r4["rc"] == 2 and len(st4.reqs) == 0 and r4["saved"] == [] and "nothing run" in r4["stdout"] and json.loads(rec_p.read_text()) == other,
+           "%s: record of another runner/prompt = refused before the run, record untouched; got rc %s reqs %d" % (name, r4["rc"], len(st4.reqs)))
+    finally:
+        shutil.rmtree(rd, ignore_errors=True)
+    ok(len(PROXY.hits) == h0, "%s evidence: no outside call through the proxy; got %r" % (name, PROXY.hits[h0:]))
+    return {"runs_recorded": len(runs) if rec else 0, "validator": "PASS" if v.returncode == 0 else "FAIL"}
+
+
+def evidence():
+    copies = {n: (REPO / "ai-toolkit" / RUNNERS[n][0] / "eval_record.py").read_bytes() for n in RUNNERS}
+    ok(len(set(copies.values())) == 1, "eval_record.py: the 3 runner copies are byte-identical")
+    ok(all(not __import__("re").search(rb"^\s*(import|from)\s+(?!(datetime|hashlib|json|os|pathlib)\b)", c, __import__("re").M) for c in copies.values()), "eval_record.py: standard library only")
+    return {n: evidence_one(n) for n in RUNNERS}
+
+
 MUTANTS = [("langgraph", langgraph, "runner.py", [('user += "\\n\\nReviewer feedback: " + state["feedback"]', 'pass')]),
            ("langgraph", langgraph, "runner.py", [('return "produce" if state["missing"] and', 'return "produce" if False and')]),
            ("crewai", crewai, "crew_runner.py", [('if answer.lower() == "yes":', 'if answer:')]),
@@ -227,7 +310,14 @@ MUTANTS = [("langgraph", langgraph, "runner.py", [('user += "\\n\\nReviewer feed
            ("openai-agents", openai_agents, "agents_runner.py", [('"\\n\\nIt missed: "', '"\\n\\n"')]),
            ("openai-agents", openai_agents, "agents_runner.py", [("set_tracing_disabled(True)", "set_tracing_disabled(False)")]),
            ("n8n", n8n, "make_workflow.py", [("return words.length && !words.every(", "return words.length && words.every(")]),
-           ("n8n", n8n, "make_workflow.py", [("{ role: 'user', content: $json.user_input }", "{ role: 'user', content: $json.task }")])]
+           ("n8n", n8n, "make_workflow.py", [("{ role: 'user', content: $json.user_input }", "{ role: 'user', content: $json.task }")]),
+           ("evidence", lambda: evidence_one("langgraph"), "eval_record.py", [("eval_record.py", '(["missing_required_section"] if missing else [])', "([])")]),
+           ("evidence", lambda: evidence_one("langgraph"), "eval_record.py", [("eval_record.py", '([] if approved else ["not_approved_by_user"])', "([])")]),
+           ("evidence", lambda: evidence_one("langgraph"), "eval_record.py", [("eval_record.py", '("evaluation_failed" if failed else "runs")', '"runs"')]),
+           ("evidence", lambda: evidence_one("langgraph"), "eval_record.py", [("eval_record.py", '"total_runs": len(done)', '"total_runs": len(rec["runs"]) + 1')]),
+           ("evidence", lambda: evidence_one("langgraph"), "eval_record.py", [("eval_record.py", "    if (w.get(\"job\"), w.get(\"runtime\"), w.get(\"revision\")) != ", "    if (w.get(\"job\"), w.get(\"runtime\"), w.get(\"revision\")) == ")]),
+           ("evidence", lambda: evidence_one("crewai"), "crew_runner.py", [('"missing": missing, "draft": draft}', '"missing": [], "draft": draft}')]),
+           ("evidence", lambda: evidence_one("openai-agents"), "agents_runner.py", [('            eval_record.precheck(a.eval_record, "openai-agents", a.task, system, __file__)', "            pass")])]
 
 
 def mutants():
@@ -247,7 +337,7 @@ def mutants():
 
 
 if __name__ == "__main__":
-    out = {"test": "team-runner smoke (local stub server)", "langgraph": langgraph(), "crewai": crewai(), "openai_agents": openai_agents(), "n8n": n8n()}
+    out = {"test": "team-runner smoke (local stub server)", "langgraph": langgraph(), "crewai": crewai(), "openai_agents": openai_agents(), "n8n": n8n(), "evidence": evidence()}
     ok(len(PROXY.hits) == 0, "no outside call through the proxy in any run; got %r" % PROXY.hits)
     out["proxy_hits"] = len(PROXY.hits); out["mutants"] = len(MUTANTS); out["mutants_caught"] = mutants()
     out.update({"checks": CHECKS[0], "failures": len(FAILS), "fail": FAILS,
