@@ -28,6 +28,8 @@ python make_workflow.py --task doc-review --model <model id shown by your server
 
 4. In n8n, edit **Task input → user_input**, then click **Test workflow**. If n8n runs in Docker, use `http://host.docker.internal:1234/v1` as `--base-url`.
 
+Evidence record: the Python runners (LangGraph, CrewAI, OpenAI Agents SDK) can write an eval record with `--eval-record`. This n8n workflow does not; its result is the n8n execution view. To keep evidence, copy the Section check output into a record by hand ([template](https://github.com/BotShelfVampire/botshelf/blob/main/docs/eval-run-template.json)).
+
 ## References
 
 - n8n HTTP Request node: https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/
