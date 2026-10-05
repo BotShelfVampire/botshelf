@@ -1,5 +1,6 @@
 # BSV binding decisions — compact ledger
 
+- 2026-10-05 23:40 JST: EN nav removed bilingual「Search / 検索」; `data-i18n="navSearch"` + COMMON translations (en/ja/es/zh/ko). Live HTML mass-fix on stage88 (919) + ops script `fix_nav_search_i18n.py`. Not a brand/commerce change.
 - Existing Trader category is expanded; do not create a duplicate.
 - AI category and Trader category both need major content growth.
 - Trader end-state: BSV should let a motivated user build a personal chart tool with minimal coding.
