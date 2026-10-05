@@ -1,6 +1,6 @@
 # BSV compact state
 
-- 16:31 JST 10/05 batch 36 PREPARED, NOT DEPLOYED: NT/cTrader pivot+sweep+pivot-zones on all recipes; check_cs_scan 34/0 (scan+sweep); push done; fold tomorrow with stage87 + batch 35. Prod stays 6ac34f8e (2/3 today).
+- 16:31 JST 10/05 batch 36 PREPARED, NOT DEPLOYED: NT/cTrader pivot+sweep+pivot-zones on all recipes; check_cs_scan 34/0 (scan+sweep); push done; fold tomorrow via stage88 (35+36; stage87 was batch35-only); stage88 building. Prod stays 6ac34f8e (2/3 today).
 Updated: 2026-10-04 01:15 JST
 
 ## Goal
