@@ -42,6 +42,7 @@ CSS = """/* Homepage value layer: reuses .bsv-hub / .bsv-hub-card / .bsv-hub-ai-
 .bsv-home-value .bsv-hub-card-footer{margin-top:auto}
 .bsv-home-value .bsv-hub-ai-paths{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 10px}
 .bsv-home-value .bsv-hub-ai-paths a{padding:12px 15px}
+.bsv-home-value .bsv-hub-ai-paths strong span{font-size:inherit;color:inherit}
 .bsv-home-value h3{font-size:13px;letter-spacing:.06em;margin:18px 0 0;color:#b4bdca}
 .bsv-home-value .ai-targets{margin:8px 0 0}
 .bsv-home-value-note{font-size:12px;color:#919dab;margin:10px 0 0}
