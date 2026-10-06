@@ -12,7 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EXPECT = {  # script -> files it must create (glob)
     "neo_brief.py": ["neo_brief_*.md"], "iss_passes.py": ["passes_25544.csv"], "s2_scene_finder.py": ["scenes.csv"],
-    "kp_watch.py": ["kp_log.csv"], "chembl_screen.py": ["screen_CHEMBL203.csv"], "afdb_confidence.py": ["afdb_P00533_confidence.csv"],
+    "kp_watch.py": ["kp_log.csv"],
+    "celestrak_group_snapshot.py": ["celestrak_stations.csv"], "jpl_sbdb_lookup.py": ["sbdb_*.md", "sbdb_*.json"],
+    "iss_tle_track_sample.py": ["track_25544.csv"], "noaa_xray_flux_snapshot.py": ["xray_flux.csv"], "chembl_screen.py": ["screen_CHEMBL203.csv"], "afdb_confidence.py": ["afdb_P00533_confidence.csv"],
     "uniprot_profile.py": ["profile_P69905.md"], "pubmed_digest.py": ["digest_*.md"], "vqe_h2_pennylane.py": ["vqe_h2.csv"],
     "bell_noise_qiskit.py": ["bell_counts.csv"], "qaoa_maxcut_pennylane.py": ["qaoa_result.json"], "grover_qiskit.py": ["grover_counts.csv"],
     "mujoco_probe_reach.py": ["probe_reach.csv"], "dicom_deid_audit.py": ["deid_report.csv", "CT_small_deid.dcm"],

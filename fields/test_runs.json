@@ -391,6 +391,54 @@
     "wrote 5 trials for term='surgical robot' -> trials_brief.csv (ClinicalTrials.gov API v2)"
    ],
    "stderr_tail": []
+  },
+  "celestrak_group_snapshot.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:19",
+   "seconds": 1.7,
+   "stdout_tail": [
+    "wrote 23 objects from CelesTrak group='stations' -> celestrak_stations.csv"
+   ],
+   "stderr_tail": []
+  },
+  "jpl_sbdb_lookup.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:19",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "wrote sbdb_433.md + sbdb_433.json for '433 Eros (A898 PA)'"
+   ],
+   "stderr_tail": []
+  },
+  "iss_tle_track_sample.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:19",
+   "seconds": 0.7,
+   "stdout_tail": [
+    "ISS (ZARYA): 37 samples over 3.0 h step 5.0 min -> track_25544.csv"
+   ],
+   "stderr_tail": []
+  },
+  "noaa_xray_flux_snapshot.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:19",
+   "seconds": 0.7,
+   "stdout_tail": [
+    "wrote 714 X-ray samples (latest 2026-10-06T17:15:00Z) -> xray_flux.csv (NOAA SWPC)"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
