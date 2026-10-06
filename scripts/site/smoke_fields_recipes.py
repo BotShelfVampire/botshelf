@@ -24,6 +24,8 @@ EXPECT = {  # script -> files it must create (glob)
     "bell_noise_qiskit.py": ["bell_counts.csv"], "qaoa_maxcut_pennylane.py": ["qaoa_result.json"], "grover_qiskit.py": ["grover_counts.csv"],
     "deutsch_jozsa_qiskit.py": ["dj_result.csv"], "ghz_three_qiskit.py": ["ghz_counts.csv"],
     "teleport_demo_qiskit.py": ["teleport_counts.csv"], "pennylane_rx_expectation.py": ["rx_expectation.csv"],
+    "bernstein_vazirani_qiskit.py": ["bv_result.csv"], "swap_test_overlap_qiskit.py": ["swap_test.csv"],
+    "qft_basis_qiskit.py": ["qft_basis.csv"], "pennylane_ising_zz.py": ["ising_zz.csv"],
     "mujoco_probe_reach.py": ["probe_reach.csv"], "dicom_deid_audit.py": ["deid_report.csv", "CT_small_deid.dcm"],
     "fhir_bundle_flatten.py": ["fhir_patients.csv", "fhir_observations.csv"], "dicom_tag_inventory.py": ["dicom_tags.csv"],
     "open_fda_label_pull.py": ["openfda_index.csv", "openfda_label_*.md"], "clinicaltrials_robot_brief.py": ["trials_brief.csv"],
