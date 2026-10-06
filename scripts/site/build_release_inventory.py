@@ -13,7 +13,7 @@ CATS = [
  ("trading", "Trading", "/trading/", "Traders Library + chart tools + recipe builder"),
  ("robotics", "Robotics", "/robot-pilot/", "Robot Pilot Academy (simulation curricula + teleop recipes)"),
  ("healthcare", "Healthcare & Medical Robotics", "/fields/healthcare/", "Field recipes / tools / sources (research & simulation only)"),
- ("data", "Data", "/search/?q=data", "Search index entries tagged use_case=Data (no dedicated hub yet when count is from search)"),
+ ("data", "Data", "/fields/data/", "Field recipes / tools / sources for everyday data hygiene"),
  ("space", "Space", "/fields/space/", "Field recipes / tools / sources"),
  ("biotech", "Biotech", "/fields/biotech/", "Field recipes / tools / sources"),
  ("quantum", "Quantum", "/fields/quantum/", "Field recipes / tools / sources"),
@@ -41,27 +41,15 @@ def sample_urls(site, key):
     elif key == "robotics":
         for u in ("/robot-pilot/", "/robot-pilot/curricula/isaac-teleop-so101-sim-v1.json"):
             if exists(site, u): out.append(u)
-    elif key in ("healthcare", "space", "biotech", "quantum"):
+    elif key in ("healthcare", "data", "space", "biotech", "quantum"):
         base = f"/fields/{key}/"
         if exists(site, base): out.append(base)
-        # first recipe anchor if any
         p = site / "fields" / key / "index.html"
         if p.exists():
             ids = re.findall(r'id="(fld-[a-z0-9\-]+)"', p.read_text())[:3]
             out.extend(f"{base}#{i}" for i in ids)
-    elif key == "data":
-        out.append("/search/?q=data")
-        idx = sorted((site / "search").glob("index.v*.json"))
-        if idx:
-            try:
-                rows = json.loads(idx[-1].read_text()).get("rows") or []
-                for e in rows:
-                    blob = json.dumps(e, ensure_ascii=False).lower()
-                    if "data" in blob and e.get("u"):
-                        out.append(e["u"] if str(e["u"]).startswith("/") else "/" + str(e["u"]))
-                        if len(out) >= 4: break
-            except Exception:
-                pass
+        if key == "data":
+            out.append("/search/?q=data")
     # dedupe preserve order
     seen=set(); uniq=[]
     for u in out:
@@ -83,7 +71,7 @@ def provenance(key):
         "trading": "Traders Library catalog + BSV recipe builder outputs; third-party sources keep upstream license",
         "robotics": "Original BSV Robot Pilot curricula/recipes; links NVIDIA docs, does not redistribute NVIDIA code",
         "healthcare": "BSV field recipes on /fields/healthcare/; research, education and simulation only",
-        "data": "Entries discovered via site search index (use_case=Data)",
+        "data": "BSV field recipes on /fields/data/; synthetic samples labeled; public API numbers cited",
         "space": "BSV field recipes on /fields/space/",
         "biotech": "BSV field recipes on /fields/biotech/",
         "quantum": "BSV field recipes on /fields/quantum/",
@@ -94,15 +82,13 @@ def build(site: pathlib.Path) -> dict:
     cats = []
     for key, name, hub, blurb in CATS:
         n = count_for(site, key, hc)
-        live = n > 0 and exists(site, hub.split("?")[0] if not hub.startswith("/search") else "search/index.html") or (key=="data" and n>=0)
-        # data hub is search — always "exists" if search index present
-        if key == "data":
-            live = n > 0
-        elif hub.startswith("/fields/") or hub in ("/library/", "/trading/", "/robot-pilot/"):
+        if hub.startswith("/fields/") or hub in ("/library/", "/trading/", "/robot-pilot/"):
             live = exists(site, hub) and n > 0
+        else:
+            live = n > 0 and exists(site, hub.split("?")[0] if not hub.startswith("/search") else "search/index.html")
         cats.append({
             "key": key, "name": name, "hub": hub, "blurb": blurb,
-            "live_count": n, "status": "live" if (exists(site, hub) if not hub.startswith("/search") else True) and n > 0 else ("coming_soon" if n == 0 else "live"),
+            "live_count": n, "status": "live" if live else "coming_soon",
             "sample_urls": sample_urls(site, key),
             "provenance": provenance(key),
         })

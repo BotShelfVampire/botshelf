@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the BSV field pages: /fields/ (hub) and /fields/{healthcare,space,biotech,quantum}/.
+"""Build the BSV field pages: /fields/ (hub) and /fields/{healthcare,data,space,biotech,quantum}/.
 
 Content: scripts/site/fields_content.py (BSV-original recipes, comparison rows, starter-stack summaries).
 Evidence read at build time, never typed in:
@@ -15,7 +15,7 @@ import fields_content as C
 
 REPO = Path(__file__).resolve().parents[2]
 ORIGIN = "https://botshelfvampire.com"
-ORDER = ("healthcare", "space", "biotech", "quantum")
+ORDER = ("healthcare", "data", "space", "biotech", "quantum")
 L5 = C.LANGS
 
 
@@ -356,7 +356,7 @@ def search(site, counts, lb):
     rows = [r for r in idx["rows"] if not str(r.get("id", "")).startswith(("fields/", "labs/"))]
     U = C.UI
     add = [{"s": "fields", "id": "fields/", "t": U["fldHubTitle"][0], "tj": U["fldHubTitle"][1], "k": "Field hub", "kj": "分野一覧", "c": "Fields", "p": [],
-            "d": U["fldHubLead"][0], "dj": U["fldHubLead"][1], "x": "healthcare medical robotics space biotech quantum ヘルスケア 医療 宇宙 バイオ 量子", "u": "/fields/", "a": "free"}]
+            "d": U["fldHubLead"][0], "dj": U["fldHubLead"][1], "x": "healthcare medical robotics data space biotech quantum ヘルスケア 医療 データ 宇宙 バイオ 量子", "u": "/fields/", "a": "free"}]
     for cat in ORDER:
         f = C.F[cat]
         tools = [c[0] for c in f["compare"]]
