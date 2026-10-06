@@ -5,7 +5,7 @@
   "baseline": {
     "checked_at_jst": "2026-10-07T01:49:00+09:00",
     "deploy_id": "6ac52627cf474b9b8aa418d5",
-    "integration_commit": "(pending commit)",
+    "integration_commit": "db15c0e",
     "proof_dir": "qa/cdp_three_journeys.py LIVE (on BSV live box)"
   },
   "public_pages": [
