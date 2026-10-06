@@ -25,6 +25,27 @@ from pathlib import Path
 
 BEGIN, END = "<!-- bsv-home-value:begin -->", "<!-- bsv-home-value:end -->"
 CSS_BEGIN, CSS_END = "<!-- bsv-home-value-css:begin -->", "<!-- bsv-home-value-css:end -->"
+BAND_BEGIN, BAND_END = "<!-- bsv-home-band:begin -->", "<!-- bsv-home-band:end -->"
+# Owner-approved hero headline band (2026-10-06 21:33 JST; interim sub-line = fields with live content only).
+# Text goes through the existing i18n (data-i18n + window.PAGE_I18N) so en/ja/es/zh/ko each show their own language.
+BAND_I18N = {
+    "en": {"heroBandH": "Tools, workflows and AI agents for people building what's next.",
+           "heroBandSub": "Find, compare and use practical resources for AI, trading and robotics.",
+           "heroBandCtaExplore": "Explore what you can do", "heroBandCtaBrowseAll": "Browse all resources"},
+    "ja": {"heroBandH": "次に作るための、ツール・ワークフロー・AIエージェント。",
+           "heroBandSub": "AI、トレード、ロボティクスの実用リソースを、探す・比べる・使う。",
+           "heroBandCtaExplore": "できることを見る", "heroBandCtaBrowseAll": "すべてのリソースを見る"},
+    "es": {"heroBandH": "Herramientas, flujos de trabajo y agentes de IA para quienes construyen lo que viene.",
+           "heroBandSub": "Encuentra, compara y usa recursos prácticos de IA, trading y robótica.",
+           "heroBandCtaExplore": "Explora lo que puedes hacer", "heroBandCtaBrowseAll": "Ver todos los recursos"},
+    "zh": {"heroBandH": "为构建未来的人准备的工具、工作流和 AI 智能体。",
+           "heroBandSub": "查找、比较并使用 AI、交易和机器人领域的实用资源。",
+           "heroBandCtaExplore": "看看你能做什么", "heroBandCtaBrowseAll": "浏览全部资源"},
+    "ko": {"heroBandH": "다음을 만드는 사람들을 위한 도구, 워크플로, AI 에이전트.",
+           "heroBandSub": "AI, 트레이딩, 로보틱스의 실용 리소스를 찾고, 비교하고, 사용하세요.",
+           "heroBandCtaExplore": "할 수 있는 일 보기", "heroBandCtaBrowseAll": "모든 리소스 보기"},
+}
+PAGE_I18N_RE = re.compile(r"(window\.PAGE_I18N = )(\{.*?\n\})(;\s*</script>)", re.S)
 HERO_RE = re.compile(r'(<div class="hero">\s*<picture>.*?</picture>\s*</div>\n?)', re.S)
 
 WORKFLOW_TYPES = ("Code workflow", "Dify workflow", "Flowise flow", "Workflow", "Team orchestration")
@@ -45,9 +66,13 @@ CSS = """/* Homepage value layer: reuses .bsv-hub / .bsv-hub-card / .bsv-hub-ai-
 .bsv-home-value .bsv-hub-ai-paths strong span{font-size:inherit;color:inherit}
 .bsv-home-value h3{font-size:13px;letter-spacing:.06em;margin:18px 0 0;color:#b4bdca}
 .bsv-home-value .ai-targets{margin:8px 0 0}
+.bsv-home-band{padding-top:26px;padding-bottom:6px}
+.bsv-home-band h2{margin:0 0 10px;max-width:22em}
+.bsv-home-band .bsv-hub-lead{margin:0 0 16px;max-width:46em}
+.bsv-home-band-ctas{display:flex;flex-wrap:wrap;gap:10px}
 .bsv-home-value-note{font-size:12px;color:#919dab;margin:10px 0 0}
 @media(max-width:950px){.bsv-home-value .bsv-hub-ai-paths{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:640px){.bsv-home-value{padding:22px 16px 22px}.bsv-home-value h2{font-size:26px}.bsv-home-value .bsv-hub-lead{font-size:14px;line-height:1.55}.bsv-home-value .bsv-hub-ai-paths{grid-template-columns:1fr;gap:8px}.bsv-home-value .bsv-hub-ai-paths a{padding:10px 13px}.bsv-home-value .bsv-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bsv-home-value .bsv-hub-card{padding:11px 12px}.bsv-home-value .bsv-hub-card h4{font-size:14px;margin:6px 0 0}.bsv-home-value .bsv-hub-card p,.bsv-home-value .bsv-hub-card-platform,.bsv-home-value .bsv-hub-card-footer,.bsv-home-value .bsv-hub-price{display:none}}
+@media(max-width:640px){.bsv-home-band{padding:18px 16px 2px}.bsv-home-band h2{font-size:24px;line-height:1.25}.bsv-home-band .bsv-hub-lead{font-size:14px;line-height:1.5;margin-bottom:12px}.bsv-home-band .bsv-hub-button{padding:10px 14px;min-height:40px}.bsv-home-value{padding:22px 16px 22px}.bsv-home-value h2{font-size:26px}.bsv-home-value .bsv-hub-lead{font-size:14px;line-height:1.55}.bsv-home-value .bsv-hub-ai-paths{grid-template-columns:1fr;gap:8px}.bsv-home-value .bsv-hub-ai-paths a{padding:10px 13px}.bsv-home-value .bsv-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bsv-home-value .bsv-hub-card{padding:11px 12px}.bsv-home-value .bsv-hub-card h4{font-size:14px;margin:6px 0 0}.bsv-home-value .bsv-hub-card p,.bsv-home-value .bsv-hub-card-platform,.bsv-home-value .bsv-hub-card-footer,.bsv-home-value .bsv-hub-price{display:none}}
 """
 
 
@@ -183,6 +208,26 @@ EVT_ADD = [  # existing elements that start the funnel: add data-evt only (no co
 ]
 
 
+def band() -> str:
+    en = BAND_I18N["en"]
+    return (f'{BAND_BEGIN}\n<section class="bsv-hub bsv-home-band" id="bsv-hero-band" aria-labelledby="bsv-hero-band-title" data-bsv-hero-band>'
+            f'<h2 id="bsv-hero-band-title" data-i18n="heroBandH">{html.escape(en["heroBandH"])}</h2>'
+            f'<p class="bsv-hub-lead" data-i18n="heroBandSub">{html.escape(en["heroBandSub"])}</p>'
+            f'<div class="bsv-home-band-ctas"><a class="bsv-hub-button" href="#what-bsv-gives" data-evt="home_hero_cta_explore" data-i18n="heroBandCtaExplore">{html.escape(en["heroBandCtaExplore"])}</a>'
+            f'<a class="bsv-hub-button bsv-hub-secondary" href="/search/" data-evt="home_hero_cta_browse_all" data-i18n="heroBandCtaBrowseAll">{html.escape(en["heroBandCtaBrowseAll"])}</a></div>'
+            f'</section>\n{BAND_END}\n')
+
+
+def set_page_i18n(t: str) -> str:
+    m = PAGE_I18N_RE.search(t)
+    if not m:
+        raise SystemExit("window.PAGE_I18N not found in index.html")
+    d = json.loads(m.group(2))
+    for lang, kv in BAND_I18N.items():
+        d.setdefault(lang, {}).update(kv)
+    return t[:m.start(2)] + json.dumps(d, ensure_ascii=False, indent=1) + t[m.end(2):]
+
+
 def apply(site: Path) -> dict:
     p = site / "index.html"
     t = p.read_text()
@@ -194,10 +239,12 @@ def apply(site: Path) -> dict:
             old.unlink()
     (css_dir / css_name).write_text(CSS)
     t = re.sub(re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n?", "", t, flags=re.S)
+    t = re.sub(re.escape(BAND_BEGIN) + r".*?" + re.escape(BAND_END) + r"\n?", "", t, flags=re.S)
+    t = set_page_i18n(t)
     t = re.sub(re.escape(CSS_BEGIN) + r".*?" + re.escape(CSS_END), "", t, flags=re.S)
     if not HERO_RE.search(t):
         raise SystemExit("hero block not found in index.html")
-    t = HERO_RE.sub(lambda m: m.group(1) + block(c), t, count=1)
+    t = HERO_RE.sub(lambda m: m.group(1) + band() + block(c), t, count=1)
     t = t.replace("</head>", f'{CSS_BEGIN}<link rel="stylesheet" href="/css/{css_name}">{CSS_END}</head>', 1)
     for rx, rep in EVT_ADD:
         evt = re.search(r'data-evt="([^"]+)"', rep).group(1)

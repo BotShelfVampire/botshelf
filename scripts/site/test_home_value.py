@@ -39,7 +39,26 @@ def main():
     blk = t[i0:i1]
     hero_end = t.find("</picture>")
     ok(0 < hero_end < i0 < t.find('id="trader-library"') < t.find('id="ai-library"'), "order: hero -> value -> Trader hub -> AI hub")
-    ok(not re.search(r"<(?!/)[^>]*>\s*<", t[t.find("</picture>", hero_end):i0].replace("</picture>", "").replace("</div>", "").strip()) , "nothing between hero and value block")
+    b0, b1 = t.find(H.BAND_BEGIN), t.find(H.BAND_END)
+    ok(t.count(H.BAND_BEGIN) == 1 and t.count(H.BAND_END) == 1, "exactly one hero band")
+    ok(hero_end < b0 < b1 < i0, "order: hero image -> band -> value block")
+    ok(t[hero_end:b0].replace("</picture>", "").replace("</div>", "").strip() == "", "band sits directly under the hero image (no text over the image)")
+    ok(t[b1 + len(H.BAND_END):i0].strip() == "", "value block directly follows the band")
+    band = t[b0:b1]
+    ok("<picture" not in band and "<img" not in band and "style=" not in band, "band: text only, no image, no inline style")
+    ok('href="#what-bsv-gives" data-evt="home_hero_cta_explore" data-i18n="heroBandCtaExplore"' in band, "primary CTA -> #what-bsv-gives with data-evt")
+    ok('href="/search/" data-evt="home_hero_cta_browse_all" data-i18n="heroBandCtaBrowseAll"' in band, "secondary CTA -> /search/ with data-evt")
+    for k in ("heroBandH", "heroBandSub", "heroBandCtaExplore", "heroBandCtaBrowseAll"):
+        ok(f'data-i18n="{k}"' in band, f"band uses existing i18n key {k}")
+    ok("Tools, workflows and AI agents for people building what&#x27;s next." in band and "Find, compare and use practical resources for AI, trading and robotics." in band, "band EN default = owner-approved text")
+    m = H.PAGE_I18N_RE.search(t); pi = json.loads(m.group(2)) if m else {}
+    for lang in ("en", "ja", "es", "zh", "ko"):
+        for k, v in H.BAND_I18N[lang].items():
+            ok(pi.get(lang, {}).get(k) == v, f"PAGE_I18N[{lang}].{k}")
+    vals = {lang: set(H.BAND_I18N[lang].values()) for lang in H.BAND_I18N}
+    ok(all(not (vals[a] & vals[b]) for a in vals for b in vals if a < b), "no language reuses another language's band text")
+    ok(H.BAND_I18N["ja"]["heroBandH"] == "次に作るための、ツール・ワークフロー・AIエージェント。" and H.BAND_I18N["ja"]["heroBandSub"] == "AI、トレード、ロボティクスの実用リソースを、探す・比べる・使う。", "JA = owner-approved text")
+    ok(not FORBIDDEN.search(" ".join(v for d in H.BAND_I18N.values() for v in d.values())), "band: no unbacked fields / reward wording")
     for frag in BRAND:
         ok(t.count(frag) >= 1, f"brand fragment intact: {frag[:60]}")
     ok(t.find("bsv-note-tv") > i1, "TradingView / IB notices stay after the value layer")
@@ -71,7 +90,7 @@ def main():
         ok(f'data-evt="home_goal_{k}"' in blk, f"goal {k}")
     for k in ("ai", "trading", "robotics"):
         ok(f'data-evt="home_field_{k}"' in blk, f"field {k}")
-    for e in ("home_hero_cta_browse", "home_audience_trading", "home_audience_ai", "home_register_header"):
+    for e in ("home_hero_cta_browse", "home_hero_cta_explore", "home_hero_cta_browse_all", "home_audience_trading", "home_audience_ai", "home_register_header"):
         ok(t.count(f'data-evt="{e}"') == 1, f"existing funnel entry marked once: {e}")
     # bilingual
     ja, en = blk.count("data-bsv-ja"), blk.count("data-bsv-en")

@@ -8,6 +8,7 @@ funnel without code changes.
 
 | Step | Marker (`data-evt`) | Destination (path-level measure) |
 |---|---|---|
+| Hero band CTAs (owner-approved band, 2026-10-06 21:33 JST) | `home_hero_cta_explore`, `home_hero_cta_browse_all` | `#what-bsv-gives`, `/search/` |
 | Hero-adjacent entry | `home_value` (section), `home_hero_cta_browse`, `home_audience_trading`, `home_audience_ai`, `home_value_search` | `/` → `#what-bsv-gives`, `#packs`, `#trader-library`, `#ai-library`, `/search/` |
 | Product primitive | `home_primitive_{tools,workflows,agents,templates,research,robotics}` | `/trading/tools/`, `/library/`, `/library/toolkit/`, `/library/skills/`, `/trading/guides/tradingview-alternatives/` (JA `/trading/ja/guides/...`), `/robot-pilot/` |
 | Field / goal | `home_field_{ai,trading,robotics}`, `home_goal_{ai_workflow,find_trading_tool,build_trading_tool,robot_practice,compare,agent_sdks}` | `/library/`, `/trading/`, `/robot-pilot/`, `/library/workflows/`, `/trading/tools/`, `/trading/tools/bsv-builder.html`, `/library/toolkit/` |
