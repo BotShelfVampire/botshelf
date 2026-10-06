@@ -282,11 +282,11 @@ STATIC_I18N = {
     "homeGoalsTitle": ("Browse by goal", "目的から探す", "Explorar por objetivo", "按目标浏览", "목표별로 찾기"),
     "homeValueEyebrow": ("CONTENT TYPES", "コンテンツの種類", "TIPOS DE CONTENIDO", "内容类型", "콘텐츠 유형"),
     "homeValueTitle": ("What you can use on BSV", "BSVで使えるもの", "Lo que puedes usar en BSV", "在 BSV 上可以使用的内容", "BSV에서 쓸 수 있는 것"),
-    "homeValueLead": ("Content types across the categories above. Everything listed here is free to use; source and downloads need a verified email.",
-                      "上のカテゴリーをまたぐ、コンテンツの種類です。ここに挙げたものはすべて無料で使えます。ソースやダウンロードにはメール確認が必要です。",
-                      "Tipos de contenido de las categorías anteriores. Todo lo que aparece aquí es gratuito; el código fuente y las descargas requieren un correo verificado.",
-                      "以上各类别中的内容类型。这里列出的都可免费使用；查看源码和下载需要验证邮箱。",
-                      "위 카테고리 전반의 콘텐츠 유형입니다. 여기 있는 것은 모두 무료이며, 소스와 다운로드에는 이메일 인증이 필요합니다."),
+    "homeValueLead": ("Content types across the categories above, all free. Guides, comparisons and tool pages are open to everyone. Source and downloads hosted on BSV open after you verify your email; author-hosted links, such as Position Sizer, need no BSV email verification.",
+                      "上のカテゴリーをまたぐ、コンテンツの種類です。どれも無料です。ガイド・比較・ツール紹介のページは、どなたでも読めます。BSVで配布しているソースとダウンロードは、メール確認のあとに開きます。Position Sizer のように原作者が配布しているリンクは、BSVのメール確認なしで使えます。",
+                      "Tipos de contenido de las categorías anteriores, todos gratuitos. Las guías, comparativas y fichas de herramientas están abiertas a todos. El código fuente y las descargas alojados en BSV se abren tras verificar tu correo; los enlaces alojados por el autor, como Position Sizer, no requieren verificación de correo en BSV.",
+                      "以上各类别中的内容类型，全部免费。指南、比较和工具介绍页面对所有人开放。BSV 托管的源码和下载需在验证邮箱后打开；由原作者托管的链接（如 Position Sizer）无需 BSV 邮箱验证。",
+                      "위 카테고리 전반의 콘텐츠 유형이며 모두 무료입니다. 가이드, 비교, 도구 소개 페이지는 누구나 볼 수 있습니다. BSV가 호스팅하는 소스와 다운로드는 이메일 인증 후 열리며, Position Sizer처럼 원작자가 호스팅하는 링크는 BSV 이메일 인증이 필요 없습니다."),
     "siteSearchPh": ("Search tools, workflows, AI agents, research…", "ツール・ワークフロー・AIエージェント・調査を検索", "Busca herramientas, flujos, agentes de IA, investigación…", "搜索工具、工作流、AI 智能体、研究…", "도구, 워크플로, AI 에이전트, 리서치 검색…"),
     "siteSearchHint": ("Searches the whole site: tools, workflows, AI agents, research guides and the Build Library", "サイト全体を検索します（ツール、ワークフロー、AIエージェント、調査ガイド、Build Library）",
                        "Busca en todo el sitio: herramientas, flujos, agentes de IA, guías y la Build Library", "搜索全站：工具、工作流、AI 智能体、研究指南和 Build Library",
@@ -422,6 +422,22 @@ def header_search(t: str) -> str:
     return t
 
 
+ACCESS_NOTE_RE = re.compile(r'<p><span class="bsv-hub-lock" aria-hidden="true">◈</span> .*?</p>', re.S)
+ACCESS_NOTE = ('<p><span class="bsv-hub-lock" aria-hidden="true">◈</span> '
+               + b("BSVで配布しているソースとダウンロードは、無料のものでもメール確認が必要です。原作者が配布しているツール（例：Position Sizer）は、原配布元のリンクからBSVのメール確認なしで入手できます。",
+                   "Source and downloads hosted on BSV need a verified email, even when free. Author-hosted tools (for example Position Sizer) come from the author&#39;s own link with no BSV email verification.")
+               + "</p>")
+
+
+def trader_access_note(t: str) -> str:
+    """Issue #4 6017081899 item 3: the Trader hub said every free tool needs a verified email. BSV-hosted gated source and
+    author-hosted links have different access conditions (the Position Sizer page already says its author link needs no BSV
+    verification). Copy only; the edge gate and auth are unchanged."""
+    if len(ACCESS_NOTE_RE.findall(t)) != 1:
+        raise SystemExit("trader hub access note not found exactly once")
+    return ACCESS_NOTE_RE.sub(lambda m: ACCESS_NOTE, t, count=1)
+
+
 def apply(site: Path) -> dict:
     p = site / "index.html"
     t = p.read_text()
@@ -442,6 +458,7 @@ def apply(site: Path) -> dict:
     t = AUDIENCE_NAV_RE.sub("", t, count=1)
     t = set_page_i18n(t, c)
     t = header_search(t)
+    t = trader_access_note(t)
     t = re.sub(re.escape(CSS_BEGIN) + r".*?" + re.escape(CSS_END), "", t, flags=re.S)
     if not HERO_RE.search(t):
         raise SystemExit("hero block not found in index.html")

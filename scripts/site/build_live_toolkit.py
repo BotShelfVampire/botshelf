@@ -776,7 +776,7 @@ def build_discovery(site: Path, copy: dict) -> dict:
         base = json.loads((site / "search" / idx_name).read_text())
     else:
         base = json.loads((site / "search" / idx_name).read_text())
-    rows = [r for r in base["rows"] if not str(r.get("id", "")).startswith(("bsv-", "toolkit/"))]
+    rows = [r for r in base["rows"] if not str(r.get("id", "")).startswith(("bsv-", "toolkit/", "fields/", "labs/"))]  # fields/labs rows: build_fields.py
     for e in tmeta:
         rows.append({"s": "trading", "id": e["slug"], "t": e["title"], "k": copy["trader_types"][e["type"]]["en"], "kj": copy["trader_types"][e["type"]]["ja"],
                      "c": "Build your own chart tool", "p": e["platforms"], "d": e["summary"]["en"], "dj": e["summary"]["ja"],

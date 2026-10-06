@@ -334,6 +334,79 @@ def hub_page(site, counts, css_href, js_href):
     (site / "fields/index.html").write_text(doc(site, "/fields/", "fld_hub_title", U["fldHubTitle"][0], U["fldHubLead"][0], crumbs, body, css_href, js_href))
 
 
+SEARCH_JS_PATCH = (  # (old, new) on the /search/ page script: adds the "fields" scope (Fields & labs)
+    ("build: ['ビルドライブラリ', 'Build Library'] };", "build: ['ビルドライブラリ', 'Build Library'], fields: ['分野・ラボ', 'Fields & labs'] };"),
+    ("counts = { trading: 0, ai: 0, build: 0 };", "counts = { trading: 0, ai: 0, build: 0, fields: 0 };"),
+    ("s === 'all' ? counts.trading + counts.ai + counts.build :", "s === 'all' ? counts.trading + counts.ai + counts.build + counts.fields :"),
+    ("sc === 'build' || sc === 'aiall'", "sc === 'build' || sc === 'fields' || sc === 'aiall'"),
+)
+SEARCH_VER = "v20261007"
+
+
+def search(site, counts, lb):
+    """Add the field pages, recipes and Field Labs to /search/ as scope "fields". The index and page script referenced by
+    /search/index.html (written by build_live_toolkit.py, which drops fields/ and labs/ rows) are copied to new
+    {SEARCH_VER} names, so cached copies of the old script never meet rows they cannot render."""
+    sp = site / "search/index.html"
+    sh = sp.read_text()
+    js_name = re.search(r"/js/(bsv-search-page\.v[0-9a-z]+\.js)", sh).group(1)
+    pj = (site / "js" / js_name).read_text()
+    idx_name = re.search(r"(index\.v[0-9a-z]+\.json)", pj).group(1)
+    idx = json.loads((site / "search" / idx_name).read_text())
+    rows = [r for r in idx["rows"] if not str(r.get("id", "")).startswith(("fields/", "labs/"))]
+    U = C.UI
+    add = [{"s": "fields", "id": "fields/", "t": U["fldHubTitle"][0], "tj": U["fldHubTitle"][1], "k": "Field hub", "kj": "分野一覧", "c": "Fields", "p": [],
+            "d": U["fldHubLead"][0], "dj": U["fldHubLead"][1], "x": "healthcare medical robotics space biotech quantum ヘルスケア 医療 宇宙 バイオ 量子", "u": "/fields/", "a": "free"}]
+    for cat in ORDER:
+        f = C.F[cat]
+        tools = [c[0] for c in f["compare"]]
+        add.append({"s": "fields", "id": f"fields/{cat}", "t": f["name"][0], "tj": f["name"][1], "k": "Field", "kj": "分野", "c": f["name"][0], "p": tools[:3],
+                    "d": f["lead"][0], "dj": f["lead"][1], "x": " ".join(tools + [s[0] for s in f["stack"]] + [r["title"][0] + " " + r["title"][1] for r in f["recipes"]]),
+                    "u": f"/fields/{cat}/", "a": "free"})
+        for r in f["recipes"]:
+            add.append({"s": "fields", "id": f"fields/{cat}/{r['id']}", "t": r["title"][0], "tj": r["title"][1], "k": "Recipe", "kj": "作り方レシピ", "c": f["name"][0],
+                        "p": [], "d": r["summary"][0], "dj": r["summary"][1], "x": f'{f["name"][1]} {r["prereq"][0]} {r["code"] or ""}',
+                        "u": f"/fields/{cat}/#{r['id']}", "a": "free"})
+        if cat in lb:
+            e = lb[cat]
+            add.append({"s": "fields", "id": f"labs/{cat}", "t": e["title"]["en"], "tj": e["title"]["ja"], "k": "Interactive tool", "kj": "インタラクティブツール",
+                        "c": f["name"][0], "p": [], "d": e["summary"]["en"], "dj": e["summary"]["ja"], "x": f'Field Labs 実践ラボ browser {f["name"][1]}',
+                        "u": e["url"], "uj": e["url"] + "?lang=ja", "a": "free"})
+    if lb:
+        add.append({"s": "fields", "id": "labs/", "t": "BSV Field Labs", "tj": "BSV 実践ラボ", "k": "Interactive tools", "kj": "インタラクティブツール", "c": "Fields", "p": [],
+                    "d": "Four browser tools for medical robotics, space, biotech and quantum (English / Japanese).",
+                    "dj": "医療ロボティクス・宇宙・バイオ・量子の4つのブラウザツール（英語／日本語）。", "x": "labs tools", "u": "/labs/", "uj": "/labs/?lang=ja", "a": "free"})
+    clean = dict(idx, rows=rows)
+    clean["counts"] = {k: v for k, v in idx.get("counts", {}).items() if k != "fields"}
+    (site / "search" / idx_name).write_text(json.dumps(clean, ensure_ascii=False, separators=(",", ":")))
+    out = dict(clean, rows=rows + add)
+    out["counts"] = dict(clean["counts"], fields=len(add))
+    new_idx, new_js = f"index.{SEARCH_VER}.json", f"bsv-search-page.{SEARCH_VER}.js"
+    (site / "search" / new_idx).write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+    js = pj.replace(idx_name, new_idx)
+    for a, b in SEARCH_JS_PATCH:
+        if b not in js:
+            if a not in js:
+                raise SystemExit(f"search page script changed; cannot patch: {a}")
+            js = js.replace(a, b)
+    (site / "js" / new_js).write_text(js)
+    btn = '<button type="button" role="tab" data-scope="fields" data-en="Fields &amp; labs" data-ja="分野・ラボ">Fields &amp; labs</button>'
+    if 'data-scope="fields"' not in sh:
+        anchor = re.search(r'<button type="button" role="tab" data-scope="build"[^>]*>[^<]*</button>', sh).group(0)
+        sh = sh.replace(anchor, anchor + "\n  " + btn)
+    sp.write_text(sh.replace(f"/js/{js_name}", f"/js/{new_js}"))
+    return {"search_rows_added": len(add), "index": new_idx, "script": new_js}
+
+
+def favicon(site):
+    """/favicon.ico from the existing mark (img/mark.jpg): browsers request it on pages without a <link rel=icon>."""
+    from PIL import Image
+    p = site / "favicon.ico"
+    if not p.exists():
+        Image.open(site / "img/mark.jpg").convert("RGBA").save(p, sizes=[(16, 16), (32, 32), (48, 48)])
+    return p.exists()
+
+
 def sitemap(site, urls):
     smp = site / "sitemap.xml"
     sm = smp.read_text()
@@ -359,9 +432,11 @@ def main():
            "method": "Counts are computed by build_fields.py from fields_content.py, fields/test_runs.json, fields/sources_check.json and /labs/catalog.json (one interactive tool per field when shipped). 'tested' = BSV ran the recipe's own script and it produced its expected files.",
            "categories": counts}
     (site / "fields/index.json").write_text(json.dumps(out, indent=1) + "\n")
+    sres = search(site, counts, lb)
+    favicon(site)
     sitemap(site, ["/fields/"] + [f"/fields/{c}/" for c in ORDER] + (["/labs/"] + [lb[c]["url"] for c in ORDER if c in lb] if lb else []))
     print(json.dumps({"fields": {c: {k: counts[c][k] for k in ("recipes", "tested", "compare", "sources")} for c in ORDER},
-                      "skipped_sources": sum(len(c["skipped_sources"]) for c in counts.values())}))
+                      "skipped_sources": sum(len(c["skipped_sources"]) for c in counts.values()), **sres}))
 
 
 if __name__ == "__main__":
