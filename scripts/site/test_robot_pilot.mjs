@@ -150,12 +150,16 @@ ok(/kind'\)==='mission'/.test(rq) && /area/.test(rq), "request market handles ?a
 // tooling opportunities (#7 tranche 7): all seven kinds, counts equal the recipe file, no demand numbers, request + publish links
 {
   const h = fs.readFileSync(path.join(site, "robot-pilot/index.html"), "utf8");
-  const r = JSON.parse(fs.readFileSync(path.join(site, "robot-pilot/teleop-recipes/so101-sim-practice-session-v1.json"), "utf8"));
+  const rdir = path.join(site, "robot-pilot/teleop-recipes");
+  const rs = fs.readdirSync(rdir).filter(f => f.endsWith(".json")).map(f => JSON.parse(fs.readFileSync(path.join(rdir, f), "utf8")));
+  ok(rs.length >= 2, "tooling: at least two teleop recipe files on the site");
+  const n = k => rs.reduce((a, r) => a + r[k].length, 0);
+  const nf = rs.reduce((a, r) => a + Object.keys(r.dataExport.fieldMap).length, 0);
   const sec = (h.match(/<section[^>]*id="tooling"[\s\S]*?<\/section>/) || [""])[0];
   const kinds = ["controller-mapping", "retargeting", "dashboards", "annotation-qa", "replay", "simulation-scenes", "data-conversion"];
   ok(sec && kinds.every(k => sec.includes(`id="tool-${k}"`)) && (sec.match(/<tr id="tool-/g) || []).length === kinds.length, "tooling: seven kinds listed once each");
-  ok(sec.includes(`${r.failureTaxonomy.length} failure ids`) && sec.includes(`${r.annotationLabels.length} annotation labels`) && sec.includes(`${r.episodeAcceptance.length} episode-acceptance`) && sec.includes(`(${r.replayChecklist.length} items)`) && sec.includes(`(${Object.keys(r.dataExport.fieldMap).length} fields)`), "tooling: counts equal the teleop recipe file");
-  ok(r.notIncluded.some(x => /controller mapping/i.test(x)) && /Not included/.test(sec), "tooling: controller mapping shown as not included, as the recipe says");
+  ok(sec.includes(`${n("failureTaxonomy")} failure ids`) && sec.includes(`${n("annotationLabels")} annotation labels`) && sec.includes(`${n("episodeAcceptance")} episode-acceptance`) && sec.includes(`(${n("replayChecklist")} items)`) && sec.includes(`(${nf} fields)`), "tooling: counts equal the teleop recipe files");
+  ok(rs.some(r => r.notIncluded.some(x => /controller mapping/i.test(x))) && /Not included/.test(sec), "tooling: controller mapping shown as not included, as the recipe says");
   ok(sec.includes('href="/requests/?area=robot-pilot"') && sec.includes('href="/for-sellers.html"'), "tooling: request and publish links");
   ok(!/\b\d+\s*(requests?|people|users|buyers|demand)\b|projected|forecast|\$\d/i.test(sec.replace(/<[^>]+>/g, " ")) && /not a demand figure/.test(sec), "tooling: no demand numbers, says so");
 }

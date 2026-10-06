@@ -154,22 +154,23 @@ def category_counts(site: Path, si: list) -> dict:
     blob = [json.dumps(e, ensure_ascii=False).lower() for e in rows] + [json.dumps(e, ensure_ascii=False).lower() for e in si]
     def kw(*words):
         return sum(1 for b_ in blob if any(re.search(rf"\b{w}", b_) for w in words))
-    return {
+    fc = field_counts(site)
+    rp = len(list((site / "robot-pilot/curricula").glob("*.json"))) + len(list((site / "robot-pilot/teleop-recipes").glob("*.json")))
+    out = {
         "cat_ai": sc["ai"] + sc["build"] if {"ai", "build"} <= set(sc) else sum(1 for e in rows if e.get("s") in ("ai", "build")),
         "cat_trading": sc.get("trading", sum(1 for e in rows if e.get("s") == "trading")),
-        "cat_robotics": len(list((site / "robot-pilot/curricula").glob("*.json"))) + len(list((site / "robot-pilot/teleop-recipes").glob("*.json"))),
-        **field_counts(site),
-        # cat_data comes from field_counts when /fields/data/ is live; else 0 (Coming soon). Search use_case=Data remains findable via /search/?q=data.
+        **fc,
     }
-
+    out["cat_robotics"] = rp + int(fc.get("cat_robotics") or 0)
+    return out
 
 def field_counts(site: Path) -> dict:
-    """Healthcare / Data / Space / Biotech / Quantum: BSV recipes + verified sources + Field Lab tools published on /fields/<key>/, read from the
+    """Healthcare / Robotics / Data / Space / Biotech / Quantum: BSV recipes + verified sources + Field Lab tools published on /fields/<key>/, read from the
     /fields/index.json that build_fields.py writes in the same build. No file or no page = 0 (Coming soon)."""
     p = site / "fields/index.json"
     cats = json.loads(p.read_text()).get("categories", {}) if p.exists() else {}
     out = {}
-    for key in ("healthcare", "data", "space", "biotech", "quantum"):
+    for key in ("healthcare", "robotics", "data", "space", "biotech", "quantum"):
         c = cats.get(key) or {}
         live = (site / "fields" / key / "index.html").exists()
         out[f"cat_{key}"] = int(c.get("recipes", 0)) + int(c.get("sources", 0)) + int(c.get("tools", 0)) if live else 0
@@ -252,7 +253,7 @@ LANGS = ("en", "ja", "es", "zh", "ko")
 CATS = [
     ("ai", "/library/", ("AI", "AI", "IA", "AI", "AI")),
     ("trading", "/trading/", ("Trading", "トレード", "Trading", "交易", "트레이딩")),
-    ("robotics", "/robot-pilot/", ("Robotics", "ロボティクス", "Robótica", "机器人", "로보틱스")),
+    ("robotics", "/fields/robotics/", ("Robotics", "ロボティクス", "Robótica", "机器人", "로보틱스")),
     ("healthcare", "/fields/healthcare/", ("Healthcare & Medical Robotics", "ヘルスケア・医療ロボティクス", "Salud y robótica médica", "医疗健康与医疗机器人", "헬스케어·의료 로보틱스")),
     ("data", "/fields/data/", ("Data", "データ", "Datos", "数据", "데이터")),
     ("space", "/fields/space/", ("Space", "宇宙", "Espacio", "航天", "우주")),

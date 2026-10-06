@@ -202,5 +202,45 @@
  "https://www.uniprot.org/help/api": {
   "status": 200,
   "checked_jst": "2026-10-07"
+ },
+ "https://botshelfvampire.com/robot-pilot/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://developer.nvidia.com/isaac/lab": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://docs.ros.org/en/rolling/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://docs.ros.org/en/rolling/Tutorials/Intermediate/URDF/URDF-Main.html": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://mujoco.readthedocs.io/en/stable/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://numpy.org/doc/stable/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://robotwebtools.github.io/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://stack-of-tasks.github.io/pinocchio/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://nvidia.github.io/IsaacCapture/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
  }
 }

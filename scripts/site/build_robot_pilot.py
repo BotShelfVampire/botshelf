@@ -20,7 +20,7 @@ SCHEMAS = {"bsv-teleop-session-evidence.schema.json": "teleop-session-evidence-v
            "bsv-robot-pilot-profile.schema.json": "robot-pilot-profile-v0.1.json",
            "bsv-robot-pilot-curriculum.schema.json": "robot-pilot-curriculum-v0.1.json"}
 CUR = "robot-pilot/curricula/isaac-teleop-so101-sim-v1.json"
-TELEOP_RECIPES = ["robot-pilot/teleop-recipes/so101-sim-practice-session-v1.json"]
+TELEOP_RECIPES = ["robot-pilot/teleop-recipes/so101-sim-practice-session-v1.json", "robot-pilot/teleop-recipes/so101-sim-reset-discipline-v1.json"]
 
 
 def recipes_section():

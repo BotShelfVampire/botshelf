@@ -70,7 +70,7 @@ def main():
         ok(f'data-evt="home_goal_{k}"' in goals, f"goal {k}")
     ok(re.search(r'<a href="/fields/healthcare/" data-evt="home_goal_medical_robotics">', goals) and (s / "fields/healthcare/index.html").exists(), "medical robotics goal -> /fields/healthcare/ (page exists)")
     ok(re.search(r'data-evt="home_goal_medical_robotics">.*?research &amp; education only', goals), "medical robotics goal keeps its research & education only line")
-    for k_ in ("healthcare", "data", "space", "biotech", "quantum"):
+    for k_ in ("healthcare", "robotics", "data", "space", "biotech", "quantum"):
         ok(re.search(rf'href="/fields/{k_}/" data-evt="home_cat_{k_}"', cats) is not None, f"field tile {k_} -> /fields/{k_}/")
     m_ = H.PAGE_I18N_RE.search(t); pj = json.loads(m_.group(2)) if m_ else {}
     hi = H.home_i18n(cc)

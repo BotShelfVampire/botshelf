@@ -11,7 +11,7 @@ JST = timezone(timedelta(hours=9))
 CATS = [
  ("ai", "AI", "/library/", "Build Library (AI teams, workflows, toolkits)"),
  ("trading", "Trading", "/trading/", "Traders Library + chart tools + recipe builder"),
- ("robotics", "Robotics", "/robot-pilot/", "Robot Pilot Academy (simulation curricula + teleop recipes)"),
+ ("robotics", "Robotics", "/fields/robotics/", "Field recipes + Robot Pilot Academy (sim curricula / teleop)"),
  ("healthcare", "Healthcare & Medical Robotics", "/fields/healthcare/", "Field recipes / tools / sources (research & simulation only)"),
  ("data", "Data", "/fields/data/", "Field recipes / tools / sources for everyday data hygiene"),
  ("space", "Space", "/fields/space/", "Field recipes / tools / sources"),
@@ -38,10 +38,7 @@ def sample_urls(site, key):
     elif key == "trading":
         for u in ("/trading/", "/trading/tools/", "/trading/tools/bsv-builder.html", "/trading-gold-morning-3.html"):
             if exists(site, u): out.append(u)
-    elif key == "robotics":
-        for u in ("/robot-pilot/", "/robot-pilot/curricula/isaac-teleop-so101-sim-v1.json"):
-            if exists(site, u): out.append(u)
-    elif key in ("healthcare", "data", "space", "biotech", "quantum"):
+    elif key in ("healthcare", "robotics", "data", "space", "biotech", "quantum"):
         base = f"/fields/{key}/"
         if exists(site, base): out.append(base)
         p = site / "fields" / key / "index.html"
@@ -50,6 +47,8 @@ def sample_urls(site, key):
             out.extend(f"{base}#{i}" for i in ids)
         if key == "data":
             out.append("/search/?q=data")
+        if key == "robotics":
+            out.append("/robot-pilot/")
     # dedupe preserve order
     seen=set(); uniq=[]
     for u in out:
@@ -69,7 +68,7 @@ def provenance(key):
     return {
         "ai": "Generated/curated under library/; team bodies may be gated after email verify",
         "trading": "Traders Library catalog + BSV recipe builder outputs; third-party sources keep upstream license",
-        "robotics": "Original BSV Robot Pilot curricula/recipes; links NVIDIA docs, does not redistribute NVIDIA code",
+        "robotics": "BSV field recipes on /fields/robotics/ plus Robot Pilot Academy; links NVIDIA docs, does not redistribute NVIDIA code",
         "healthcare": "BSV field recipes on /fields/healthcare/; research, education and simulation only",
         "data": "BSV field recipes on /fields/data/; synthetic samples labeled; public API numbers cited",
         "space": "BSV field recipes on /fields/space/",
