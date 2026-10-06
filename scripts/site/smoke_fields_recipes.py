@@ -33,6 +33,8 @@ EXPECT = {  # script -> files it must create (glob)
     "frankfurter_fx.py": ["fx_latest.csv"], "usgs_quakes_day.py": ["quakes_day.csv"],
     "mujoco_pendulum_energy.py": ["pendulum_energy.csv"], "planar_ik_workspace.py": ["ik_workspace.csv"],
     "joint_traj_resample.py": ["traj_resampled.csv"], "dh_fk_chain.py": ["dh_fk.csv"],
+    "jacobian_planar_2r.py": ["jacobian_2r.csv"], "cubic_joint_path.py": ["cubic_path.csv"],
+    "se3_relative_pose.py": ["se3_relative.csv"], "rrt_2d_grid.py": ["rrt_path.csv", "rrt_nodes.csv"],
 }
 ARGS = {"chembl_screen.py": ["CHEMBL203", "7", "60"]}
 PKGS = ["mujoco", "pydicom", "rdkit", "biopython", "skyfield", "pystac-client", "qiskit", "qiskit-aer", "pennylane", "numpy"]

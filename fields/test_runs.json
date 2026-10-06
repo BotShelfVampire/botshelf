@@ -535,6 +535,54 @@
     "wrote 7 RX⟨Z⟩ points, max |err|=1.25e-16 -> rx_expectation.csv"
    ],
    "stderr_tail": []
+  },
+  "jacobian_planar_2r.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:27",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "wrote 16 Jacobian samples -> jacobian_2r.csv (min manip=0.0086)"
+   ],
+   "stderr_tail": []
+  },
+  "cubic_joint_path.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:27",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "wrote 51 cubic samples q0=0.0→q1=1.2 T=1.0s -> cubic_path.csv"
+   ],
+   "stderr_tail": []
+  },
+  "se3_relative_pose.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:27",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "T_A^-1 T_B xyz=(0.1000,0.0500,0.0200) rpy=(0.2000,0.1000,-0.3000) -> se3_relative.csv"
+   ],
+   "stderr_tail": []
+  },
+  "rrt_2d_grid.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:27",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "RRT nodes=91 path_pts=33 length=1.604 -> rrt_path.csv, rrt_nodes.csv"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",

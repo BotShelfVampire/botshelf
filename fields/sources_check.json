@@ -374,5 +374,17 @@
  "https://pennylane.ai/qml/demos/": {
   "status": 200,
   "checked_jst": "2026-10-07"
+ },
+ "https://numpy.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://numpy.org/doc/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "http://lavalle.pl/planning/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
  }
 }
