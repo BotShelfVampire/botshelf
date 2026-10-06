@@ -727,6 +727,150 @@
     "wrote 48 toy ground-track points period=92.0min -> ground_track.csv"
    ],
    "stderr_tail": []
+  },
+  "hil_latency_budget.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "RTT cartoon=112.0ms -> hil_latency.csv (research/sim only)"
+   ],
+   "stderr_tail": []
+  },
+  "fhir_age_bins_sample.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote 4 decade bins from synthetic Bundle -> fhir_age_bins.csv"
+   ],
+   "stderr_tail": []
+  },
+  "open_fda_device_event_brief.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.8,
+   "stdout_tail": [
+    "wrote 5 sample rows (openFDA total≈20313) -> openfda_device_events.csv"
+   ],
+   "stderr_tail": []
+  },
+  "clinicaltrials_phase_hist.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.6,
+   "stdout_tail": [
+    "wrote 5 phase bins from 50 studies -> trials_phase_hist.csv"
+   ],
+   "stderr_tail": []
+  },
+  "nager_public_holidays.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "wrote 16 holidays JP 2026 -> public_holidays.csv"
+   ],
+   "stderr_tail": []
+  },
+  "open_meteo_air_quality.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.8,
+   "stdout_tail": [
+    "wrote 24 hourly AQ rows -> air_quality.csv"
+   ],
+   "stderr_tail": []
+  },
+  "csv_value_counts.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote 3 distinct values for 'city' -> value_counts.csv"
+   ],
+   "stderr_tail": []
+  },
+  "sha256_lines_manifest.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote 3 line digests -> sha256_manifest.csv"
+   ],
+   "stderr_tail": []
+  },
+  "ensembl_gene_lookup.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 1.6,
+   "stdout_tail": [
+    "Ensembl BRCA2 id=ENSG00000139618 -> ensembl_gene.md / .json"
+   ],
+   "stderr_tail": []
+  },
+  "ols_ontology_search.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 1.4,
+   "stdout_tail": [
+    "wrote 5 OLS hits for 'apoptosis' -> ols_terms.csv"
+   ],
+   "stderr_tail": []
+  },
+  "reactome_pathway_brief.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "wrote 10 Reactome hits for 'TP53' -> reactome_pathways.csv"
+   ],
+   "stderr_tail": []
+  },
+  "ncbi_taxonomy_brief.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:20",
+   "seconds": 0.7,
+   "stdout_tail": [
+    "NCBI taxonomy brief for 'Drosophila melanogaster' -> ncbi_taxonomy.md / .json"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
