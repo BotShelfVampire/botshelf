@@ -375,7 +375,7 @@ def search(site, counts, lb):
     if lb:
         add.append({"s": "fields", "id": "labs/", "t": "BSV Field Labs", "tj": "BSV 実践ラボ", "k": "Interactive tools", "kj": "インタラクティブツール", "c": "Fields", "p": [],
                     "d": "Four browser tools for medical robotics, space, biotech and quantum (English / Japanese).",
-                    "dj": "医療ロボティクス・宇宙・バイオ・量子の4つのブラウザツール（英語／日本語）。", "x": "labs tools", "u": "/labs/", "uj": "/labs/?lang=ja", "a": "free"})
+                    "dj": "医療ロボ・ロボティクス・データ・宇宙・バイオ・量子のブラウザツール（英語／日本語）。", "x": "labs tools robotics data", "u": "/labs/", "uj": "/labs/?lang=ja", "a": "free"})
     clean = dict(idx, rows=rows)
     clean["counts"] = {k: v for k, v in idx.get("counts", {}).items() if k != "fields"}
     (site / "search" / idx_name).write_text(json.dumps(clean, ensure_ascii=False, separators=(",", ":")))
