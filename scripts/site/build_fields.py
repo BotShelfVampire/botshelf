@@ -372,10 +372,16 @@ def search(site, counts, lb):
             add.append({"s": "fields", "id": f"labs/{cat}", "t": e["title"]["en"], "tj": e["title"]["ja"], "k": "Interactive tool", "kj": "インタラクティブツール",
                         "c": f["name"][0], "p": [], "d": e["summary"]["en"], "dj": e["summary"]["ja"], "x": f'Field Labs 実践ラボ browser {f["name"][1]}',
                         "u": e["url"], "uj": e["url"] + "?lang=ja", "a": "free"})
+    for extra_key, e in lb.items():
+        if extra_key in ORDER:
+            continue
+        add.append({"s": "fields", "id": f"labs/{extra_key}", "t": e["title"]["en"], "tj": e["title"]["ja"], "k": "Interactive tool", "kj": "インタラクティブツール",
+                    "c": "Trading", "p": [], "d": e["summary"]["en"], "dj": e["summary"]["ja"], "x": "Field Labs 実践ラボ browser trading risk R-multiple position size",
+                    "u": e["url"], "uj": e["url"] + "?lang=ja", "a": "free"})
     if lb:
         add.append({"s": "fields", "id": "labs/", "t": "BSV Field Labs", "tj": "BSV 実践ラボ", "k": "Interactive tools", "kj": "インタラクティブツール", "c": "Fields", "p": [],
-                    "d": "Four browser tools for medical robotics, space, biotech and quantum (English / Japanese).",
-                    "dj": "医療ロボ・ロボティクス・データ・宇宙・バイオ・量子のブラウザツール（英語／日本語）。", "x": "labs tools robotics data", "u": "/labs/", "uj": "/labs/?lang=ja", "a": "free"})
+                    "d": "Browser tools for medical robotics, robotics, data, trading risk, space, biotech and quantum (English / Japanese).",
+                    "dj": "医療ロボ・ロボティクス・データ・トレード・宇宙・バイオ・量子のブラウザツール（英語／日本語）。", "x": "labs tools robotics data trading risk", "u": "/labs/", "uj": "/labs/?lang=ja", "a": "free"})
     clean = dict(idx, rows=rows)
     clean["counts"] = {k: v for k, v in idx.get("counts", {}).items() if k != "fields"}
     (site / "search" / idx_name).write_text(json.dumps(clean, ensure_ascii=False, separators=(",", ":")))
@@ -441,7 +447,7 @@ def main():
     (site / "fields/index.json").write_text(json.dumps(out, indent=1) + "\n")
     sres = search(site, counts, lb)
     favicon(site)
-    sitemap(site, ["/fields/"] + [f"/fields/{c}/" for c in ORDER] + (["/labs/"] + [lb[c]["url"] for c in ORDER if c in lb] if lb else []))
+    sitemap(site, ["/fields/"] + [f"/fields/{c}/" for c in ORDER] + (["/labs/"] + sorted({e["url"] for e in lb.values()}) if lb else []))
     print(json.dumps({"fields": {c: {k: counts[c][k] for k in ("recipes", "tested", "compare", "sources")} for c in ORDER},
                       "skipped_sources": sum(len(c["skipped_sources"]) for c in counts.values()), **sres}))
 
