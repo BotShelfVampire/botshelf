@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""First-use explanation on recommended free-team pages.
+"""First-use EN/JA on free AI team pages (homepage #packs) + Robot Pilot.
 
-For each recommended item, show EN/JA: what the user supplies, what they receive, where it runs,
-and access conditions. Example numbers are labeled as examples (not measured results / not a
-runtime test by BSV). Idempotent; insert after the JA catch paragraph.
+Hand-crafted ITEMS override auto text. Other pack pages get a generated box from
+h1 + catch EN/JA + platform (claude-/gpt-/grok). Idempotent via data-bsv-first-use="1".
 """
 import argparse, pathlib, re, sys
 
@@ -31,7 +30,7 @@ def box(supply_en, supply_ja, receive_en, receive_ja, runs_en, runs_ja, access_e
 </section>
 '''
 
-# Recommended items linked from homepage #packs (and Robot Pilot from categories/goals).
+# Hand-crafted overrides (recommended + journey examples).
 ITEMS = {
  "switchboard-cos.html": box(
   "The requests or pieces of information that are competing for attention (paste them into the chat after you set up the bot).",
@@ -98,7 +97,6 @@ ITEMS = {
   "ご自身の Grok Bot。",
   "Free after email register. No key.",
   "メール登録後に無料。鍵は不要。"),
-
  "saas-seat-waste-finder.html": box(
   "A pasted SaaS roster or invoice-style seat list (who has which seat / last activity if you have it).",
   "SaaSの名簿や請求ベースの席リスト（誰がどの席か、あれば最終利用）。",
@@ -130,6 +128,8 @@ RP_BOX = box(
  "Academy ページの閲覧は公開。ブラウザ内の記録作成に鍵は不要。BSVへの確認依頼にはメール確認が必要です。")
 
 CATCH_JA = re.compile(r'(<p class="catch" data-lang-show="ja"[^>]*>.*?</p>)', re.S)
+CATCH_EN = re.compile(r'<p class="catch" data-lang-show="en"[^>]*>(.*?)</p>', re.S)
+H1 = re.compile(r'<h1[^>]*>(.*?)</h1>', re.S)
 STYLE = """
 <style data-bsv-first-use-css>
 .first-use-dl{display:grid;grid-template-columns:minmax(7rem,9rem) 1fr;gap:6px 14px;margin:8px 0 0}
@@ -138,6 +138,73 @@ STYLE = """
 @media(max-width:640px){.first-use-dl{grid-template-columns:1fr;gap:2px 0}.first-use-dl dt{margin-top:8px}}
 </style>
 """
+SKIP_PACK = {"paid.html", "how.html", "metals.html", "for-sellers.html", "register.html"}
+
+def strip_html(s: str) -> str:
+    s = re.sub(r'<[^>]+>', ' ', s or '')
+    return re.sub(r'\s+', ' ', s).strip()
+
+def pack_pages(site: pathlib.Path) -> list[str]:
+    h = (site / "index.html").read_text()
+    i = h.find('id="packs"')
+    if i < 0:
+        return []
+    j = h.find("<section", i + 10)
+    packs = h[i:j if j > 0 else i + 200000]
+    out, seen = [], set()
+    for href in re.findall(r'href="(/[^"#?]+\.html)"', packs):
+        name = href.lstrip("/")
+        if name.startswith("paid-") or name in SKIP_PACK:
+            continue
+        if name not in seen:
+            seen.add(name)
+            out.append(name)
+    return out
+
+def platform(name: str, html: str) -> str:
+    if name.startswith("claude-"):
+        return "claude"
+    if name.startswith("gpt-"):
+        return "gpt"
+    title = strip_html((re.search(r'<title>([^<]+)', html) or [None, ""])[1]).lower()
+    if "claude" in title and "chatgpt" not in title:
+        return "claude"
+    if "chatgpt" in title or " gpt " in f" {title} ":
+        return "gpt"
+    return "grok"
+
+def auto_box(name: str, html: str) -> str:
+    en = strip_html((CATCH_EN.search(html) or [None, ""])[1])
+    ja = strip_html((CATCH_JA.search(html) or [None, ""])[1])
+    h1 = strip_html((H1.search(html) or [None, name])[1])
+    if not en:
+        en = f"A free AI team page: {h1}."
+    if not ja:
+        ja = f"無料のAIチームページ：{h1}。"
+    # keep receive readable
+    if len(en) > 280:
+        en = en[:277] + "…"
+    if len(ja) > 280:
+        ja = ja[:277] + "…"
+    plat = platform(name, html)
+    if plat == "claude":
+        supply_en = "The files, diffs, or repo context this Claude Code skill should look at (as the unlocked page describes)."
+        supply_ja = "この Claude Code スキルが見るファイル・差分・リポジトリの文脈（解除後のページの説明どおり）。"
+        runs_en = "Your own Claude Code session. Paste or install the unlocked skill as the page describes; BSV does not run Claude for you."
+        runs_ja = "ご自身の Claude Code。解除されたスキルをページの手順どおり貼る／入れます。BSVは Claude を代行実行しません。"
+    elif plat == "gpt":
+        supply_en = "The draft or context the unlocked instructions ask you to paste into the chat."
+        supply_ja = "解除後の指示がチャットへ貼るよう求める下書きや文脈。"
+        runs_en = "Your own ChatGPT (Custom Instructions preferred; Custom GPT only if your workspace allows). BSV does not run ChatGPT for you."
+        runs_ja = "ご自身の ChatGPT（推奨: カスタム指示。Custom GPT はワークスペースが許可する場合のみ）。BSVは ChatGPT を代行実行しません。"
+    else:
+        supply_en = "The notes, paste, or numbers the unlocked template on this page asks for."
+        supply_ja = "このページの解除後テンプレが求めるメモ・貼り付け・数値。"
+        runs_en = "Your own Grok Bot (or compatible chat). Paste the unlocked body into Description; the shop does not run it for you."
+        runs_ja = "ご自身の Grok Bot（または互換チャット）。解除された本文を Description に貼ります。店側では実行しません。"
+    access_en = "Free after email register (unlocks the body on this page). No key."
+    access_ja = "メール登録後に無料（このページの本文が開く）。鍵は不要です。"
+    return box(supply_en, supply_ja, en, ja, runs_en, runs_ja, access_en, access_ja)
 
 def patch_html(path: pathlib.Path, html: str) -> bool:
     t = path.read_text()
@@ -146,7 +213,7 @@ def patch_html(path: pathlib.Path, html: str) -> bool:
     m = CATCH_JA.search(t)
     if not m:
         raise SystemExit(f"add_first_use: no JA catch in {path.name}")
-    t = t[:m.end()] + html + t[m.end():]
+    t = t[: m.end()] + html + t[m.end() :]
     if "data-bsv-first-use-css" not in t:
         t = t.replace("</head>", STYLE + "</head>", 1)
     path.write_text(t)
@@ -157,45 +224,72 @@ def patch_robot_pilot(site: pathlib.Path) -> bool:
     t = p.read_text()
     if MARK in t:
         return False
-    # insert after JA lead paragraph
     m = re.search(r'(<p data-lang="ja" class="lead">.*?</p>)', t, re.S)
     if not m:
         raise SystemExit("add_first_use: robot-pilot JA lead missing")
     block = RP_BOX.replace('data-lang-show="en"', 'data-lang="en"').replace('data-lang-show="ja" hidden', 'data-lang="ja"')
-    # robot-pilot uses data-lang not data-lang-show — already replaced
-    t = t[:m.end()] + block + t[m.end():]
+    t = t[: m.end()] + block + t[m.end() :]
     if "data-bsv-first-use-css" not in t:
         t = t.replace("</head>", STYLE + "</head>", 1)
     p.write_text(t)
     return True
 
-def check(site: pathlib.Path):
+def all_targets(site: pathlib.Path) -> dict[str, str]:
+    """name -> first-use html (hand-crafted wins)."""
+    targets = {}
+    for name in pack_pages(site):
+        path = site / name
+        if not path.is_file():
+            continue
+        raw = path.read_text()
+        if not CATCH_JA.search(raw):
+            continue
+        targets[name] = ITEMS.get(name) or auto_box(name, raw)
+    # ensure hand-crafted always included even if not in packs scrape
+    for name, html in ITEMS.items():
+        if (site / name).is_file():
+            targets[name] = html
+    return targets
+
+def check(site: pathlib.Path, targets: dict[str, str] | None = None):
     fails = []
-    for name in ITEMS:
-        t = (site / name).read_text()
-        if MARK not in t: fails.append(f"{name}: missing first-use")
-        else:
-            for needle in ("You supply", "You receive", "Where it runs", "Access", "入れるもの", "受け取るもの", "動く場所", "アクセス"):
-                if needle not in t: fails.append(f"{name}: missing {needle}")
-            if t.count('data-lang-show="en"') < 4 or t.count('data-lang-show="ja"') < 4:
-                pass  # page has many pairs; first-use itself uses 4+4
-    rp = (site / "robot-pilot/index.html").read_text()
-    if MARK not in rp: fails.append("robot-pilot: missing first-use")
+    targets = targets or all_targets(site)
+    for name in targets:
+        p = site / name
+        if not p.is_file():
+            fails.append(f"{name}: missing file")
+            continue
+        t = p.read_text()
+        if MARK not in t:
+            fails.append(f"{name}: missing first-use")
+            continue
+        for needle in ("You supply", "You receive", "Where it runs", "Access", "入れるもの", "受け取るもの", "動く場所", "アクセス"):
+            if needle not in t:
+                fails.append(f"{name}: missing {needle}")
+    rp = site / "robot-pilot/index.html"
+    if rp.is_file() and MARK not in rp.read_text():
+        fails.append("robot-pilot: missing first-use")
     return fails
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--site", required=True); ap.add_argument("--check", action="store_true")
-    a = ap.parse_args(); site = pathlib.Path(a.site)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--site", required=True)
+    ap.add_argument("--check", action="store_true")
+    a = ap.parse_args()
+    site = pathlib.Path(a.site)
+    targets = all_targets(site)
     if a.check:
-        fails = check(site)
-        print({"test": "first_use", "pages": len(ITEMS) + 1, "failures": len(fails), "fail": fails})
+        fails = check(site, targets)
+        print({"test": "first_use", "pages": len(targets) + 1, "failures": len(fails), "fail": fails[:20], "fail_total": len(fails)})
         sys.exit(1 if fails else 0)
     ch = 0
-    for name, html in ITEMS.items():
-        if patch_html(site / name, html): ch += 1
-    if patch_robot_pilot(site): ch += 1
-    fails = check(site)
-    print({"pass": "first_use", "changed": ch, "failures": len(fails), "fail": fails})
+    for name, html in targets.items():
+        if patch_html(site / name, html):
+            ch += 1
+    if patch_robot_pilot(site):
+        ch += 1
+    fails = check(site, targets)
+    print({"pass": "first_use", "changed": ch, "pages": len(targets) + 1, "failures": len(fails), "fail": fails[:20], "fail_total": len(fails)})
     sys.exit(1 if fails else 0)
 
 if __name__ == "__main__":
