@@ -75,6 +75,8 @@ def main():
     ok('data-scope="fields"' in sh and "fields: ['分野・ラボ', 'Fields & labs']" in pjs and "counts.fields" in pjs, "search: Fields & labs scope wired")
     old = [p for p in (s / "search").glob("index.v*.json") if p.name not in pjs]
     ok(not any(r.get("s") == "fields" for p in old for r in json.loads(p.read_text())["rows"]), "search: older indexes carry no fields rows (cached old scripts stay safe)")
+    oldjs = [p for p in (s / "js").glob("bsv-search-page.v*.js") if p.name != jsn]
+    ok(not any("fields: ['分野・ラボ'" in p.read_text() for p in oldjs), "search: older page scripts keep their published (no fields scope) bytes")
     ok((s / "favicon.ico").exists(), "favicon.ico shipped")
     sm = (s / "sitemap.xml").read_text()
     ok(all(f"<loc>https://botshelfvampire.com/fields/{c}</loc>" in sm for c in [x + "/" for x in C.F] + [""]) , "sitemap has /fields/ pages")
