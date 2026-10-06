@@ -13,6 +13,8 @@ from pathlib import Path
 
 FIELDS = [
     ("healthcare", "Medical robotics pilot planner", "医療ロボティクスの検証計画", "Turn a use case into a research or simulation validation plan.", "用途と成功条件から、研究・シミュレーションの検証計画を作成。"),
+    ("robotics", "Planar 2R IK playground", "平面2R IKプレイグラウンド", "Solve elbow-down IK, inspect manipulability, export a CSV.", "肘下がりIKを解き、可操作性を見てCSVに書き出す。"),
+    ("data", "CSV profile playground", "CSVプロフィール・プレイグラウンド", "Paste a CSV and profile nulls, distinct counts and type guesses.", "CSVを貼り、欠損・ユニーク数・型推定をプロフィールする。"),
     ("space", "Satellite observation designer", "衛星データの観測プラン", "Compare public satellite data against your observation constraints.", "観測したい現象と条件から公開衛星データを比較。"),
     ("biotech", "Research reproducibility worksheet", "研究データの再現性チェック", "Identify missing evidence and export an analysis record.", "不足している記録を見つけ、再現のための解析記録を出力。"),
     ("quantum", "Quantum state explorer", "量子状態を動かす実験室", "Explore how phase changes ideal X and Z measurement probabilities.", "位相によるX・Z測定の確率の違いを、その場で操作。"),

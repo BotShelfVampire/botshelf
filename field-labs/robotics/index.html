@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Planar 2R IK playground · BSV Field Labs</title>
+  <meta name="description" content="Solve elbow-down IK for a planar 2-link arm, see manipulability, and export a CSV. Research and simulation only. English and Japanese. Runs in your browser.">
+  <link rel="stylesheet" href="../assets/labs.css">
+  <script src="../assets/labs.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/">BSV</a>
+    <a href="../" data-lab-link><span data-lang="en">Field Labs</span><span data-lang="ja">実践ラボ</span></a>
+    <div class="lang-toggle" aria-label="Language / 言語"><button type="button" data-set-lang="en">EN</button><button type="button" data-set-lang="ja">日本語</button></div>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">ROBOTICS / SIMULATION</p>
+      <h1><span data-lang="en">Reach a point. See the joints and the Jacobian.</span><span data-lang="ja">点に届くか。関節角とヤコビアンを見る。</span></h1>
+      <p class="lead"><span data-lang="en">Set link lengths and a planar target. Get elbow-down IK, tip error, and Yoshikawa manipulability. Research and simulation literacy only — not a safety-rated controller.</span><span data-lang="ja">リンク長と平面目標を決めると、肘下がりIK・先端誤差・可操作性を表示します。研究・シミュレーションの理解用であり、安全認証された制御器ではありません。</span></p>
+    </section>
+    <div class="workspace">
+      <section class="panel">
+        <p class="eyebrow">01 / ARM</p>
+        <h2><span data-lang="en">Geometry and target</span><span data-lang="ja">形状と目標</span></h2>
+        <form id="arm-form" class="stack" onsubmit="return false;">
+          <div class="grid">
+            <div class="field"><label for="L1">L1 (m)</label><input id="L1" type="number" step="0.01" min="0.05" max="0.5" value="0.12"></div>
+            <div class="field"><label for="L2">L2 (m)</label><input id="L2" type="number" step="0.01" min="0.05" max="0.5" value="0.10"></div>
+          </div>
+          <div class="grid">
+            <div class="field"><label for="tx"><span data-lang="en">Target x (m)</span><span data-lang="ja">目標 x (m)</span></label><input id="tx" type="number" step="0.005" value="0.15"></div>
+            <div class="field"><label for="ty"><span data-lang="en">Target y (m)</span><span data-lang="ja">目標 y (m)</span></label><input id="ty" type="number" step="0.005" value="0.08"></div>
+          </div>
+          <div class="grid">
+            <button class="button" type="button" id="solve"><span data-lang="en">Solve IK</span><span data-lang="ja">IKを解く</span></button>
+            <button class="button secondary" type="button" id="example"><span data-lang="en">Load example</span><span data-lang="ja">例を読み込む</span></button>
+          </div>
+          <p class="muted"><span data-lang="en">Click the canvas to set the target. Units are meters in a planar demo frame.</span><span data-lang="ja">キャンバスをクリックして目標を置けます。単位は平面デモ座標系のメートルです。</span></p>
+        </form>
+        <canvas id="arm" width="480" height="360" style="width:100%;max-width:480px;background:#0b1520;border-radius:12px;cursor:crosshair" aria-label="Planar arm canvas"></canvas>
+      </section>
+      <section class="panel">
+        <p class="eyebrow">02 / RESULT</p>
+        <h2><span data-lang="en">Solution</span><span data-lang="ja">解</span></h2>
+        <div id="result" class="result card" aria-live="polite"></div>
+        <div class="field"><label for="export"><span data-lang="en">CSV export</span><span data-lang="ja">CSV出力</span></label><textarea id="export" rows="6" spellcheck="false" readonly></textarea></div>
+        <div class="grid">
+          <button class="button" type="button" id="copy"><span data-lang="en">Copy CSV</span><span data-lang="ja">CSVをコピー</span></button>
+          <button class="button secondary" type="button" id="download"><span data-lang="en">Download .csv</span><span data-lang="ja">CSVを保存</span></button>
+        </div>
+        <p id="status" class="muted" role="status"></p>
+        <p class="muted"><span data-lang="en">Pairs with the BSV recipes on <a href="/fields/robotics/">/fields/robotics/</a> (planar IK, Jacobian sweep, DH FK).</span><span data-lang="ja"><a href="/fields/robotics/">/fields/robotics/</a> のレシピ（平面IK・ヤコビアン掃引・DH順運動学）と対になります。</span></p>
+      </section>
+    </div>
+  </main>
+  <section class="sources"><h2><span data-lang="en">Check the underlying ideas</span><span data-lang="ja">背景となる考え方を確認</span></h2>
+<p><a href="https://en.wikipedia.org/wiki/Inverse_kinematics">Inverse kinematics (overview)</a> — <span data-lang="en">geometric 2R elbow-down solution.</span><span data-lang="ja">平面2Rの幾何学的肘下がり解。</span></p>
+<p><a href="https://en.wikipedia.org/wiki/Manipulability_ellipsoid">Manipulability</a> — <span data-lang="en">|det J| as a simple workspace quality signal.</span><span data-lang="ja">作業空間の質の簡易指標としての |det J|。</span></p>
+<p><a href="/fields/robotics/">BSV /fields/robotics/</a> — <span data-lang="en">matching MIT recipes (planar IK, Jacobian, DH FK).</span><span data-lang="ja">対応するMITレシピ（平面IK・ヤコビアン・DH順運動学）。</span></p>
+<p class="muted"><span data-lang="en">BSV original interactive explanation. References checked 7 October 2026. Simulation literacy only — not a safety-rated controller. All math runs in your browser.</span><span data-lang="ja">BSV独自の対話型解説。参考資料確認日：2026年10月7日。シミュレーション理解用であり、安全認証された制御器ではありません。計算はブラウザー内で行います。</span></p>
+</section>
+<footer>BotShelfVampire · Field Labs · <span data-lang="en">Research &amp; simulation only.</span><span data-lang="ja">研究・シミュレーション専用。</span></footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CSV profile playground · BSV Field Labs</title>
+  <meta name="description" content="Paste a small CSV and profile columns (nulls, distinct counts, type guesses) in your browser. Research and practice only.">
+  <link rel="stylesheet" href="../assets/labs.css">
+  <script src="../assets/labs.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/">BSV</a>
+    <a href="../" data-lab-link><span data-lang="en">Field Labs</span><span data-lang="ja">実践ラボ</span></a>
+    <div class="lang-toggle"><button type="button" data-set-lang="en">EN</button><button type="button" data-set-lang="ja">日本語</button></div>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">DATA / HYGIENE</p>
+      <h1><span data-lang="en">Profile a CSV before you trust a chart.</span><span data-lang="ja">グラフを信じる前に、CSVをプロフィールする。</span></h1>
+      <p class="lead"><span data-lang="en">Paste a small CSV. See nulls, distinct counts and a numeric/text guess per column. Practice and research only — not a governance or compliance product. Inputs stay in this browser.</span><span data-lang="ja">小さなCSVを貼ると、列ごとの欠損・ユニーク数・数値/テキスト推定を表示します。練習・研究用であり、ガバナンスや適合判定の製品ではありません。入力はこのブラウザ内に留まります。</span></p>
+    </section>
+    <div class="workspace">
+      <section class="panel">
+        <p class="eyebrow">01 / PASTE</p>
+        <h2><span data-lang="en">CSV text</span><span data-lang="ja">CSVテキスト</span></h2>
+        <div class="field"><label for="csv"><span data-lang="en">Header row required</span><span data-lang="ja">1行目はヘッダ</span></label>
+          <textarea id="csv" rows="12" spellcheck="false">id,city,temp_c,note
+1,Tokyo,22.1,example-row
+2,Osaka,,example-row
+3,Tokyo,19.4,example-row
+4,Nagoya,21.0,example-row
+5,Osaka,18.7,example-row</textarea></div>
+        <div class="grid">
+          <button class="button" type="button" id="run"><span data-lang="en">Profile</span><span data-lang="ja">プロフィール</span></button>
+          <button class="button secondary" type="button" id="example"><span data-lang="en">Reload sample</span><span data-lang="ja">サンプルを再読込</span></button>
+        </div>
+      </section>
+      <section class="panel">
+        <p class="eyebrow">02 / PROFILE</p>
+        <h2><span data-lang="en">Column summary</span><span data-lang="ja">列の要約</span></h2>
+        <div class="table-wrap"><table class="rp-tax" id="table"><thead><tr>
+          <th>column</th><th>non_null</th><th>nulls</th><th>distinct</th><th>guess</th><th>top</th>
+        </tr></thead><tbody></tbody></table></div>
+        <div class="field"><label for="export">CSV</label><textarea id="export" rows="8" readonly spellcheck="false"></textarea></div>
+        <div class="grid">
+          <button class="button" type="button" id="copy"><span data-lang="en">Copy profile CSV</span><span data-lang="ja">プロフィールCSVをコピー</span></button>
+          <button class="button secondary" type="button" id="download"><span data-lang="en">Download</span><span data-lang="ja">保存</span></button>
+        </div>
+        <p id="status" class="muted" role="status"></p>
+        <p class="muted"><span data-lang="en">Pairs with <a href="/fields/data/">/fields/data/</a> recipes (csv_profile, schema_diff, sqlite_from_csv).</span><span data-lang="ja"><a href="/fields/data/">/fields/data/</a> のレシピ（csv_profile、schema_diff、sqlite_from_csv）と対になります。</span></p>
+      </section>
+    </div>
+  </main>
+  <section class="sources"><h2><span data-lang="en">Check the underlying ideas</span><span data-lang="ja">背景となる考え方を確認</span></h2>
+<p><a href="https://datapackage.org/standard/table-schema/">Frictionless Table Schema</a> — <span data-lang="en">column typing and constraints vocabulary.</span><span data-lang="ja">列の型と制約の語彙。</span></p>
+<p><a href="https://csv.js.org/">CSV parsing notes</a> — <span data-lang="en">why quoted fields and headers matter.</span><span data-lang="ja">引用符付きフィールドとヘッダが必要な理由。</span></p>
+<p><a href="/fields/data/">BSV /fields/data/</a> — <span data-lang="en">matching MIT recipes (csv_profile, schema_diff, sqlite_from_csv).</span><span data-lang="ja">対応するMITレシピ（csv_profile・schema_diff・sqlite_from_csv）。</span></p>
+<p class="muted"><span data-lang="en">BSV original interactive explanation. References checked 7 October 2026. Practice hygiene only — not a governance product. Inputs stay in this browser.</span><span data-lang="ja">BSV独自の対話型解説。参考資料確認日：2026年10月7日。練習用のデータ整理であり、ガバナンス製品ではありません。入力はこのブラウザー内に留まります。</span></p>
+</section>
+<footer>BotShelfVampire · Field Labs · <span data-lang="en">Practice data only.</span><span data-lang="ja">練習用データのみ。</span></footer>
+</div>
+</body>
+</html>
