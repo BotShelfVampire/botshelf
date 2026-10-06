@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "0.1",
+  "note": "Editorial opportunity hypotheses, NOT measured demand. Publish demand scores only from real user signals.",
+  "sectors": [
+    {
+      "id": "robotics",
+      "label": "Robotics / Physical AI",
+      "safeInitialJobs": [
+        "telemetry dashboard",
+        "simulation/replay harness",
+        "fleet log triage",
+        "maintenance workflow",
+        "ROS 2 data contract",
+        "human approval gate"
+      ],
+      "riskGate": "physical action requires explicit runtime/hardware verification"
+    },
+    {
+      "id": "space",
+      "label": "Space / Mission Operations",
+      "safeInitialJobs": [
+        "public NASA data adapter",
+        "telemetry parser",
+        "simulation/replay",
+        "command-sequence validation",
+        "traceability pack",
+        "ground-ops dashboard"
+      ],
+      "riskGate": "no live spacecraft commanding in starter assets"
+    },
+    {
+      "id": "quantum",
+      "label": "Quantum Computing",
+      "safeInitialJobs": [
+        "Qiskit experiment recipe",
+        "transpilation benchmark",
+        "backend comparison",
+        "run manifest",
+        "classical baseline"
+      ],
+      "riskGate": "no unsupported quantum-advantage claims"
+    },
+    {
+      "id": "biotech",
+      "label": "Biotech / Bioinformatics",
+      "safeInitialJobs": [
+        "Nextflow wrapper",
+        "samplesheet validator",
+        "QC dashboard",
+        "provenance record",
+        "public database ingest",
+        "workflow test harness"
+      ],
+      "riskGate": "initial scope is computational workflow, not hazardous wet-lab design"
+    },
+    {
+      "id": "bci",
+      "label": "BCI / Neural Interfaces",
+      "safeInitialJobs": [
+        "signal visualization",
+        "session logging",
+        "annotation pipeline",
+        "accessibility UX prototype",
+        "model evaluation harness"
+      ],
+      "riskGate": "do not claim Neuralink integration without a real public interface"
+    },
+    {
+      "id": "medical",
+      "label": "Medical / Healthcare",
+      "safeInitialJobs": [
+        "FHIR mapping",
+        "administrative routing",
+        "documentation workflow",
+        "non-diagnostic review queue",
+        "audit trail",
+        "test fixtures"
+      ],
+      "riskGate": "clinical decision/treatment/device-control functions require separate regulatory and safety review"
+    },
+    {
+      "id": "industrial",
+      "label": "Blue-collar / Industrial / Field Service",
+      "safeInitialJobs": [
+        "inspection-to-report",
+        "work-order routing",
+        "maintenance log",
+        "shift handoff",
+        "inventory reconciliation",
+        "incident summary",
+        "job-site documentation"
+      ],
+      "riskGate": "human approval for safety-critical field actions"
+    },
+    {
+      "id": "data-workflows",
+      "label": "Data Workflow Businesses",
+      "safeInitialJobs": [
+        "ingest",
+        "normalize",
+        "enrich",
+        "reconcile",
+        "QA/review",
+        "monitor",
+        "route",
+        "report",
+        "exception handling"
+      ],
+      "riskGate": "preserve data sensitivity and authorization boundaries"
+    },
+    {
+      "id": "robot-pilot",
+      "label": "Robot Pilot / Teleoperation Workforce",
+      "safeInitialJobs": [
+        "simulation pilot training",
+        "teleoperation practice evidence",
+        "robot demonstration data collection",
+        "episode QA/replay review",
+        "task recipe authoring",
+        "pilot mission matching"
+      ],
+      "riskGate": "real-hardware control requires explicit partner authorization, exact hardware/runtime evidence, and local safety procedures; BSV practice records are not official licenses"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 """BSV field pages content (Healthcare & Medical Robotics, Robotics, Data, Space, Biotech, Quantum) — data only.
 
-Written by BSV (New Bobby), 2026-10-06. Recipes are BSV-original workflows; code lives in fields/code/<field>/
+Written by BSV, 2026-10-06. Recipes are BSV-original workflows; code lives in fields/code/<field>/
 (BSV original, MIT). Sources are outbound links with a short BSV summary; nothing third-party is rehosted.
 Test status is NOT written here: it comes from fields/test_runs.json (smoke_fields_recipes.py) and
 source HTTP status from fields/sources_check.json (check_fields_sources.py) at build time.

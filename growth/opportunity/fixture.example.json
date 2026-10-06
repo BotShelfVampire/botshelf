@@ -1,0 +1,38 @@
+[
+  {
+    "jobKey": "tradingview-custom-session-dashboard",
+    "sector": "trader",
+    "platform": "TradingView",
+    "openRequests": 3,
+    "uniqueRequesters": 3,
+    "noResultSearches": 7,
+    "missingVariantSignals": 2,
+    "remixSignals": 4,
+    "explicitWtpActors": 1,
+    "fulfilledRequests": 0
+  },
+  {
+    "jobKey": "robot-pilot-episode-review-dashboard",
+    "sector": "robot-pilot",
+    "platform": "Isaac Teleop",
+    "openRequests": 1,
+    "uniqueRequesters": 1,
+    "noResultSearches": 0,
+    "missingVariantSignals": 0,
+    "remixSignals": 0,
+    "explicitWtpActors": 0,
+    "fulfilledRequests": 0
+  },
+  {
+    "jobKey": "huggingface-mcp-local-research-desk",
+    "sector": "ai",
+    "platform": "Hugging Face",
+    "openRequests": 2,
+    "uniqueRequesters": 2,
+    "noResultSearches": 4,
+    "missingVariantSignals": 1,
+    "remixSignals": 3,
+    "explicitWtpActors": 0,
+    "fulfilledRequests": 1
+  }
+]

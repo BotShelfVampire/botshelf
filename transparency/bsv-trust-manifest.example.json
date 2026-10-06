@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "0.1",
+  "brand": "BotShelf Vampire",
+  "canonicalUrl": "https://botshelfvampire.com/",
+  "supportEmail": "support@botshelfvampire.com",
+  "operatorDisclosure": {
+    "publicPersonaRequired": false,
+    "principle": "Operator identity stays low-profile; business mechanics are unusually transparent."
+  },
+  "buyerAccess": {
+    "free": "Email registration/access; no USDT payment.",
+    "recurringPaid": "Rolling 30-day access from confirmed payment where the product uses recurring access."
+  },
+  "payments": {
+    "currentRail": "USDT",
+    "network": "TRC20",
+    "note": "Always use the wallet/network shown by current checkout. Do not rely on copied guide addresses."
+  },
+  "sellerEconomics": {
+    "sellerSharePercent": 80,
+    "bsvSharePercent": 20,
+    "eligiblePayoutRule": "Within 7 business days after confirmed sale, subject to documented holds."
+  },
+  "verificationStatuses": [
+    "UNTESTED",
+    "STRUCTURAL",
+    "SOURCE_PREPARED",
+    "PARTIAL",
+    "VERIFIED",
+    "BLOCKED"
+  ],
+  "publicContactPolicy": {
+    "sellerX": "Opt-in only",
+    "sellerEmail": "Opt-in only",
+    "accountEmail": "Never public by default"
+  },
+  "updatedAt": "2026-10-03",
+  "caveat": "Generated/public production version must be refreshed from current production rules before publishing."
+}
