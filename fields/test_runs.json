@@ -243,6 +243,55 @@
     "14 daily rows for 35.68,139.76 -> weather_daily.csv (source: Open-Meteo)"
    ],
    "stderr_tail": []
+  },
+  "mujoco_pendulum_energy.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:07",
+   "seconds": 0.2,
+   "stdout_tail": [
+    "wrote 2500 rows -> pendulum_energy.csv; energy range drift≈0.886669 J (damping present)"
+   ],
+   "stderr_tail": []
+  },
+  "planar_ik_workspace.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:07",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "grid 41×41 = 1681 cells, reachable 1450 -> ik_workspace.csv"
+   ],
+   "stderr_tail": []
+  },
+  "joint_traj_resample.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:07",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "wrote labeled synthetic sample: traj_sample_labeled.csv",
+    "resampled 5 -> 28 rows at dt=0.02s -> traj_resampled.csv"
+   ],
+   "stderr_tail": []
+  },
+  "dh_fk_chain.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:07",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "frames 4 -> dh_fk.csv; tip xyz=(0.2257,0.0457,0.0026)"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
