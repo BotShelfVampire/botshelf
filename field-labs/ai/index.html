@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Context budget playground · BSV Field Labs</title>
+  <meta name="description" content="Paste a prompt or context pack, see rough token and character estimates against common context windows, and export a plan CSV. Browser only. Education — not a billing or model guarantee.">
+  <link rel="stylesheet" href="../assets/labs.css">
+  <script src="../assets/labs.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/">BSV</a>
+    <a href="../" data-lab-link><span data-lang="en">← Field Labs</span><span data-lang="ja">← 実践ラボ</span></a>
+    <div class="lang-toggle" aria-label="Language"><button type="button" data-set-lang="en">EN</button><button type="button" data-set-lang="ja">日本語</button></div>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">AI / CONTEXT LITERACY</p>
+      <h1><span data-lang="en">Fit the pack before you paste.</span><span data-lang="ja">貼る前に、枠に収まるか見る。</span></h1>
+      <p class="lead"><span data-lang="en">Paste a system prompt, notes or a context pack. Get rough character / word / token estimates and how they sit against common context windows. Education only — not a tokenizer, price quote or model guarantee. Inputs stay in this browser.</span><span data-lang="ja">システムプロンプトやメモ、コンテキストパックを貼ると、文字数・語数・おおよそのトークン数と、よくあるコンテキスト枠との関係を表示します。教育用であり、正確なトークナイザ・料金・モデル保証ではありません。入力はこのブラウザ内に留まります。</span></p>
+    </section>
+    <div class="workspace">
+      <section class="panel">
+        <p class="eyebrow">01 / PASTE</p>
+        <h2><span data-lang="en">Context text</span><span data-lang="ja">コンテキスト本文</span></h2>
+        <div class="field"><label for="pack"><span data-lang="en">Prompt / pack</span><span data-lang="ja">プロンプト / パック</span></label>
+          <textarea id="pack" rows="14" spellcheck="false"># Role
+You are a careful research assistant.
+
+# Task
+Summarise the notes below in 5 bullets. Flag anything that looks like a claim without a source.
+
+# Notes
+- BSV Field Labs run in the browser.
+- Trading Risk lab sizes positions from equity and stop distance.
+- Robot Pilot is simulation practice first.</textarea></div>
+        <div class="grid">
+          <div class="field"><label for="window"><span data-lang="en">Target context window (tokens)</span><span data-lang="ja">目標コンテキスト枠（トークン）</span></label>
+            <select id="window">
+              <option value="8192">8,192</option>
+              <option value="32768" selected>32,768</option>
+              <option value="128000">128,000</option>
+              <option value="200000">200,000</option>
+            </select></div>
+          <div class="field"><label for="reserve"><span data-lang="en">Reserve for reply (%)</span><span data-lang="ja">返答用に残す割合（%）</span></label>
+            <input id="reserve" type="number" min="5" max="80" step="5" value="25"></div>
+        </div>
+        <div class="grid">
+          <button class="button" type="button" id="run"><span data-lang="en">Estimate</span><span data-lang="ja">見積もる</span></button>
+          <button class="button secondary" type="button" id="example"><span data-lang="en">Reload sample</span><span data-lang="ja">サンプルを再読込</span></button>
+        </div>
+      </section>
+      <section class="panel">
+        <p class="eyebrow">02 / BUDGET</p>
+        <h2><span data-lang="en">Fit check</span><span data-lang="ja">収まりチェック</span></h2>
+        <div id="result" class="result card" aria-live="polite"></div>
+        <div class="field"><label for="export">CSV</label><textarea id="export" rows="8" readonly spellcheck="false"></textarea></div>
+        <div class="grid">
+          <button class="button" type="button" id="copy"><span data-lang="en">Copy CSV</span><span data-lang="ja">CSVをコピー</span></button>
+          <button class="button secondary" type="button" id="download"><span data-lang="en">Download</span><span data-lang="ja">保存</span></button>
+        </div>
+        <p id="status" class="muted" role="status"></p>
+        <p class="muted"><span data-lang="en">Pairs with <a href="/library/toolkit/">/library/toolkit/</a> and free AI team First use boxes. Tokenizer ≈ chars/4 (ASCII-heavy); CJK text is denser — treat as a planning floor, not a bill.</span><span data-lang="ja"><a href="/library/toolkit/">/library/toolkit/</a> や無料AIチームの First use と対になります。トークン概算は chars/4（英数字多め）。日本語は密度が高いので、請求額ではなく計画の下限として使ってください。</span></p>
+      </section>
+    </div>
+    <section class="sources">
+      <h2><span data-lang="en">Check the underlying ideas</span><span data-lang="ja">背景となる考え方を確認</span></h2>
+      <p><a href="https://platform.openai.com/tokenizer">OpenAI tokenizer explainer</a> — <span data-lang="en">why character heuristics are only approximate.</span><span data-lang="ja">文字数ヒューリスティックが近似にすぎない理由。</span></p>
+      <p><a href="/library/toolkit/">BSV AI toolkits</a> — <span data-lang="en">framework starters this lab helps you size for.</span><span data-lang="ja">このラボが見積もりの対象にするフレームワークのスターター。</span></p>
+      <p class="muted"><span data-lang="en">BSV original interactive explanation. Checked 7 October 2026. Education only. Inputs stay in this browser.</span><span data-lang="ja">BSV独自の対話型解説。確認日：2026年10月7日。教育用。入力はこのブラウザー内に留まります。</span></p>
+    </section>
+  </main>
+  <footer>BotShelfVampire · Field Labs · <span data-lang="en">Education only — not a billing tool.</span><span data-lang="ja">教育用であり、課金ツールではありません。</span></footer>
+</div>
+</body>
+</html>
