@@ -23,7 +23,7 @@ const BAD_URLS = ["javascript:alert(1)", "JaVaScRiPt:alert(1)", " javascript:ale
   // server: safePublicXUrl
   ok(typeof products.safePublicXUrl === "function", "products.safePublicXUrl exported");
   BAD_URLS.forEach((u) => ok(products.safePublicXUrl(u) === "", "x url rejected: " + u));
-  ["https://x.com/example_seller", "https://twitter.com/abc/status/1", "https://www.x.com/abc?s=1"].forEach((u) => ok(products.safePublicXUrl(u) === u, "x url kept: " + u));
+  ["https://x.com/botshelfvampire", "https://twitter.com/abc/status/1", "https://www.x.com/abc?s=1"].forEach((u) => ok(products.safePublicXUrl(u) === u, "x url kept: " + u));
 
   // seller with verified email + TRC20
   let u = await session.upsertUser({ email: "probe-seller@example.com", display_name: TAG, role: "seller" });
@@ -97,8 +97,8 @@ const BAD_URLS = ["javascript:alert(1)", "JaVaScRiPt:alert(1)", " javascript:ale
     const card = R.cardHtml({ id: '"><script>alert(1)</script>', name: PWN + TAG, short_description: TAG, runtime: TAG, product_type: TAG, listing_type: "PAID", price_usdt: TAG, href: "javascript:alert(1)", public_x_url: "javascript:alert(1)", public_email: 'a@b.c"><script>' });
     ok(!/<(script|img|svg)\b/i.test(card) && !/href="\s*(javascript|data):/i.test(card) && !/"\s+on[a-z]+=/i.test(card), "card HTML inert: " + card.slice(0, 160));
     ok(card.indexOf("PWNMARKER-OPS16 console.log(&quot;pwn:botshelfvampire.com&quot;)") >= 0, "PWNMARKER name shown as text");
-    const card2 = R.cardHtml({ id: "lst_ok", name: "ok", listing_type: "FREE", public_x_url: "https://x.com/example_seller", public_email: "s@example.com" });
-    ok(/href="https:\/\/x\.com\/example_seller"/.test(card2) && /mailto:s@example\.com/.test(card2), "valid seller links still shown");
+    const card2 = R.cardHtml({ id: "lst_ok", name: "ok", listing_type: "FREE", public_x_url: "https://x.com/botshelfvampire", public_email: "s@example.com" });
+    ok(/href="https:\/\/x\.com\/botshelfvampire"/.test(card2) && /mailto:s@example\.com/.test(card2), "valid seller links still shown");
   }
   // every innerHTML/html()/table() sink in the client gets data only through esc()/safeUrl()
   const rawConcat = src.split("\n").filter((l) => /(innerHTML|html\(|table\()/.test(l) && /\+ ?(?:item|p|l|s|b|x|n|o|j|r)\.[a-z_]+/.test(l) && !/esc\(/.test(l));

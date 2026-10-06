@@ -4,8 +4,8 @@
  * - email-verified session only (same server-side session as gated sources);
  * - stored server-side in Netlify Blobs (store "compile_reports"), keyed by account id — no PII beyond the
  *   existing account email, which is NOT copied into the report (the owner queue looks it up);
- * - review queue for the owner (x-admin-secret) and authorized reviewers with header
- *   x-bsv-reviewer-key = env COMPILE_REVIEWER_KEY.
+ * - review queue for the owner (x-admin-secret) and BSV reviewers (owner change 2026-10-03 20:57 JST:
+ *   ops box + digest reviewers) with header x-bsv-reviewer-key = env COMPILE_REVIEWER_KEY.
  *   Reviewers see account ids only, never the submitter email; only the owner view looks up the email;
  * - states: pending / approved-user-reported / rejected / needs-info. There is NO verified state and nothing
  *   here changes any catalog, compatibility or "Runtime-tested by BSV" status;

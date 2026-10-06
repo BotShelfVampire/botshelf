@@ -8,7 +8,8 @@
  * - SIMULATION only; review status starts UNREVIEWED; the practice-record status is SELF_REPORTED and stays
  *   SELF_REPORTED whatever the review says (no auto-promotion); a review is not a licence, a certification or
  *   permission to operate real hardware;
- * - reviewers: owner (x-admin-secret) or authorized staff (x-bsv-reviewer-key = env COMPILE_REVIEWER_KEY).
+ * - reviewers: owner (x-admin-secret) or BSV reviewer key (x-bsv-reviewer-key = env COMPILE_REVIEWER_KEY). Digest recipients see the
+ *   digest only.
  * Installed into <deploy>/netlify/functions/ by scripts/site/install_compile_report_fn.py.
  */
 var blobs = require("./_lib/blobs");
