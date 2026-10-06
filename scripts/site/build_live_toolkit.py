@@ -23,8 +23,10 @@ Usage: python3 scripts/site/build_live_toolkit.py --site /path/to/site [--repo .
 """
 from __future__ import annotations
 
-import argparse, hashlib, html, io, json, re, subprocess, urllib.parse, zipfile
+import argparse, hashlib, html, io, json, re, subprocess, sys, urllib.parse, zipfile
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from absolutize_links import fix_html as absolutize_html  # noqa: E402
 
 VER = "v20261003"
 ORIGIN = "https://botshelfvampire.com"
@@ -183,6 +185,7 @@ def trader_shell(site: Path, title: str, desc: str, canonical: str, body: str, r
     idx = (site / "trading/index.html").read_text()
     hdr = idx[idx.find('<header class="site-header">'): idx.find("</header>") + 9]
     hdr = hdr.replace(' class="active"', "")
+    hdr = absolutize_html(hdr, "/trading/index.html")[0]  # the header is copied to pages outside /trading/: root-absolute links, not <base>-relative
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8"><base href="/trading/">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -218,6 +221,10 @@ def trader_card(copy, r) -> str:
         f'<h3><a href="{href}">{esc(r["title"])}</a></h3>{both(r["summary"], "p")}'
         f'<div class="bb-tags"><span class="bb-type">{type_label(copy, r["type"])}</span>{status_badge(copy, r["status"])}<span class="bb-orig">ORIGINAL · MIT</span></div></article>'
     )
+
+
+def sel_(sid, label, opts):
+    return f'<label class="bb-sel"><span class="sr">{esc(label)}</span><select id="{sid}" aria-label="{esc(label)}">' + "".join(opts) + "</select></label>"
 
 
 def build_trader(site: Path, repo: Path, copy: dict) -> dict:
@@ -347,6 +354,41 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
         write(site / f"trading/tools/{r['slug']}.html",
               trader_shell(site, f"{r['title']} ({' / '.join(r['platforms'])}) — Build your own chart tool · BotShelf Vampire", r["summary"]["en"], f"/trading/tools/{r['slug']}.html", body))
 
+    # ---- /trading/tools/ index (all public tool summaries; the directory URL was a 404)
+    tcards = "".join(trader_card(copy, r) for r in allr)
+    tools_body = (
+        '<section class="container hero bb-hero"><div><div class="eyebrow">TRADERS LIBRARY / TOOLS</div>'
+        f'<h1>{both(T("All chart tools", "すべてのチャートツール"))}</h1>'
+        f'{both(T("Public summaries of every BSV starter, recipe and generator in the Traders Library. Viewing, copying and downloading the source requires free email verification.", "Traders LibraryのBSVスターター・レシピ・コード生成の解説ページ一覧です。コードの閲覧・コピー・ダウンロードには無料のメール確認が必要です。"), "p", "lead")}'
+        f'{both(T("Original BSV source under the MIT license. Nothing has been runtime tested by BSV yet — each page says exactly what was checked.", "BSVオリジナルのソース（MITライセンス）です。BSVではまだ実行検証をしていません。各ページに確認した範囲を明記しています。"), "p", "small")}</div>'
+        f'<aside class="hero-stats"><div class="stat-total"><strong>{len(allr)}</strong>{both(T("build assets", "作るための素材"))}</div><div class="stat-lines">'
+        f'<div>{both(T("Platforms", "プラットフォーム"))}<b>{len(platforms)}</b></div><div>{both(T("Recipes", "レシピ"))}<b>{len(recipes)}</b></div><div>{both(T("Runtime-tested by BSV", "BSVでの実行検証済み"))}<b>0</b></div></div></aside></section>'
+        f'<div class="container subnav"><a class="chip" href="/trading/build/">{both(T("Build your own chart tool", "自分のチャートツールを作る"))}</a><a class="chip" href="/trading/tools/bsv-builder.html">{both(T("Recipe builder (browser)", "レシピビルダー（ブラウザ）"))}</a><a class="chip" href="/trading/build/coverage/">{both(T("Generator coverage", "生成の対応状況"))}</a><a class="chip" href="/trading/">{both(T("Traders Library", "Traders Library"))}</a></div>'
+        f'<section class="container bb-section" id="catalog"><div class="collection-header"><h2>{both(T("All build assets", "すべての素材"))}</h2><span class="results" id="bb-count" aria-live="polite">{len(allr)}</span></div>'
+        f'<div class="filters bb-filters"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="bb-q" type="search" placeholder="Search recipes, platforms…" data-ph-en="Search recipes, platforms…" data-ph-ja="レシピ・プラットフォームで検索…" aria-label="Search build assets" autocomplete="off"></label>'
+        + sel_("bb-platform", "Platform", ['<option value="" data-en="All platforms" data-ja="すべての環境">All platforms</option>'] + [f'<option value="{esc(p)}">{esc(p)}</option>' for p in platforms])
+        + sel_("bb-type", "Type", ['<option value="" data-en="All types" data-ja="すべての種類">All types</option>'] + [f'<option value="{esc(t)}" data-en="{esc(copy["trader_types"][t]["en"])}" data-ja="{esc(copy["trader_types"][t]["ja"])}">{esc(copy["trader_types"][t]["en"])}</option>' for t in types])
+        + sel_("bb-status", "Test status", ['<option value="" data-en="Any test status" data-ja="すべての検証状態">Any test status</option>'] + [f'<option value="{esc(s)}" data-en="{esc(copy["status"][s]["en"])}" data-ja="{esc(copy["status"][s]["ja"])}">{esc(copy["status"][s]["en"])}</option>' for s in statuses])
+        + f'<button class="text-button" id="bb-reset" type="button">{both(T("Reset filters", "絞り込み解除"))}</button></div>'
+        f'<div class="cards bb-cards" id="bb-cards">{tcards}</div><p class="empty" id="bb-empty" hidden>{both(T("No exact matches. Reset the filters.", "一致する項目がありません。絞り込みを解除してください。"))}</p></section>'
+    )
+    lib_items = [e for e in (json.loads((site / "trading/catalog.json").read_text()) if (site / "trading/catalog.json").exists() else []) if (site / f"trading/tools/{e['id']}.html").exists()]
+    lcards = "".join(
+        f'<article class="bb-card"><div class="bb-meta"><span>{esc(" · ".join(e.get("platforms", [])))}</span></div>'
+        f'<h3><a href="/trading/tools/{esc(e["id"])}.html">{esc(e.get("name", e["id"]))}</a></h3>'
+        f'<p class="small">{esc(" · ".join(x for x in (e.get("kind"), e.get("category")) if x))}</p>'
+        f'<div class="bb-tags"><span class="bb-type">{esc(e.get("provider", ""))}</span><span class="bb-orig">{esc(e.get("license", ""))}</span></div></article>'
+        for e in lib_items)
+    if lcards:
+        tools_body += (f'<section class="container bb-section" id="library-tools"><div class="collection-header"><h2>{both(T("Open-source tools in the Traders Library", "Traders Libraryのオープンソースツール"))}</h2><span class="results">{len(lib_items)}</span></div>'
+                       f'{both(T("Third-party open-source scripts with their original license and provider named on each page. Search and filter them on the Traders Library page.", "各ページに元のライセンスと提供者を明記した、外部のオープンソーススクリプトです。検索・絞り込みはTraders Libraryのページで。"), "p", "small")}'
+                       f'<div class="cards bb-cards">{lcards}</div><p><a class="btn" href="/trading/#collection">{both(T("Search the Traders Library →", "Traders Libraryで探す →"))}</a></p></section>')
+    tjsonld = json.dumps({"@context": "https://schema.org", "@type": "CollectionPage", "name": "All chart tools — BotShelf Vampire Traders Library", "url": ORIGIN + "/trading/tools/",
+                          "isPartOf": {"@type": "CollectionPage", "name": "Traders Library", "url": ORIGIN + "/trading/"}}, ensure_ascii=False)
+    write(site / "trading/tools/index.html", trader_shell(site, "All chart tools — Traders Library · BotShelf Vampire",
+          f"Public summaries of {len(allr)} original BSV chart-tool starters, recipes and generators for {len(platforms)} platforms. Source behind free email verification; nothing runtime-tested by BSV.",
+          "/trading/tools/", tools_body, extra_head=f'<script type="application/ld+json">{tjsonld}</script>'))
+
     # ---- hub
     sel = lambda sid, label, opts: (f'<label class="bb-sel"><span class="sr">{esc(label)}</span><select id="{sid}" aria-label="{esc(label)}">' + "".join(opts) + "</select></label>")
     popts = ['<option value="" data-en="All platforms" data-ja="すべての環境">All platforms</option>'] + [f'<option value="{esc(p)}">{esc(p)}</option>' for p in platforms]
@@ -403,7 +445,7 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
     idx = re.sub(r'<link rel="stylesheet" href="/trading/assets/build\.[^"]+\.css">', "", idx)
     idx = idx.replace("</head>", f'<link rel="stylesheet" href="{ASSET["tcss"]}"></head>', 1)
     idx_p.write_text(idx, encoding="utf-8")
-    return {"trader_assets": len(allr), "recipes": len(recipes), "platforms": platforms, "public_pages": [f"/trading/tools/{r['slug']}.html" for r in allr if r["id"] != "trader-build-own-chart"] + ["/trading/build/"]}
+    return {"trader_assets": len(allr), "recipes": len(recipes), "platforms": platforms, "public_pages": [f"/trading/tools/{r['slug']}.html" for r in allr if r["id"] != "trader-build-own-chart"] + ["/trading/build/", "/trading/tools/"]}
 
 
 # ---------------------------------------------------------------------------
@@ -411,7 +453,7 @@ def build_trader(site: Path, repo: Path, copy: dict) -> dict:
 # ---------------------------------------------------------------------------
 def lib_shell(site: Path, title: str, desc: str, canonical: str, body: str, robots: str = "index,follow", extra_head: str = "") -> str:
     li = (site / "library/index.html").read_text()
-    hdr = li[li.find("<header"): li.find("</header>") + 9]
+    hdr = absolutize_html(li[li.find("<header"): li.find("</header>") + 9], "/library/index.html")[0]
     return (
         '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n'
         f'<title>{esc(title)}</title>\n<meta name="description" content="{esc(desc)}">\n<link rel="canonical" href="{ORIGIN}{canonical}">\n<meta name="robots" content="{robots}">\n'
