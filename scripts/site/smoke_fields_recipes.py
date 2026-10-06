@@ -16,6 +16,8 @@ EXPECT = {  # script -> files it must create (glob)
     "uniprot_profile.py": ["profile_P69905.md"], "pubmed_digest.py": ["digest_*.md"], "vqe_h2_pennylane.py": ["vqe_h2.csv"],
     "bell_noise_qiskit.py": ["bell_counts.csv"], "qaoa_maxcut_pennylane.py": ["qaoa_result.json"], "grover_qiskit.py": ["grover_counts.csv"],
     "mujoco_probe_reach.py": ["probe_reach.csv"], "dicom_deid_audit.py": ["deid_report.csv", "CT_small_deid.dcm"],
+    "csv_profile.py": ["profile.csv", "profile.md"], "jsonl_flatten.py": ["flat.csv"],
+    "worldbank_series.py": ["wb_series.csv"], "open_meteo_daily.py": ["weather_daily.csv"],
 }
 ARGS = {"chembl_screen.py": ["CHEMBL203", "7", "60"]}
 PKGS = ["mujoco", "pydicom", "rdkit", "biopython", "skyfield", "pystac-client", "qiskit", "qiskit-aer", "pennylane", "numpy"]

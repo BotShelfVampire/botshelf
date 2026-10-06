@@ -192,6 +192,57 @@
     "least cloudy: S2B_54SUE_20260824_0_L2A 10.244737"
    ],
    "stderr_tail": []
+  },
+  "csv_profile.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:01",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote labeled synthetic sample: sample_labeled.csv",
+    "profiled 5 rows × 4 cols -> profile.csv, profile.md"
+   ],
+   "stderr_tail": []
+  },
+  "jsonl_flatten.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:01",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote labeled synthetic sample: sample_labeled.jsonl",
+    "flattened 3 lines → flat.csv (4 columns)"
+   ],
+   "stderr_tail": []
+  },
+  "worldbank_series.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:01",
+   "seconds": 0.6,
+   "stdout_tail": [
+    "JP SP.POP.TOTL: 66 yearly points -> wb_series.csv (source: World Bank Open Data)",
+    "latest: 2025 123366734"
+   ],
+   "stderr_tail": []
+  },
+  "open_meteo_daily.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:01",
+   "seconds": 0.8,
+   "stdout_tail": [
+    "14 daily rows for 35.68,139.76 -> weather_daily.csv (source: Open-Meteo)"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
