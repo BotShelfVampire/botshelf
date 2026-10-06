@@ -18,6 +18,8 @@ EXPECT = {  # script -> files it must create (glob)
     "mujoco_probe_reach.py": ["probe_reach.csv"], "dicom_deid_audit.py": ["deid_report.csv", "CT_small_deid.dcm"],
     "csv_profile.py": ["profile.csv", "profile.md"], "jsonl_flatten.py": ["flat.csv"],
     "worldbank_series.py": ["wb_series.csv"], "open_meteo_daily.py": ["weather_daily.csv"],
+    "csv_schema_diff.py": ["schema_diff.csv", "schema_diff.md"], "sqlite_from_csv.py": ["practice.sqlite", "groupby.csv"],
+    "frankfurter_fx.py": ["fx_latest.csv"], "usgs_quakes_day.py": ["quakes_day.csv"],
     "mujoco_pendulum_energy.py": ["pendulum_energy.csv"], "planar_ik_workspace.py": ["ik_workspace.csv"],
     "joint_traj_resample.py": ["traj_resampled.csv"], "dh_fk_chain.py": ["dh_fk.csv"],
 }

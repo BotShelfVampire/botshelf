@@ -242,5 +242,29 @@
  "https://nvidia.github.io/IsaacCapture/": {
   "status": 200,
   "checked_jst": "2026-10-07"
+ },
+ "https://docs.python.org/3/library/sqlite3.html": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://www.frankfurter.app/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://www.frankfurter.app/docs/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://api.frankfurter.app/latest?from=USD&to=JPY": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
  }
 }

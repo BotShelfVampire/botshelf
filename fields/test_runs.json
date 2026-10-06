@@ -292,6 +292,56 @@
     "frames 4 -> dh_fk.csv; tip xyz=(0.2257,0.0457,0.0026)"
    ],
    "stderr_tail": []
+  },
+  "csv_schema_diff.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:13",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote labeled synthetic pair: sample_a_labeled.csv sample_b_labeled.csv",
+    "diff 6 columns -> schema_diff.csv, schema_diff.md"
+   ],
+   "stderr_tail": []
+  },
+  "sqlite_from_csv.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:13",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote labeled synthetic sample: sample_labeled.csv",
+    "loaded 5 rows into practice.sqlite; groupby on city -> groupby.csv (3 groups)"
+   ],
+   "stderr_tail": []
+  },
+  "frankfurter_fx.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:13",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "wrote 3 FX rows as_of 2026-10-06 -> fx_latest.csv (source Frankfurter/ECB)"
+   ],
+   "stderr_tail": []
+  },
+  "usgs_quakes_day.py": {
+   "field": "data",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:13",
+   "seconds": 0.6,
+   "stdout_tail": [
+    "wrote 37 events from USGS feed -> quakes_day.csv (public domain USGS)"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
