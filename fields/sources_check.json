@@ -366,5 +366,13 @@
  "https://string-db.org/api/json/network?identifiers=TP53&species=9606&limit=5": {
   "status": 200,
   "checked_jst": "2026-10-07"
+ },
+ "https://learning.quantum.ibm.com/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://pennylane.ai/qml/demos/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
  }
 }

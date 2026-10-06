@@ -487,6 +487,54 @@
     "wrote 17 STRING edges for 'TP53' (taxid 9606) -> string_neighbors.csv"
    ],
    "stderr_tail": []
+  },
+  "deutsch_jozsa_qiskit.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:24",
+   "seconds": 0.6,
+   "stdout_tail": [
+    "oracle=balanced classified=balanced zero_share=0.000 -> dj_result.csv"
+   ],
+   "stderr_tail": []
+  },
+  "ghz_three_qiskit.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:24",
+   "seconds": 0.6,
+   "stdout_tail": [
+    "GHZ correlated share (000+111)=1.000 -> ghz_counts.csv"
+   ],
+   "stderr_tail": []
+  },
+  "teleport_demo_qiskit.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:24",
+   "seconds": 0.6,
+   "stdout_tail": [
+    "teleport θ=0.700 Bob P0=0.881 (ideal 0.882) -> teleport_counts.csv"
+   ],
+   "stderr_tail": []
+  },
+  "pennylane_rx_expectation.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:25",
+   "seconds": 1.2,
+   "stdout_tail": [
+    "wrote 7 RX⟨Z⟩ points, max |err|=1.25e-16 -> rx_expectation.csv"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
