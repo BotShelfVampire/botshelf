@@ -3,10 +3,10 @@
   "purpose": "Acceptance inventory under Astra direction. Known URLs are public; null means a path must be confirmed, never guessed. Static PASS cannot approve release.",
   "directive": "https://github.com/BotShelfVampire/botshelf/issues/4#issuecomment-6017081899",
   "baseline": {
-    "checked_at_jst": "2026-10-07T01:49:00+09:00",
+    "checked_at_jst": "2026-10-07T01:56:00+09:00",
     "deploy_id": "6ac52627cf474b9b8aa418d5",
     "integration_commit": "db15c0e",
-    "proof_dir": "qa/cdp_three_journeys.py LIVE (on BSV live box)"
+    "proof_dir": "qa/shots-live-matrix-db + ops/growth/BROWSER_MATRIX_DETAIL_BODY_6ac52627.json; prior cat-proof + cold-user + three-journeys"
   },
   "public_pages": [
     {
@@ -156,15 +156,19 @@
       "domain": "ai",
       "locale": "en",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-ai-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Workflows — Build Library | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-ai-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Workflows — Build Library | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -172,15 +176,19 @@
       "domain": "ai",
       "locale": "en",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-ai-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='AI agent toolkits — Dots, Hugging Face, Bionic, smolagents, '; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-ai-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='AI agent toolkits — Dots, Hugging Face, Bionic, smolagents, '; exceptions=[]"
         }
       }
     },
@@ -208,15 +216,19 @@
       "domain": "ai",
       "locale": "ja",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-ai-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Workflows — Build Library | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-ai-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Workflows — Build Library | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -224,15 +236,19 @@
       "domain": "ai",
       "locale": "ja",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-ai-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='AI agent toolkits — Dots, Hugging Face, Bionic, smolagents, '; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-ai-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='AI agent toolkits — Dots, Hugging Face, Bionic, smolagents, '; exceptions=[]"
         }
       }
     },
@@ -260,15 +276,19 @@
       "domain": "trading",
       "locale": "en",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-trading-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — Trading Tools & AI Teams'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-trading-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — Trading Tools & AI Teams'; exceptions=[]"
         }
       }
     },
@@ -276,15 +296,19 @@
       "domain": "trading",
       "locale": "en",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-trading-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Gold Morning 3 — free gold analysis AI team | Grok Bot | Bot'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-trading-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Gold Morning 3 — free gold analysis AI team | Grok Bot | Bot'; exceptions=[]"
         }
       }
     },
@@ -312,15 +336,19 @@
       "domain": "trading",
       "locale": "ja",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-trading-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — トレードツールとAIチーム'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-trading-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — トレードツールとAIチーム'; exceptions=[]"
         }
       }
     },
@@ -328,15 +356,19 @@
       "domain": "trading",
       "locale": "ja",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-trading-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Gold Morning 3 — free gold analysis AI team | Grok Bot | Bot'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-trading-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Gold Morning 3 — free gold analysis AI team | Grok Bot | Bot'; exceptions=[]"
         }
       }
     },
@@ -364,15 +396,19 @@
       "domain": "robotics",
       "locale": "en",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-robotics-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — Trading Tools & AI Teams'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-robotics-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — Trading Tools & AI Teams'; exceptions=[]"
         }
       }
     },
@@ -380,15 +416,19 @@
       "domain": "robotics",
       "locale": "en",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-robotics-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — Trading Tools & AI Teams'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-robotics-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — Trading Tools & AI Teams'; exceptions=[]"
         }
       }
     },
@@ -416,15 +456,19 @@
       "domain": "robotics",
       "locale": "ja",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-robotics-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — トレードツールとAIチーム'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-robotics-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — トレードツールとAIチーム'; exceptions=[]"
         }
       }
     },
@@ -432,15 +476,19 @@
       "domain": "robotics",
       "locale": "ja",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-robotics-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — Trading Tools & AI Teams'; exceptions=[] (initial JA miss = lang race; reprobe clean — see BROWSER_MATRIX_DETAIL_BODY_6ac52627.json notes)"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-robotics-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='BotShelf Vampire — トレードツールとAIチーム'; exceptions=[]"
         }
       }
     },
@@ -468,15 +516,19 @@
       "domain": "medical-robotics",
       "locale": "en",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-medical-robotics-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Healthcare & Medical Robotics | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-medical-robotics-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Healthcare & Medical Robotics | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -484,15 +536,19 @@
       "domain": "medical-robotics",
       "locale": "en",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-medical-robotics-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Healthcare & Medical Robotics | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-medical-robotics-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Healthcare & Medical Robotics | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -520,15 +576,19 @@
       "domain": "medical-robotics",
       "locale": "ja",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-medical-robotics-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='ヘルスケア・医療ロボティクス | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-medical-robotics-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='ヘルスケア・医療ロボティクス | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -536,15 +596,19 @@
       "domain": "medical-robotics",
       "locale": "ja",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-medical-robotics-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='ヘルスケア・医療ロボティクス | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-medical-robotics-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='ヘルスケア・医療ロボティクス | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -572,15 +636,19 @@
       "domain": "data",
       "locale": "en",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-data-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Search — BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-data-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Search — BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -588,15 +656,19 @@
       "domain": "data",
       "locale": "en",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-data-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Search — BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-data-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Search — BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -624,15 +696,19 @@
       "domain": "data",
       "locale": "ja",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-data-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='検索 — BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-data-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='検索 — BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -640,15 +716,19 @@
       "domain": "data",
       "locale": "ja",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-data-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='検索 — BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-data-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='検索 — BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -676,15 +756,19 @@
       "domain": "space",
       "locale": "en",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-space-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Space | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-space-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Space | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -692,15 +776,19 @@
       "domain": "space",
       "locale": "en",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-space-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Space | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-space-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Space | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -728,15 +816,19 @@
       "domain": "space",
       "locale": "ja",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-space-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='宇宙 | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-space-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='宇宙 | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -744,15 +836,19 @@
       "domain": "space",
       "locale": "ja",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-space-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='宇宙 | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-space-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='宇宙 | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -780,15 +876,19 @@
       "domain": "biotech",
       "locale": "en",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-biotech-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Biotech | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-biotech-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Biotech | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -796,15 +896,19 @@
       "domain": "biotech",
       "locale": "en",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-biotech-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Biotech | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-biotech-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Biotech | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -832,15 +936,19 @@
       "domain": "biotech",
       "locale": "ja",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-biotech-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='バイオ | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-biotech-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='バイオ | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -848,15 +956,19 @@
       "domain": "biotech",
       "locale": "ja",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-biotech-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='バイオ | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-biotech-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='バイオ | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -884,15 +996,19 @@
       "domain": "quantum",
       "locale": "en",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-quantum-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Quantum | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-quantum-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Quantum | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -900,15 +1016,19 @@
       "domain": "quantum",
       "locale": "en",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-en-quantum-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Quantum | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-en-quantum-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='Quantum | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -936,15 +1056,19 @@
       "domain": "quantum",
       "locale": "ja",
       "surface": "detail",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-quantum-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='量子 | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-quantum-detail.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='量子 | BotShelf Vampire'; exceptions=[]"
         }
       }
     },
@@ -952,15 +1076,19 @@
       "domain": "quantum",
       "locale": "ja",
       "surface": "body",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/mobile-ja-quantum-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='量子 | BotShelf Vampire'; exceptions=[]"
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-matrix-db/desktop-ja-quantum-body.png",
+          "checked_at_jst": "2026-10-07 01:56 JST",
+          "notes": "CDP: HTTP load OK, no hscroll, mainOk, title='量子 | BotShelf Vampire'; exceptions=[]"
         }
       }
     }
