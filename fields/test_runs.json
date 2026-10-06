@@ -583,6 +583,54 @@
     "RRT nodes=91 path_pts=33 length=1.604 -> rrt_path.csv, rrt_nodes.csv"
    ],
    "stderr_tail": []
+  },
+  "bernstein_vazirani_qiskit.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:03",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "secret=101 recovered=101 match=1 top_share=1.000 -> bv_result.csv"
+   ],
+   "stderr_tail": []
+  },
+  "swap_test_overlap_qiskit.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:03",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "P(0)=0.917 |overlap|²≈0.833 analytic=0.848 |err|=0.015 -> swap_test.csv"
+   ],
+   "stderr_tail": []
+  },
+  "qft_basis_qiskit.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:03",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "|3> --QFT--> top=111 share=0.136 (8 bins) -> qft_basis.csv"
+   ],
+   "stderr_tail": []
+  },
+  "pennylane_ising_zz.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:03",
+   "seconds": 1.2,
+   "stdout_tail": [
+    "wrote 3 Ising ZZ points, max |err|=3.33e-16 -> ising_zz.csv"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
