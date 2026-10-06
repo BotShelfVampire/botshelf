@@ -21,6 +21,7 @@ import html
 import json
 import re
 import sys
+import urllib.parse
 from pathlib import Path
 
 BEGIN, END = "<!-- bsv-home-value:begin -->", "<!-- bsv-home-value:end -->"
@@ -71,8 +72,24 @@ CSS = """/* Homepage value layer: reuses .bsv-hub / .bsv-hub-card / .bsv-hub-ai-
 .bsv-home-band .bsv-hub-lead{margin:0 0 16px;max-width:46em}
 .bsv-home-band-ctas{display:flex;flex-wrap:wrap;gap:10px}
 .bsv-home-value-note{font-size:12px;color:#919dab;margin:10px 0 0}
-@media(max-width:950px){.bsv-home-value .bsv-hub-ai-paths{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:640px){.bsv-home-band{padding:18px 16px 2px}.bsv-home-band h2{font-size:24px;line-height:1.25}.bsv-home-band .bsv-hub-lead{font-size:14px;line-height:1.5;margin-bottom:12px}.bsv-home-band .bsv-hub-button{padding:10px 14px;min-height:40px}.bsv-home-value{padding:22px 16px 22px}.bsv-home-value h2{font-size:26px}.bsv-home-value .bsv-hub-lead{font-size:14px;line-height:1.55}.bsv-home-value .bsv-hub-ai-paths{grid-template-columns:1fr;gap:8px}.bsv-home-value .bsv-hub-ai-paths a{padding:10px 13px}.bsv-home-value .bsv-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bsv-home-value .bsv-hub-card{padding:11px 12px}.bsv-home-value .bsv-hub-card h4{font-size:14px;margin:6px 0 0}.bsv-home-value .bsv-hub-card p,.bsv-home-value .bsv-hub-card-platform,.bsv-home-value .bsv-hub-card-footer,.bsv-home-value .bsv-hub-price{display:none}}
+.bsv-home-cats{padding-top:22px;padding-bottom:8px}
+.bsv-home-cats h2,.bsv-home-goals h2,.bsv-home-value h2{font-size:22px;line-height:1.3;letter-spacing:-.02em;margin:0 0 12px}
+.bsv-home-cat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.bsv-home-cat{display:flex;flex-direction:column;gap:3px;border:1px solid #3b4757;border-radius:7px;padding:12px 14px;background:#141b25;min-height:70px}
+.bsv-home-cat:hover{border-color:#bad4b7}
+.bsv-home-cat strong{font-size:15px;line-height:1.3}
+.bsv-home-cat-status{font-size:12px;color:#b0ceac}
+.bsv-home-cat-soon{background:none;border-style:dashed}
+.bsv-home-cat-soon .bsv-home-cat-status,.bsv-home-cat-note{font-size:11px;color:#919dab}
+.bsv-home-goals{padding-top:18px;padding-bottom:8px}
+.bsv-home-goals .bsv-hub-nav{padding:0;margin:0 0 10px;max-width:none;border:1px solid #2b313a;border-radius:6px}
+.bsv-home-goals .bsv-hub-nav a{min-height:58px}
+.bsv-home-goals .bsv-hub-ai-paths{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0}
+.bsv-home-goals .bsv-hub-ai-paths a{padding:12px 15px}
+.bsv-home-goals .bsv-hub-ai-paths strong span{font-size:inherit;color:inherit}
+.bsv-home-goals .bsv-home-goal-soon{border-style:dashed;background:none}
+@media(max-width:950px){.bsv-home-value .bsv-hub-ai-paths,.bsv-home-goals .bsv-hub-ai-paths{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.bsv-home-cats{padding:14px 16px 4px}.bsv-home-goals{padding:14px 16px 4px}.bsv-home-cats h2,.bsv-home-goals h2,.bsv-home-value h2{font-size:20px;margin-bottom:10px}.bsv-home-cat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bsv-home-cat{padding:10px 12px;min-height:58px}.bsv-home-cat strong{font-size:14px}.bsv-home-goals .bsv-hub-ai-paths{grid-template-columns:1fr;gap:8px}.bsv-home-goals .bsv-hub-ai-paths a{padding:10px 13px}.bsv-home-band{padding:18px 16px 2px}.bsv-home-band h2{font-size:24px;line-height:1.25}.bsv-home-band .bsv-hub-lead{font-size:14px;line-height:1.5;margin-bottom:12px}.bsv-home-band .bsv-hub-button{padding:10px 14px;min-height:40px}.bsv-home-value{padding:22px 16px 22px}.bsv-home-value .bsv-hub-lead{font-size:14px;line-height:1.55}.bsv-home-value .bsv-hub-ai-paths{grid-template-columns:1fr;gap:8px}.bsv-home-value .bsv-hub-ai-paths a{padding:10px 13px}.bsv-home-value .bsv-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bsv-home-value .bsv-hub-card{padding:11px 12px}.bsv-home-value .bsv-hub-card h4{font-size:14px;margin:6px 0 0}.bsv-home-value .bsv-hub-card p,.bsv-home-value .bsv-hub-card-platform,.bsv-home-value .bsv-hub-card-footer,.bsv-home-value .bsv-hub-price{display:none}}
 """
 
 
@@ -116,6 +133,36 @@ def counts(site: Path) -> dict:
         "guides": len(guides),
         "robot_curricula": len(list((site / "robot-pilot/curricula").glob("*.json"))),
         "robot_recipes": len(list((site / "robot-pilot/teleop-recipes").glob("*.json"))),
+        **category_counts(site, si),
+    }
+
+
+def category_counts(site: Path, si: list) -> dict:
+    """Per-category live counts. Sources: the shipped site-search index (rows per scope), the Build Library
+    search index (use case Data) and the Robot Pilot curricula / teleop recipes. 0 = no live content (Coming soon)."""
+    idx = sorted((site / "search").glob("index.v*.json"))
+    ref = (site / "search/index.html").read_text() if (site / "search/index.html").exists() else ""
+    js = sorted((site / "js").glob("bsv-search-page.v*.js"))
+    used = None
+    for j in reversed(js):
+        if f"/js/{j.name}" in ref:
+            m = re.search(r"/search/(index\.v[\w]+\.json)", j.read_text())
+            used = site / "search" / m.group(1) if m else None
+            break
+    sidx = json.loads((used or idx[-1]).read_text())
+    rows, sc = sidx["rows"], sidx.get("counts") or {}
+    blob = [json.dumps(e, ensure_ascii=False).lower() for e in rows] + [json.dumps(e, ensure_ascii=False).lower() for e in si]
+    def kw(*words):
+        return sum(1 for b_ in blob if any(re.search(rf"\b{w}", b_) for w in words))
+    return {
+        "cat_ai": sc["ai"] + sc["build"] if {"ai", "build"} <= set(sc) else sum(1 for e in rows if e.get("s") in ("ai", "build")),
+        "cat_trading": sc.get("trading", sum(1 for e in rows if e.get("s") == "trading")),
+        "cat_robotics": len(list((site / "robot-pilot/curricula").glob("*.json"))) + len(list((site / "robot-pilot/teleop-recipes").glob("*.json"))),
+        "cat_data": sum(1 for e in si if e.get("use_case") == "Data"),
+        "cat_healthcare": kw("medical", "healthcare", "surgical", "clinical"),
+        "cat_space": kw("satellite", "aerospace", "orbital", "spacecraft"),
+        "cat_biotech": kw("biotech", "bioinformatic", "genomic", "protein"),
+        "cat_quantum": kw("quantum", "qubit"),
     }
 
 
@@ -169,35 +216,149 @@ def block(c: dict) -> str:
              ("チャートの代替、Pine Scriptの移行、リペイントやバックテストの確認を、公式情報から。", "Charting alternatives, Pine Script migration, repainting and backtest checks, from official sources."),
              "TradingView alternatives · Pine · order flow", "/trading/guides/tradingview-alternatives/", "home_primitive_research",
              href_ja="/trading/ja/guides/tradingview-alternatives/"),
-        card("robotics", ("ロボティクス", "Robotics"),
+        card("robotics", ("練習教材", "Practice courses"),
              ("ロボット遠隔操作の練習、シミュレーションから", "Robot teleoperation practice, simulation first"),
              ("SO-101の教材で練習し、各セッションを記録に残して見直します。実機の操作許可ではありません。", "Practise with an SO-101 curriculum and keep a structured record of each session. Not permission to run real hardware."),
              f"Robot Pilot Academy · {c['robot_curricula']} curriculum · {c['robot_recipes']} teleop recipe", "/robot-pilot/", "home_primitive_robotics"),
     ]
-    goals = [
-        goal("ai_workflow", ("AIワークフローを組む", "Build an AI workflow"), ("n8n・Dify・Flowiseなどで使える手順", "Steps for n8n, Dify, Flowise and more"), "/library/workflows/"),
-        goal("find_trading_tool", ("トレード用ツールを探す", "Find a trading tool"), ("用途・プラットフォームで絞り込み", "Filter by job and platform"), "/trading/tools/"),
-        goal("build_trading_tool", ("自分のツールを作る", "Build your own trading tool"), ("ブラウザでレシピからコードを生成", "Generate code from a recipe in your browser"), "/trading/tools/bsv-builder.html"),
-        goal("robot_practice", ("ロボット操作を練習する", "Practise robot teleoperation"), ("実機の前に、シミュレーションで", "In simulation, before real hardware"), "/robot-pilot/"),
-        goal("compare", ("技術や道具を比べる", "Compare platforms and approaches"), ("選ぶ前に、公式情報で比較", "Check official sources before you choose"), "/trading/guides/tradingview-alternatives/", "/trading/ja/guides/tradingview-alternatives/"),
-        goal("agent_sdks", ("エージェントのSDKを探す", "Find agent SDKs and frameworks"), ("フレームワーク別のテンプレート", "Templates grouped by framework"), "/library/toolkit/"),
-    ]
-    fields = [("ai", "/library/", ("AI", "AI")), ("trading", "/trading/", ("トレード", "Trading")), ("robotics", "/robot-pilot/", ("ロボティクス", "Robotics"))]
-    chips = "".join(f'<a class="ai-chip" href="{h}" data-evt="home_field_{k}">{b(*t)}</a>' for k, h, t in fields)
-    free = ("ここに挙げたものは、すべて無料で使えます。ソースやダウンロードにはメール確認が必要です。", "Everything listed here is free to use. Source and downloads need a verified email.") if c["library_all_free"] else ("", "")
+    free_ok = c["library_all_free"]
     return (
         f'{BEGIN}\n<section class="bsv-hub bsv-home-value" id="what-bsv-gives" data-bsv-home-value aria-labelledby="bsv-value-title" data-evt="home_value">'
-        f'<div class="bsv-hub-topline"><span class="bsv-hub-eyebrow">WHAT BSV GIVES YOU</span>'
+        f'<div class="bsv-hub-topline"><span class="bsv-hub-eyebrow" data-i18n="homeValueEyebrow">CONTENT TYPES</span>'
         f'<a href="/search/" class="bsv-hub-crosslink" data-evt="home_value_search">{b("サイト全体を検索 →", "Search the whole site →")}</a></div>'
-        f'<h2 id="bsv-value-title">{b("ここで使えるもの。", "What you can use here.")}</h2>'
-        f'<p class="bsv-hub-lead">{b("トレードのツールとコード、AIのワークフローとエージェント、ロボット操作の練習。" + free[0], "Trading tools and code, AI workflows and agents, and robot teleoperation practice. " + free[1])}</p>'
-        f'<div class="bsv-hub-grid" data-bsv-value-grid>{"".join(cards)}</div>'
-        f'<h3 id="bsv-goal-title">{b("目的から始める", "Start with a goal")}</h3>'
-        f'<nav class="bsv-hub-ai-paths" aria-labelledby="bsv-goal-title" data-bsv-goals>{"".join(goals)}</nav>'
-        f'<nav class="ai-targets" aria-label="Fields" data-bsv-fields>{chips}</nav>'
+        f'{i("homeValueTitle", STATIC_I18N["homeValueTitle"][0], "h2", " id=\"bsv-value-title\"")}'
+        + (f'{i("homeValueLead", STATIC_I18N["homeValueLead"][0], "p", " class=\"bsv-hub-lead\"")}' if free_ok else "")
+        + f'<div class="bsv-hub-grid" data-bsv-value-grid>{"".join(cards)}</div>'
         f'<p class="bsv-home-value-note">{b("何を確認済みで、何が未確認かは、各ページに表示しています。", "Each page shows what has and hasn&#39;t been checked.")}</p>'
         f'</section>\n{END}\n'
     )
+
+
+CATS_BEGIN, CATS_END = "<!-- bsv-home-cats:begin -->", "<!-- bsv-home-cats:end -->"
+GOALS_BEGIN, GOALS_END = "<!-- bsv-home-goals:begin -->", "<!-- bsv-home-goals:end -->"
+AUDIENCE_NAV_RE = re.compile(r'<nav class="bsv-hub-nav" data-bsv-audience-nav.*?</nav>', re.S)
+LANGS = ("en", "ja", "es", "zh", "ko")
+# key, href (live content) or None (coming soon -> site search), names en/ja/es/zh/ko
+CATS = [
+    ("ai", "/library/", ("AI", "AI", "IA", "AI", "AI")),
+    ("trading", "/trading/", ("Trading", "トレード", "Trading", "交易", "트레이딩")),
+    ("robotics", "/robot-pilot/", ("Robotics", "ロボティクス", "Robótica", "机器人", "로보틱스")),
+    ("healthcare", None, ("Healthcare & Medical Robotics", "ヘルスケア・医療ロボティクス", "Salud y robótica médica", "医疗健康与医疗机器人", "헬스케어·의료 로보틱스")),
+    ("data", "/search/?q=data", ("Data", "データ", "Datos", "数据", "데이터")),
+    ("space", None, ("Space", "宇宙", "Espacio", "航天", "우주")),
+    ("biotech", None, ("Biotech", "バイオ", "Biotecnología", "生物技术", "바이오")),
+    ("quantum", None, ("Quantum", "量子", "Cuántica", "量子", "양자")),
+]
+CAT_SEARCH = {"healthcare": "medical robotics", "space": "space", "biotech": "biotech", "quantum": "quantum"}
+UNITS = {  # live-count wording per category, {n} = count
+    "ai": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
+    "trading": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
+    "robotics": ("{n} simulation resources", "シミュレーション教材 {n}件", "{n} recursos de simulación", "{n} 项仿真资源", "시뮬레이션 자료 {n}개"),
+    "data": ("{n} data-analysis resources", "データ分析リソース {n}件", "{n} recursos de análisis de datos", "{n} 项数据分析资源", "데이터 분석 리소스 {n}개"),
+    "healthcare": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
+    "space": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
+    "biotech": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
+    "quantum": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
+}
+SOON = ("Coming soon", "準備中", "Próximamente", "即将推出", "준비 중")
+RESEARCH_ONLY = ("Research & simulation only", "研究・シミュレーション用途のみ", "Solo investigación y simulación", "仅限研究与仿真", "연구·시뮬레이션 전용")
+STATIC_I18N = {
+    "homeCatsTitle": ("Categories", "カテゴリー", "Categorías", "类别", "카테고리"),
+    "homeCatsLead": ("Counts are live. Fields without content yet are marked Coming soon.", "数は公開中の件数です。まだ中身のない分野は「準備中」と表示しています。",
+                     "Las cifras son recuentos reales. Los campos sin contenido aún aparecen como «Próximamente».", "数字为实时统计。尚无内容的领域标为“即将推出”。",
+                     "숫자는 실제 공개 건수입니다. 아직 콘텐츠가 없는 분야는 '준비 중'으로 표시합니다."),
+    "homeGoalsTitle": ("Browse by goal", "目的から探す", "Explorar por objetivo", "按目标浏览", "목표별로 찾기"),
+    "homeValueEyebrow": ("CONTENT TYPES", "コンテンツの種類", "TIPOS DE CONTENIDO", "内容类型", "콘텐츠 유형"),
+    "homeValueTitle": ("What you can use on BSV", "BSVで使えるもの", "Lo que puedes usar en BSV", "在 BSV 上可以使用的内容", "BSV에서 쓸 수 있는 것"),
+    "homeValueLead": ("Content types across the categories above. Everything listed here is free to use; source and downloads need a verified email.",
+                      "上のカテゴリーをまたぐ、コンテンツの種類です。ここに挙げたものはすべて無料で使えます。ソースやダウンロードにはメール確認が必要です。",
+                      "Tipos de contenido de las categorías anteriores. Todo lo que aparece aquí es gratuito; el código fuente y las descargas requieren un correo verificado.",
+                      "以上各类别中的内容类型。这里列出的都可免费使用；查看源码和下载需要验证邮箱。",
+                      "위 카테고리 전반의 콘텐츠 유형입니다. 여기 있는 것은 모두 무료이며, 소스와 다운로드에는 이메일 인증이 필요합니다."),
+    "siteSearchPh": ("Search tools, workflows, AI agents, research…", "ツール・ワークフロー・AIエージェント・調査を検索", "Busca herramientas, flujos, agentes de IA, investigación…", "搜索工具、工作流、AI 智能体、研究…", "도구, 워크플로, AI 에이전트, 리서치 검색…"),
+    "siteSearchHint": ("Searches the whole site: tools, workflows, AI agents, research guides and the Build Library", "サイト全体を検索します（ツール、ワークフロー、AIエージェント、調査ガイド、Build Library）",
+                       "Busca en todo el sitio: herramientas, flujos, agentes de IA, guías y la Build Library", "搜索全站：工具、工作流、AI 智能体、研究指南和 Build Library",
+                       "사이트 전체 검색: 도구, 워크플로, AI 에이전트, 리서치 가이드, Build Library"),
+}
+# key, href, href_ja (optional), coming_soon, title en/ja/es/zh/ko, sub en/ja/es/zh/ko
+GOALS = [
+    ("ai_workflow", "/library/workflows/", None, False,
+     ("Build an AI workflow", "AIワークフローを組む", "Crear un flujo de trabajo de IA", "搭建 AI 工作流", "AI 워크플로 만들기"),
+     ("Steps for n8n, Dify, Flowise and more", "n8n・Dify・Flowiseなどで使える手順", "Pasos para n8n, Dify, Flowise y más", "适用于 n8n、Dify、Flowise 等的步骤", "n8n, Dify, Flowise 등에서 쓰는 단계")),
+    ("find_trading_tool", "/trading/tools/", None, False,
+     ("Find trading tools", "トレード用ツールを探す", "Buscar herramientas de trading", "查找交易工具", "트레이딩 도구 찾기"),
+     ("Filter by job and platform", "用途・プラットフォームで絞り込み", "Filtra por tarea y plataforma", "按用途和平台筛选", "용도와 플랫폼으로 필터")),
+    ("build_trading_tool", "/trading/tools/bsv-builder.html", None, False,
+     ("Build your own trading tool", "自分のツールを作る", "Crear tu propia herramienta de trading", "打造自己的交易工具", "나만의 트레이딩 도구 만들기"),
+     ("Generate code from a recipe in your browser", "ブラウザでレシピからコードを生成", "Genera código desde una receta en el navegador", "在浏览器中根据配方生成代码", "브라우저에서 레시피로 코드 생성")),
+    ("robot_poc", "/robot-pilot/", None, False,
+     ("Plan a robot PoC in simulation", "ロボットのPoCをシミュレーションで", "Planificar una PoC robótica en simulación", "在仿真中规划机器人 PoC", "시뮬레이션으로 로봇 PoC 계획"),
+     ("Practise teleoperation before real hardware", "実機の前に、遠隔操作を練習", "Practica la teleoperación antes del hardware real", "先练习遥操作，再上真机", "실제 하드웨어 전에 원격 조작 연습")),
+    ("compare", "/trading/guides/tradingview-alternatives/", "/trading/ja/guides/tradingview-alternatives/", False,
+     ("Compare platforms and approaches", "技術や道具を比べる", "Comparar plataformas y enfoques", "比较平台与方案", "플랫폼과 접근법 비교"),
+     ("Check official sources before you choose", "選ぶ前に、公式情報で比較", "Consulta fuentes oficiales antes de elegir", "选择前先查官方资料", "선택 전에 공식 자료 확인")),
+    ("agent_sdks", "/library/toolkit/", None, False,
+     ("Find agent SDKs and frameworks", "エージェントのSDKを探す", "Encontrar SDK y frameworks de agentes", "查找智能体 SDK 与框架", "에이전트 SDK·프레임워크 찾기"),
+     ("Templates grouped by framework", "フレームワーク別のテンプレート", "Plantillas agrupadas por framework", "按框架分组的模板", "프레임워크별 템플릿")),
+    ("medical_robotics", "/search/?q=medical%20robotics", None, True,
+     ("Evaluate medical robotics", "医療ロボティクスを検討する", "Evaluar robótica médica", "评估医疗机器人", "의료 로보틱스 검토"),
+     ("Coming soon · research & simulation only", "準備中・研究とシミュレーション用途のみ", "Próximamente · solo investigación y simulación", "即将推出 · 仅限研究与仿真", "준비 중 · 연구·시뮬레이션 전용")),
+]
+
+
+def home_i18n(c: dict) -> dict:
+    out = {lang: {} for lang in LANGS}
+    for i, lang in enumerate(LANGS):
+        for k, vals in STATIC_I18N.items():
+            out[lang][k] = vals[i]
+        out[lang]["homeCatSoon"] = SOON[i]
+        out[lang]["homeCatResearchOnly"] = RESEARCH_ONLY[i]
+        for key, _, names in CATS:
+            out[lang][f"homeCat_{key}"] = names[i]
+            n = c[f"cat_{key}"]
+            out[lang][f"homeCatCount_{key}"] = UNITS[key][i].format(n=n) if n else SOON[i]
+        for key, _, _, _, title, sub in GOALS:
+            out[lang][f"homeGoal_{key}"] = title[i]
+            out[lang][f"homeGoalSub_{key}"] = sub[i]
+    return out
+
+
+def i(key: str, en: str, tag: str = "span", attrs: str = "") -> str:
+    return f'<{tag}{attrs} data-i18n="{key}">{html.escape(en)}</{tag}>'
+
+
+def categories(c: dict) -> str:
+    tiles = []
+    for key, href, names in CATS:
+        n = c[f"cat_{key}"]
+        live = n > 0 and href
+        h = href if live else "/search/?q=" + urllib.parse.quote(CAT_SEARCH.get(key, names[0].lower()))
+        status = i(f"homeCatCount_{key}", UNITS[key][0].format(n=n) if n else SOON[0], attrs=' class="bsv-home-cat-status"')
+        extra = i("homeCatResearchOnly", RESEARCH_ONLY[0], attrs=' class="bsv-home-cat-note"') if key == "healthcare" else ""
+        tiles.append(f'<a class="bsv-home-cat{"" if live else " bsv-home-cat-soon"}" href="{h}" data-evt="home_cat_{key}" data-bsv-cat="{key}" data-live="{n if live else 0}">'
+                     f'{i(f"homeCat_{key}", names[0], "strong")}{status}{extra}</a>')
+    return (f'{CATS_BEGIN}\n<section class="bsv-hub bsv-home-cats" id="bsv-categories" aria-labelledby="bsv-cats-title" data-bsv-categories>'
+            f'{i("homeCatsTitle", STATIC_I18N["homeCatsTitle"][0], "h2", " id=\"bsv-cats-title\"")}'
+            f'<nav class="bsv-home-cat-grid" aria-labelledby="bsv-cats-title">{"".join(tiles)}</nav>'
+            f'{i("homeCatsLead", STATIC_I18N["homeCatsLead"][0], "p", " class=\"bsv-home-value-note\"")}'
+            f'</section>\n{CATS_END}\n')
+
+
+def goals_block(audience_nav: str) -> str:
+    links = []
+    for key, href, href_ja, soon, title, sub in GOALS:
+        inner = f'<strong>{i(f"homeGoal_{key}", title[0])}</strong>{i(f"homeGoalSub_{key}", sub[0])}'
+        cls = ' class="bsv-home-goal-soon"' if soon else ""
+        if href_ja:
+            links.append(f'<a href="{href}"{cls} data-bsv-en data-evt="home_goal_{key}">{inner}</a>'
+                         f'<a href="{href_ja}"{cls} data-bsv-ja data-evt="home_goal_{key}">{inner}</a>')
+        else:
+            links.append(f'<a href="{href}"{cls} data-evt="home_goal_{key}">{inner}</a>')
+    return (f'{GOALS_BEGIN}\n<section class="bsv-hub bsv-home-goals" id="bsv-goals" aria-labelledby="bsv-goals-title" data-bsv-goals-section>'
+            f'{i("homeGoalsTitle", STATIC_I18N["homeGoalsTitle"][0], "h2", " id=\"bsv-goals-title\"")}'
+            f'{audience_nav.strip()}'
+            f'<nav class="bsv-hub-ai-paths" aria-labelledby="bsv-goals-title" data-bsv-goals>{"".join(links)}</nav>'
+            f'</section>\n{GOALS_END}\n')
 
 
 EVT_ADD = [  # existing elements that start the funnel: add data-evt only (no copy change)
@@ -218,14 +379,35 @@ def band() -> str:
             f'</section>\n{BAND_END}\n')
 
 
-def set_page_i18n(t: str) -> str:
+def set_page_i18n(t: str, c: dict) -> str:
     m = PAGE_I18N_RE.search(t)
     if not m:
         raise SystemExit("window.PAGE_I18N not found in index.html")
     d = json.loads(m.group(2))
-    for lang, kv in BAND_I18N.items():
-        d.setdefault(lang, {}).update(kv)
+    hi = home_i18n(c)
+    for lang in LANGS:
+        d.setdefault(lang, {}).update(BAND_I18N[lang])
+        d[lang].update(hi[lang])
     return t[:m.start(2)] + json.dumps(d, ensure_ascii=False, indent=1) + t[m.end(2):]
+
+
+def keep_nav(blockhtml: str) -> str:
+    """When removing an old generated block, keep the audience nav it carries (it is moved, not regenerated)."""
+    m = AUDIENCE_NAV_RE.search(blockhtml)
+    return m.group(0) if m else ""
+
+
+HEADER_INPUT_RE = re.compile(r'<input type="search" class="team-search team-search-hero" id="site-search-q"[^>]*>')
+HEADER_HINT_RE = re.compile(r'<span class="search-hint visually-hidden" id="search-scope-hint"[^>]*>[^<]*</span>')
+
+
+def header_search(t: str) -> str:
+    """Homepage header search copy for the whole product (owner P0 10/06): existing i18n placeholder support."""
+    ph, hint = STATIC_I18N["siteSearchPh"][0], STATIC_I18N["siteSearchHint"][0]
+    t = HEADER_INPUT_RE.sub(lambda m: (f'<input type="search" class="team-search team-search-hero" id="site-search-q" aria-describedby="search-scope-hint" name="q" '
+                                       f'placeholder="{html.escape(ph)}" data-i18n-placeholder="siteSearchPh" autocomplete="off" enterkeyhint="search" maxlength="200">'), t, count=1)
+    t = HEADER_HINT_RE.sub(f'<span class="search-hint visually-hidden" id="search-scope-hint" data-i18n="siteSearchHint">{html.escape(hint)}</span>', t, count=1)
+    return t
 
 
 def apply(site: Path) -> dict:
@@ -240,11 +422,18 @@ def apply(site: Path) -> dict:
     (css_dir / css_name).write_text(CSS)
     t = re.sub(re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n?", "", t, flags=re.S)
     t = re.sub(re.escape(BAND_BEGIN) + r".*?" + re.escape(BAND_END) + r"\n?", "", t, flags=re.S)
-    t = set_page_i18n(t)
+    t = re.sub(re.escape(CATS_BEGIN) + r".*?" + re.escape(CATS_END) + r"\n?", lambda m: keep_nav(m.group(0)), t, flags=re.S)
+    t = re.sub(re.escape(GOALS_BEGIN) + r".*?" + re.escape(GOALS_END) + r"\n?", lambda m: keep_nav(m.group(0)), t, flags=re.S)
+    navs = AUDIENCE_NAV_RE.findall(t)
+    if len(navs) != 1:
+        raise SystemExit(f"expected exactly one audience nav, found {len(navs)}")
+    t = AUDIENCE_NAV_RE.sub("", t, count=1)
+    t = set_page_i18n(t, c)
+    t = header_search(t)
     t = re.sub(re.escape(CSS_BEGIN) + r".*?" + re.escape(CSS_END), "", t, flags=re.S)
     if not HERO_RE.search(t):
         raise SystemExit("hero block not found in index.html")
-    t = HERO_RE.sub(lambda m: m.group(1) + band() + block(c), t, count=1)
+    t = HERO_RE.sub(lambda m: m.group(1) + band() + categories(c) + goals_block(navs[0]) + block(c), t, count=1)
     t = t.replace("</head>", f'{CSS_BEGIN}<link rel="stylesheet" href="/css/{css_name}">{CSS_END}</head>', 1)
     for rx, rep in EVT_ADD:
         evt = re.search(r'data-evt="([^"]+)"', rep).group(1)
