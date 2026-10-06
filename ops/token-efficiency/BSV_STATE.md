@@ -1,4 +1,32 @@
 # BSV compact state
+
+## OWNER GROWTH PIVOT — 2026-10-06 16:41 JST
+
+BSV is now in Phase 3/5: Growth Readiness. Product depth has outrun first-visit comprehension. Until the gate below is LIVE and verified, stop treating routine Trader-generator / AI-toolkit breadth expansion as the default P0. Continue only security, payment/auth correctness, compliance deadlines, broken-link/regression repair, and work required by this growth gate.
+
+Execution order:
+1. Rebuild the homepage first ~2 viewports around WHAT BSV GIVES THE USER, not Trader-first taxonomy.
+   - Hero must explain concrete value in ~5 seconds.
+   - Working EN: "Tools, workflows and AI agents for people building what’s next." / "Find, compare and use practical resources for AI, trading, robotics, healthcare, data, space, biotech and quantum."
+   - Working JA: "次に作るための、ツール・ワークフロー・AIエージェント。" / "AI、トレード、ロボティクス、ヘルスケア、データ、宇宙、バイオ、量子の実用リソースを、探す・比べる・使う。"
+   - Primary CTA: Explore what you can do / できることを見る.
+   - Secondary CTA: Browse all resources / すべてのリソースを見る.
+   - Do not put long TradingView/IB/legal notices in the first two viewports; keep accurate notices on the relevant Trader/seller surfaces.
+2. Add a compact "What BSV gives you" layer, using only live-backed primitives: Tools & code; Workflows; AI agents; Research & comparisons; Templates & checklists; Libraries & datasets.
+3. Add "Start with a goal" deep links to REAL useful surfaces only: build an AI workflow; find/build a trading tool; evaluate a robot deployment; plan a medical-robotics PoC; compare technical approaches; find SDKs/datasets/research. No dead marketing pages.
+4. Add field discovery only where the field has substantive LIVE content. AI, Trading and Robotics/Robot Pilot may be linked immediately if accurate. Medical Robotics requires the professional/simulation/research-safe surface. Data/Space/Biotech/Quantum must not be promoted as finished merely to complete a grid.
+5. Repair the currently known 15 missing .md/.json sample links in cross-ai research-desk-local before the growth gate is called complete.
+6. Add funnel instrumentation using existing analytics only (no paid dependency): hero CTA -> product primitive -> field/goal -> resource/workflow start -> register -> verified access where measurable.
+7. Regression QA: mobile + desktop; EN + JA; search; registration; Trader; AI; marketplace/build-library; Robot Pilot; source gates; internal links; provenance/license/status labels.
+8. Deploy once the batch is coherent, verify LIVE, fix failures, then run a cold-user review: after only the first ~2 viewports a new visitor must be able to state what BSV provides, whether it is relevant to them, and what to click next.
+
+Brand gate:
+- HOLD X bio, X header and final website hero visual repositioning until the LIVE product satisfies the above and Robotics/Medical Robotics is materially represented.
+- Prepare assets if useful, but do not let public claims outrun the product.
+
+Do not change pricing, wallets, 80/20, payment verification, auth/entitlements, or customer data as part of this growth tranche.
+Completion = verified LIVE behavior with exact SHA, deploy id, tests, URLs and observed result. Source-only work is not completion.
+
 - 10/06 10:16 JST LIVE deploy 6ac44805 (stage90, commit 8388ac9; 10/06 deploys 1/3): batches 37+38 + QC 10/06 link fixes. absolutize_links.py (384 files, 7816 links; idempotent) + test_links.py 31/0 in build_stage/quick_test; 7 hubs licenses -> /trading/guides/licenses.html (200); /trading/tools/index.html (112 links); /library/source -> register.html no relative links. LIVE: hubs 200, tools 200, health true, trader gated 73/0. #4 6007331874; email 45 INBOX 10:18 JST. Pre-existing: 15 missing .md/.json samples on cross-ai research-desk-local pages (not nesting; untouched). Backup deploy-pre90.
 
 - 10/06 09:04 JST batches 37+38 PREPARED, NOT DEPLOYED (10/06 prod deploys so far: 0/3). stage89 built from 0045738 (exit 0, /tmp/stage89.log; diff vs deploy = 32 files: n8n zip, handoff-check.7127c79d.js, bsv-builder.8690c00d.js, liquidity-sweep + generator zips + 3 gated items, coverage, toolkit json, transparency, trust json, llms.txt, search index). NEXT: promote stage89 with ONE prod deploy (mkdeploy.sh stage89/site after backup deploy-pre89; qa/deploy_prod.sh deploy "batch 37+38 ..."), LIVE: health, trader gated 72/0, changed files byte-equal (n8n zip, handoff-check js, builder js, 2 zips, n8n toolkit page, transparency). Then #4 comment + send_report45.py.
