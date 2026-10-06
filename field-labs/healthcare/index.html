@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Medical Robotics PoC Planner · BSV Field Labs</title>
+  <meta name="description" content="Build an editable, scenario-specific proof-of-concept plan for medical robotics research and simulation. English and Japanese. Runs in your browser.">
+  <link rel="stylesheet" href="../assets/labs.css">
+  <script src="../assets/labs.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/">BSV</a>
+    <a href="../" data-lab-link><span data-lang="en">Field Labs</span><span data-lang="ja">実践ラボ</span></a>
+    <div class="lang-toggle" aria-label="Language / 言語"><button type="button" data-set-lang="en">EN</button><button type="button" data-set-lang="ja">日本語</button></div>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">HEALTHCARE / MEDICAL ROBOTICS</p>
+      <h1><span data-lang="en">Turn a robot idea into a testable PoC.</span><span data-lang="ja">ロボットの構想を、検証できる計画へ。</span></h1>
+      <p class="lead"><span data-lang="en">Choose a task and a research setting. Get a concrete proof-of-concept plan with a baseline, failure scenarios, evidence to capture, and a decision rule.</span><span data-lang="ja">用途と研究環境を選ぶと、比較対象・失敗シナリオ・記録する証拠・判断基準を含む PoC 計画を作成できます。</span></p>
+    </section>
+    <div class="workspace">
+      <section class="panel" aria-labelledby="scope-heading">
+        <p class="eyebrow">01 / DEFINE</p>
+        <h2 id="scope-heading"><span data-lang="en">Scope the experiment</span><span data-lang="ja">検証範囲を決める</span></h2>
+        <form id="planner-form" class="stack">
+          <div class="field"><label for="use"><span data-lang="en">Task to investigate</span><span data-lang="ja">検証する用途</span></label>
+            <select id="use" name="use">
+              <option value="logistics" data-en="Supply delivery in a mock ward" data-ja="模擬病棟での物品搬送">Supply delivery in a mock ward</option>
+              <option value="handover" data-en="Operator handover and remote supervision" data-ja="操作者の引き継ぎ・遠隔監視">Operator handover and remote supervision</option>
+              <option value="positioning" data-en="Fixture positioning on a research bench" data-ja="研究ベンチでの治具の位置決め">Fixture positioning on a research bench</option>
+            </select>
+          </div>
+          <div class="field"><label for="environment"><span data-lang="en">Where the PoC will run</span><span data-lang="ja">PoC の実施環境</span></label>
+            <select id="environment" name="environment">
+              <option value="simulation" data-en="Digital simulation / recorded replay" data-ja="デジタルシミュレーション・記録再生">Digital simulation / recorded replay</option>
+              <option value="mock" data-en="Controlled mock room / mock corridor" data-ja="管理された模擬室・模擬廊下">Controlled mock room / mock corridor</option>
+              <option value="bench" data-en="Isolated bench with inert fixtures" data-ja="人体を使わない治具による隔離ベンチ">Isolated bench with inert fixtures</option>
+            </select>
+          </div>
+          <div class="field"><label for="owner"><span data-lang="en">Decision owner — a role, not a person's name</span><span data-lang="ja">判断を担当する役割（個人名は不要）</span></label><input id="owner" name="owner" maxlength="120" required autocomplete="off" value="Robotics research lead"></div>
+          <div class="field"><label for="criteria"><span data-lang="en">Success criteria for this PoC</span><span data-lang="ja">今回の PoC の成功条件</span></label><textarea id="criteria" name="criteria" rows="4" maxlength="1200" required aria-describedby="criteria-help">At least 18 of 20 simulated deliveries complete without assistance; all injected blockage cases end in a logged stop; report time and interventions against the baseline.</textarea><p id="criteria-help" class="muted"><span data-lang="en">Name the metric, threshold, denominator, and conditions. The example values are project hypotheses, not safety limits.</span><span data-lang="ja">指標・閾値・分母・条件を記入します。例示の数値は企画上の仮説であり、安全基準ではありません。</span></p></div>
+          <div class="grid"><button class="button" type="submit"><span data-lang="en">Generate plan</span><span data-lang="ja">計画を生成</span></button><button id="load-example" class="button secondary" type="button"><span data-lang="en">Load worked example</span><span data-lang="ja">記入例を読み込む</span></button></div>
+          <p class="muted"><span data-lang="en">Inputs stay in this page. Use project roles and synthetic scenarios; no patient information is needed.</span><span data-lang="ja">入力はこのページ内で処理します。担当の役割と模擬シナリオを使い、患者情報は入力しないでください。</span></p>
+        </form>
+      </section>
+      <section class="panel" aria-labelledby="result-heading">
+        <p class="eyebrow">02 / MAKE IT REVIEWABLE</p>
+        <h2 id="result-heading"><span data-lang="en">Your research brief</span><span data-lang="ja">研究計画のたたき台</span></h2>
+        <div id="plan-summary" class="result card" aria-live="polite"></div>
+        <div class="field"><label for="plan-output"><span data-lang="en">Editable plan — add your evidence and decisions</span><span data-lang="ja">編集できる計画 — 証拠と判断を追記</span></label><textarea id="plan-output" rows="22" spellcheck="false"></textarea></div>
+        <div class="grid"><button id="copy-plan" class="button" type="button"><span data-lang="en">Copy plan</span><span data-lang="ja">計画をコピー</span></button><button id="download-plan" class="button secondary" type="button"><span data-lang="en">Download .txt</span><span data-lang="ja">テキストを保存</span></button></div>
+        <p id="plan-status" class="muted" role="status"></p>
+      </section>
+    </div>
+    <section class="panel" aria-labelledby="choices-heading">
+      <p class="eyebrow">CHOOSE THE RIGHT QUESTION</p>
+      <h2 id="choices-heading"><span data-lang="en">Three uses. Three different kinds of evidence.</span><span data-lang="ja">用途が違えば、必要な証拠も変わる。</span></h2>
+      <div class="grid">
+        <article class="card"><h3><span data-lang="en">Supply delivery</span><span data-lang="ja">物品搬送</span></h3><p><span data-lang="en">Start with completed deliveries per attempt, interventions, and end-to-end time. A fast route is not useful if a blocked doorway silently strands the load. Compare the same layout and dummy payload against a simple scripted route.</span><span data-lang="ja">試行あたりの搬送完了数、介入回数、開始から完了までの時間を調べます。経路が速くても、塞がれた入口で荷物が止まり、通知もなければ実用性はありません。同じ配置・模擬荷物で単純な固定経路と比較します。</span></p></article>
+        <article class="card"><h3><span data-lang="en">Operator handover</span><span data-lang="ja">操作者の引き継ぎ</span></h3><p><span data-lang="en">Measure whether the receiving operator can identify the current mode, pending task, and control owner. Completion time alone can conceal a dangerous ambiguity: both operators believe the other has control. Capture mode changes and acknowledgements.</span><span data-lang="ja">受け手が現在のモード、保留タスク、操作権の所在を把握できるかを確認します。所要時間だけでは、双方が「相手が操作中」と思い込む曖昧さを見落とします。モード変更と確認応答を記録します。</span></p></article>
+        <article class="card"><h3><span data-lang="en">Fixture positioning</span><span data-lang="ja">治具の位置決め</span></h3><p><span data-lang="en">Separate repeatability from accuracy. Repeatedly reaching the same wrong position can look stable. Record a reference coordinate, measurement uncertainty, and errors across target positions using inert fixtures.</span><span data-lang="ja">繰り返し精度と正確さを分けて考えます。毎回同じ誤った位置に到達しても、動きは安定して見えます。人体を使わない治具で、基準座標、測定の不確かさ、目標位置ごとの誤差を記録します。</span></p></article>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="example-heading">
+      <p class="eyebrow">WORKED EXAMPLE / SYNTHETIC</p>
+      <h2 id="example-heading"><span data-lang="en">A delivery robot that succeeds 18 times out of 20</span><span data-lang="ja">20 回中 18 回の搬送に成功したら？</span></h2>
+      <p><span data-lang="en">Suppose a simulated supply robot completes 18 of 20 nominal runs, matching the draft target. In two additional blocked-door cases, one run never records a stop. The project has met its nominal completion target but failed its separate interruption criterion. The useful next step is to fix the state transition and repeat the affected cases, while keeping both failures in the record.</span><span data-lang="ja">搬送シミュレーションが通常条件で 20 回中 18 回完了し、仮の目標を達成したとします。しかし追加の入口閉塞テスト 2 回のうち、1 回で停止が記録されませんでした。通常条件の完了目標は達成しても、中断条件は未達です。次は状態遷移を修正して該当条件を再試行し、失敗した記録も残します。</span></p>
+      <p class="muted"><span data-lang="en">These are invented outcomes for teaching the decision process. Twenty runs are not a sample-size recommendation and 90% is not an acceptable clinical performance claim.</span><span data-lang="ja">判断方法を説明する架空の結果です。20 回は推奨サンプル数ではなく、90% を臨床性能の合格基準とするものでもありません。</span></p>
+      <ol class="steps"><li><span data-lang="en">Before running: agree the comparison, conditions, stop rules, and who reviews failures.</span><span data-lang="ja">実施前：比較対象、条件、中止基準、失敗の確認担当を決める。</span></li><li><span data-lang="en">During the PoC: preserve every attempt, including resets and interventions, under a run ID.</span><span data-lang="ja">実施中：リセットや介入を含む全試行を、試行 ID とともに保存する。</span></li><li><span data-lang="en">At review: decide whether to revise, repeat, or investigate the next question. A research PoC does not establish clinical safety or readiness for deployment.</span><span data-lang="ja">レビュー時：修正、再試行、次の問いの検証のいずれかを決める。研究 PoC の結果だけで臨床上の安全性や導入可否は判断できません。</span></li></ol>
+    </section>
+    <section class="sources" aria-labelledby="sources-heading">
+      <h2 id="sources-heading"><span data-lang="en">Why these questions appear in the plan</span><span data-lang="ja">計画にこの観点を入れる理由</span></h2>
+      <p><span data-lang="en">The FDA human-factors overview separates users, environments, and interfaces. Its bench-testing guidance addresses documentation of bench performance tests and has a different scope from human factors or computational modeling. This worksheet uses those distinctions as reading context; its scenarios and decision template are original BSV research-planning material.</span><span data-lang="ja">FDA のヒューマンファクター概説は、使用者・環境・インターフェースを分けて扱います。ベンチ試験のガイダンスは試験記録を扱い、ヒューマンファクターや計算モデルとは対象範囲が異なります。本ツールはその区別を参考にし、シナリオと判断テンプレートは BSV 独自の研究計画用資料として作成しています。</span></p>
+      <ul><li><a href="https://www.fda.gov/medical-devices/human-factors-and-medical-devices/human-factors-considerations" target="_blank" rel="noopener noreferrer">FDA — Human Factors Considerations</a></li><li><a href="https://www.fda.gov/regulatory-information/search-fda-guidance-documents/recommended-content-and-format-non-clinical-bench-performance-testing-information-premarket" target="_blank" rel="noopener noreferrer">FDA — Non-Clinical Bench Performance Testing Information</a></li></ul>
+    </section>
+  </main>
+  <footer class="muted"><p>BSV Field Labs · <span data-lang="en">Original working tools. Local browser processing.</span><span data-lang="ja">実践のためのオリジナルツール。ブラウザ内で処理。</span></p></footer>
+</div>
+</body>
+</html>
