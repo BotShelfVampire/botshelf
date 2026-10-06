@@ -390,6 +390,13 @@ def search(site, counts, lb):
                 raise SystemExit(f"search page script changed; cannot patch: {a}")
             js = js.replace(a, b)
     (site / "js" / new_js).write_text(js)
+    if js_name != new_js:
+        # build_live_toolkit copies the currently referenced (already patched) script to its own older name; restore
+        # that published, immutable file to its unpatched form so a rebuild never changes its bytes.
+        base_js = pj
+        for a, b in SEARCH_JS_PATCH:
+            base_js = base_js.replace(b, a)
+        (site / "js" / js_name).write_text(base_js)
     btn = '<button type="button" role="tab" data-scope="fields" data-en="Fields &amp; labs" data-ja="分野・ラボ">Fields &amp; labs</button>'
     if 'data-scope="fields"' not in sh:
         anchor = re.search(r'<button type="button" role="tab" data-scope="build"[^>]*>[^<]*</button>', sh).group(0)
