@@ -342,6 +342,55 @@
     "wrote 37 events from USGS feed -> quakes_day.csv (public domain USGS)"
    ],
    "stderr_tail": []
+  },
+  "fhir_bundle_flatten.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:16",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote labeled synthetic FHIR Bundle: sample_fhir_bundle_labeled.json",
+    "flattened 1 patients, 2 observations -> fhir_patients.csv, fhir_observations.csv"
+   ],
+   "stderr_tail": []
+  },
+  "dicom_tag_inventory.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:16",
+   "seconds": 0.3,
+   "stdout_tail": [
+    "inventoried 262 elements from CT_small.dcm -> dicom_tags.csv"
+   ],
+   "stderr_tail": []
+  },
+  "open_fda_label_pull.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:16",
+   "seconds": 0.7,
+   "stdout_tail": [
+    "wrote 1 OpenFDA label md file(s) + openfda_index.csv for query='aspirin'"
+   ],
+   "stderr_tail": []
+  },
+  "clinicaltrials_robot_brief.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:16",
+   "seconds": 0.4,
+   "stdout_tail": [
+    "wrote 5 trials for term='surgical robot' -> trials_brief.csv (ClinicalTrials.gov API v2)"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
