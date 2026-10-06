@@ -631,6 +631,102 @@
     "wrote 3 Ising ZZ points, max |err|=3.33e-16 -> ising_zz.csv"
    ],
    "stderr_tail": []
+  },
+  "pid_step_response.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:12",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote 80 PID samples final_y=0.7967 -> pid_step.csv"
+   ],
+   "stderr_tail": []
+  },
+  "manip_ellipse_2r.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:12",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote 576 configs max|detJ|=0.01197 at q=(-1.229,1.503) -> manip_ellipse.csv"
+   ],
+   "stderr_tail": []
+  },
+  "trapezoid_velocity_profile.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:12",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote 251 samples t_total=2.5000s vmax_used=0.5000 -> trap_profile.csv"
+   ],
+   "stderr_tail": []
+  },
+  "umeyama_align_2d.py": {
+   "field": "robotics",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:12",
+   "seconds": 0.2,
+   "stdout_tail": [
+    "Umeyama s=1.3012 ang=34.90deg rmse=0.0282 -> umeyama_2d.csv"
+   ],
+   "stderr_tail": []
+  },
+  "open_notify_iss_now.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:12",
+   "seconds": 0.1,
+   "stdout_tail": [
+    "ISS now lat=-8.1095 lon=171.5972 -> iss_now.csv"
+   ],
+   "stderr_tail": []
+  },
+  "sunrise_sunset_day.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:12",
+   "seconds": 0.2,
+   "stdout_tail": [
+    "2026-10-06 lat=35.68 lon=139.76 sunrise=2026-10-05T20:38:23+00:00 -> sunrise_sunset.csv"
+   ],
+   "stderr_tail": []
+  },
+  "julian_day_sample.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:12",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "2026-10-07 -> JD 2461320.5 -> julian_day.csv"
+   ],
+   "stderr_tail": []
+  },
+  "toy_ground_track.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 03:12",
+   "seconds": 0.0,
+   "stdout_tail": [
+    "wrote 48 toy ground-track points period=92.0min -> ground_track.csv"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
