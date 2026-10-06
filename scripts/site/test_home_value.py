@@ -43,7 +43,43 @@ def main():
     ok(t.count(H.BAND_BEGIN) == 1 and t.count(H.BAND_END) == 1, "exactly one hero band")
     ok(hero_end < b0 < b1 < i0, "order: hero image -> band -> value block")
     ok(t[hero_end:b0].replace("</picture>", "").replace("</div>", "").strip() == "", "band sits directly under the hero image (no text over the image)")
-    ok(t[b1 + len(H.BAND_END):i0].strip() == "", "value block directly follows the band")
+    c0, c1 = t.find(H.CATS_BEGIN), t.find(H.CATS_END); g0, g1 = t.find(H.GOALS_BEGIN), t.find(H.GOALS_END)
+    ok(t.count(H.CATS_BEGIN) == 1 and t.count(H.GOALS_BEGIN) == 1, "one categories block, one goals block")
+    ok(b1 < c0 < c1 < g0 < g1 < i0, "order: band -> categories -> goals -> content types (value)")
+    ok(t[b1 + len(H.BAND_END):c0].strip() == "" and t[c1 + len(H.CATS_END):g0].strip() == "" and t[g1 + len(H.GOALS_END):i0].strip() == "", "blocks are contiguous")
+    cats, goals = t[c0:c1], t[g0:g1]
+    hdr = t[t.find("<header>"):t.find("</header>")]
+    ok("data-bsv-audience-nav" not in hdr and t.count("data-bsv-audience-nav") == 1 and "data-bsv-audience-nav" in goals, "Trader / AI shortcut cards moved out of the top into the goals section")
+    tiles = re.findall(r'<a class="(bsv-home-cat(?: bsv-home-cat-soon)?)" href="([^"]+)" data-evt="home_cat_([a-z]+)" data-bsv-cat="\3" data-live="(\d+)">(.*?)</a>', cats)
+    ok([x[2] for x in tiles] == [k for k, _, _ in H.CATS] == ["ai", "trading", "robotics", "healthcare", "data", "space", "biotech", "quantum"], f"8 peer categories in order ({[x[2] for x in tiles]})")
+    cc = H.counts(s)
+    for cls, href, key, live, inner in tiles:
+        cn = cc[f"cat_{key}"]
+        ok(int(live) == cn, f"category {key}: data-live {live} == recomputed {cn}")
+        if cn:
+            ok(cls == "bsv-home-cat" and str(cn) in inner, f"category {key}: live count shown")
+            p_ = urllib.parse.urlparse(href).path; f_ = s / p_.lstrip("/")
+            ok((f_ / "index.html").exists() if p_.endswith("/") else f_.exists(), f"category {key}: link exists {href}")
+        else:
+            ok(cls.endswith("bsv-home-cat-soon") and href.startswith("/search/?q=") and "Coming soon" in inner and not re.search(r"\d", re.sub(r"<[^>]+>", "", inner)), f"category {key}: honest Coming soon, no number, search link")
+    ok("homeCatResearchOnly" in cats and re.search(r'data-bsv-cat="healthcare"[^>]*>.*?Research &amp; simulation only', cats), "healthcare tile says research & simulation only")
+    ok(len({tuple(re.findall(r"<(\w+) class=\"?([\w-]*)|<(strong)", x[4])) for x in tiles if x[0] == "bsv-home-cat"}) == 1, "live tiles share one markup (peer-level)")
+    REWARD = re.compile(r"referral|紹介報酬|IB reward|rebate|キャッシュバック|cure|treat|diagnos|治療|診断|guarantee|保証", re.I)
+    ok(not REWARD.search(re.sub(r"<[^>]+>", " ", cats + goals)), "categories / goals: no reward or medical claims")
+    for k in ("ai_workflow", "find_trading_tool", "build_trading_tool", "robot_poc", "compare", "agent_sdks", "medical_robotics"):
+        ok(f'data-evt="home_goal_{k}"' in goals, f"goal {k}")
+    ok(re.search(r'<a href="/search/\?q=medical%20robotics" class="bsv-home-goal-soon" data-evt="home_goal_medical_robotics">', goals), "medical robotics goal = coming soon (search link)")
+    m_ = H.PAGE_I18N_RE.search(t); pj = json.loads(m_.group(2)) if m_ else {}
+    hi = H.home_i18n(cc)
+    for lang in H.LANGS:
+        ok(all(pj.get(lang, {}).get(k) == v and v for k, v in hi[lang].items()), f"PAGE_I18N[{lang}] has every category / goal / heading string")
+    for key in re.findall(r'data-i18n="(home[A-Za-z_]+|siteSearch\w+|heroBand\w+)"', t):
+        ok(all(key in pj.get(lang, {}) for lang in H.LANGS), f"i18n key {key} in 5 languages")
+    for k_ in hi["en"]:
+        ok(len({hi[lang][k_] for lang in ("en", "ja")}) == 2 or k_ in ("homeCat_ai",), f"EN/JA differ for {k_}")
+    ok('data-i18n-placeholder="siteSearchPh"' in hdr and "Search EA, indicators, AI teams" not in hdr, "header search copy covers the whole product")
+    allnums = {int(x) for x in re.findall(r"(?<![\w.#%-])(\d+)(?![\w.%-])", re.sub(r"<[^>]+>", " ", cats + goals))}
+    ok(allnums <= {v for v in cc.values() if isinstance(v, int)}, f"category numbers all from live counts: {allnums}")
     band = t[b0:b1]
     ok("<picture" not in band and "<img" not in band and "style=" not in band, "band: text only, no image, no inline style")
     ok('href="#what-bsv-gives" data-evt="home_hero_cta_explore" data-i18n="heroBandCtaExplore"' in band, "primary CTA -> #what-bsv-gives with data-evt")
@@ -77,24 +113,22 @@ def main():
     ok(c["library_total"] == len(json.loads((s / "library/search-index.json").read_text())) and c["library_all_free"], "library counts from search-index, all free")
     # links + funnel markers
     anchors = re.findall(r"<a\s([^>]*)>", blk)
+    anchors += re.findall(r"<a\s([^>]*)>", goals)
     ok(len(anchors) >= 20, f"links present ({len(anchors)})")
     for at in anchors:
         h = re.search(r'href="([^"]*)"', at).group(1)
-        ok(h.startswith("/") and not h.startswith("//"), f"root-absolute link {h}")
+        ok((h.startswith("/") and not h.startswith("//")) or re.fullmatch(r"#[a-z-]+", h) and f'id="{h[1:]}"' in t, f"root-absolute link {h}")
         p = urllib.parse.urlparse(h).path; f = s / p.lstrip("/")
-        ok((f / "index.html").exists() if p.endswith("/") else f.exists(), f"link target exists {h}")
+        ok(h.startswith("#") or (f / "index.html").exists() if p.endswith("/") or not p else f.exists(), f"link target exists {h}")
         ok(re.search(r'data-evt="home_[a-z_]+"', at), f"data-evt on {h}")
     for k in ("tools", "workflows", "agents", "templates", "research", "robotics"):
         ok(f'data-evt="home_primitive_{k}"' in blk, f"primitive {k}")
-    for k in ("ai_workflow", "find_trading_tool", "build_trading_tool", "robot_practice", "compare", "agent_sdks"):
-        ok(f'data-evt="home_goal_{k}"' in blk, f"goal {k}")
-    for k in ("ai", "trading", "robotics"):
-        ok(f'data-evt="home_field_{k}"' in blk, f"field {k}")
+    ok("CONTENT TYPES" in blk and "home_goal_" not in blk and "home_field_" not in blk, "value block = content types only (no goals / fields)")
     for e in ("home_hero_cta_browse", "home_hero_cta_explore", "home_hero_cta_browse_all", "home_audience_trading", "home_audience_ai", "home_register_header"):
         ok(t.count(f'data-evt="{e}"') == 1, f"existing funnel entry marked once: {e}")
     # bilingual
     ja, en = blk.count("data-bsv-ja"), blk.count("data-bsv-en")
-    ok(ja == en and ja >= 30, f"JA/EN pairs balanced ({ja}/{en})")
+    ok(ja == en and ja >= 24, f"JA/EN pairs balanced ({ja}/{en})")
     # CSS
     m = re.search(r'href="/css/(home-value\.[0-9a-f]{8}\.css)"', t)
     ok(m and (s / "css" / m.group(1)).exists(), "value css linked and shipped")
