@@ -98,6 +98,25 @@ ITEMS = {
   "ご自身の Grok Bot。",
   "Free after email register. No key.",
   "メール登録後に無料。鍵は不要。"),
+
+ "saas-seat-waste-finder.html": box(
+  "A pasted SaaS roster or invoice-style seat list (who has which seat / last activity if you have it).",
+  "SaaSの名簿や請求ベースの席リスト（誰がどの席か、あれば最終利用）。",
+  "A short list of seats that look unused, for a human to review. It does not cancel anything.",
+  "使われていなさそうな席の短い洗い出し（人が確認する用）。解約はしません。",
+  "Your own Grok Bot, Claude, or ChatGPT (paste the unlocked body into Description / instructions / Custom Instructions).",
+  "ご自身の Grok Bot・Claude・ChatGPT（解除された本文を Description / 指示 / Custom Instructions に貼る）。",
+  "Free after email register (unlocks the body on this page). No key. No USDT.",
+  "メール登録後に無料（このページの本文が開く）。鍵不要。USDT不要。"),
+ "gpt-thread-rewrite.html": box(
+  "A draft social post or thread that already has the ideas but needs clearer wording.",
+  "内容はあるが、文章の流れや伝わり方を整えたい書きかけのSNS投稿・スレッド。",
+  "A clearer rewrite of that draft. You still review and post it yourself.",
+  "読みやすく整えた書き直し。投稿するのはあなた自身です。",
+  "Your own ChatGPT (preferred: Settings → Custom Instructions; Custom GPT only if your workspace allows).",
+  "ご自身の ChatGPT（推奨: 設定 → カスタム指示。Custom GPT はワークスペースが許可する場合のみ）。",
+  "Free after email register (unlocks the body). No key. No USDT.",
+  "メール登録後に無料（本文が開く）。鍵不要。USDT不要。"),
 }
 
 RP_BOX = box(
