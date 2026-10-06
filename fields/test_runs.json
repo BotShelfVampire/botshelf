@@ -1,0 +1,210 @@
+{
+ "runs": {
+  "afdb_confidence.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:36",
+   "seconds": 0.8,
+   "stdout_tail": [
+    "P00533 Epidermal growth factor receptor model AF-P00533-F1 (1210 residues), source https://alphafold.ebi.ac.uk/files/AF-P00533-F1-model_v6.pdb",
+    "  very high   573 residues (47.4%)",
+    "  confident   282 residues (23.3%)",
+    "  low          79 residues (6.5%)",
+    "  very low    276 residues (22.8%)",
+    "  stretches of >=10 residues below pLDDT 50: 16-25, 639-649, 682-702, 990-1006, 1019-1210"
+   ],
+   "stderr_tail": []
+  },
+  "chembl_screen.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:38",
+   "seconds": 71.3,
+   "stdout_tail": [
+    "CHEMBL203: 60 compounds profiled, 59 pass rule-of-five (<=1 violation) -> screen_CHEMBL203.csv",
+    "top by QED: CHEMBL52829 0.795"
+   ],
+   "stderr_tail": []
+  },
+  "pubmed_digest.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 1.6,
+   "stdout_tail": [
+    "19 papers -> digest_2026-10-06.md"
+   ],
+   "stderr_tail": []
+  },
+  "uniprot_profile.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 1.4,
+   "stdout_tail": [
+    "- Length: 142 aa",
+    "- Molecular weight: 15,257.4 Da",
+    "- Theoretical pI: 8.72",
+    "- GRAVY (hydropathy): 0.048",
+    "- Instability index: 7.0 (predicted stable (<=40))",
+    "- Aromaticity: 0.077"
+   ],
+   "stderr_tail": []
+  },
+  "dicom_deid_audit.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 1.4,
+   "stdout_tail": [
+    "CT_small_deid.dcm: 6 fields changed, 179 private tags removed; dates/UIDs untouched (see next step)",
+    "pixel data kept: True, image 128x128"
+   ],
+   "stderr_tail": []
+  },
+  "mujoco_probe_reach.py": {
+   "field": "healthcare",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 0.7,
+   "stdout_tail": [
+    "{'target_mm': '150,60', 'time_to_tol_s': 0.122, 'settled_at_s': 0.122, 'final_err_mm': 0.0, 'overshoot_mm': 47.004, 'reached': True}",
+    "{'target_mm': '120,-80', 'time_to_tol_s': 0.16, 'settled_at_s': 0.16, 'final_err_mm': 0.0, 'overshoot_mm': 0.0, 'reached': True}",
+    "{'target_mm': '180,0', 'time_to_tol_s': 0.158, 'settled_at_s': 0.158, 'final_err_mm': 0.0, 'overshoot_mm': 0.0, 'reached': True}",
+    "{'target_mm': '90,120', 'time_to_tol_s': 0.152, 'settled_at_s': 0.152, 'final_err_mm': 0.0, 'overshoot_mm': 0.0, 'reached': True}"
+   ],
+   "stderr_tail": []
+  },
+  "bell_noise_qiskit.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 1.0,
+   "stdout_tail": [
+    "ideal {'00': 1998, '11': 2002}  correlated share 1.000",
+    "noisy {'00': 1891, '01': 100, '10': 116, '11': 1893}  correlated share 0.946"
+   ],
+   "stderr_tail": []
+  },
+  "grover_qiskit.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "N=8, iterations=2, marked=101",
+    "measured success 0.947  theory 0.945  random guess 0.125"
+   ],
+   "stderr_tail": []
+  },
+  "qaoa_maxcut_pennylane.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 4.2,
+   "stdout_tail": [
+    "{\"edges\": [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [0, 2]], \"p\": 2, \"most_likely\": \"00101\", \"its_cut\": 5, \"brute_force_max_cut\": 5, \"prob_on_optimal_cuts\": 0.7055, \"random_guess_prob\": 0.125}"
+   ],
+   "stderr_tail": []
+  },
+  "vqe_h2_pennylane.py": {
+   "field": "quantum",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 2.5,
+   "stdout_tail": [
+    "qubits 4, terms 15",
+    "HF start   -1.116759 Ha",
+    "VQE final  -1.137284 Ha  (theta = 0.2256)",
+    "exact      -1.137284 Ha  (same Hamiltonian, numpy eigvalsh)",
+    "error      0.000 mHa  (chemical accuracy is about 1.6 mHa)"
+   ],
+   "stderr_tail": []
+  },
+  "iss_passes.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 6.1,
+   "stdout_tail": [
+    "ISS (ZARYA): TLE age 0.59 d, 4 passes above 10.0 deg in 24 h -> passes_25544.csv"
+   ],
+   "stderr_tail": []
+  },
+  "kp_watch.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "60 readings in feed, 60 new logged; latest 2026-10-06T09:00:00 Kp=2.67",
+    "AT/ABOVE THRESHOLD: 2026-10-04T09:00:00 5.0",
+    "AT/ABOVE THRESHOLD: 2026-10-04T18:00:00 5.67",
+    "AT/ABOVE THRESHOLD: 2026-10-05T03:00:00 5.33"
+   ],
+   "stderr_tail": []
+  },
+  "neo_brief.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "wrote neo_brief_2026-10-06.md with 14 approaches"
+   ],
+   "stderr_tail": []
+  },
+  "s2_scene_finder.py": {
+   "field": "space",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-06 23:37",
+   "seconds": 1.1,
+   "stdout_tail": [
+    "1 scenes under 20% cloud -> scenes.csv",
+    "least cloudy: S2B_54SUE_20260824_0_L2A 10.244737"
+   ],
+   "stderr_tail": []
+  }
+ },
+ "python": "Python 3.13.5",
+ "versions": {
+  "mujoco": "3.15.0",
+  "pydicom": "3.0.2",
+  "rdkit": "2026.3.6",
+  "biopython": "1.88",
+  "skyfield": "1.55",
+  "pystac-client": "0.9.0",
+  "qiskit": "2.5.2",
+  "qiskit-aer": "0.17.2",
+  "pennylane": "0.45.1",
+  "numpy": "2.5.3"
+ }
+}
