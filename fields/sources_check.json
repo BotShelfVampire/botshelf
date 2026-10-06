@@ -322,5 +322,49 @@
  "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=json": {
   "status": 200,
   "checked_jst": "2026-10-07"
+ },
+ "https://pubchem.ncbi.nlm.nih.gov/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/aspirin/property/MolecularWeight/JSON": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://mygene.info/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://mygene.info/v3/query?q=symbol:TP53&species=human": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://www.ebi.ac.uk/pdbe/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://www.ebi.ac.uk/pdbe/api/doc/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/1cbs": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://string-db.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://string-db.org/help/api/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://string-db.org/api/json/network?identifiers=TP53&species=9606&limit=5": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
  }
 }

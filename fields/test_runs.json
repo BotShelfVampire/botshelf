@@ -439,6 +439,54 @@
     "wrote 714 X-ray samples (latest 2026-10-06T17:15:00Z) -> xray_flux.csv (NOAA SWPC)"
    ],
    "stderr_tail": []
+  },
+  "pubchem_compound_props.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:22",
+   "seconds": 0.6,
+   "stdout_tail": [
+    "wrote 1 PubChem row(s) -> pubchem_aspirin.csv + .md"
+   ],
+   "stderr_tail": []
+  },
+  "mygene_symbol_lookup.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:22",
+   "seconds": 0.6,
+   "stdout_tail": [
+    "wrote mygene_TP53.md + .json (1 hit(s)) for 'TP53'"
+   ],
+   "stderr_tail": []
+  },
+  "pdbe_entry_summary.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:22",
+   "seconds": 0.9,
+   "stdout_tail": [
+    "wrote pdbe_1cbs.md + .json for '1cbs'"
+   ],
+   "stderr_tail": []
+  },
+  "string_neighbors_brief.py": {
+   "field": "biotech",
+   "ok": true,
+   "exit": 0,
+   "files_ok": true,
+   "date_jst": "2026-10-07 02:22",
+   "seconds": 0.5,
+   "stdout_tail": [
+    "wrote 17 STRING edges for 'TP53' (taxid 9606) -> string_neighbors.csv"
+   ],
+   "stderr_tail": []
   }
  },
  "python": "Python 3.13.5",
