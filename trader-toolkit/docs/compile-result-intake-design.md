@@ -97,14 +97,14 @@ Review is no longer owner-only. Three reviewers:
 | Reviewer | How | Sees |
 |---|---|---|
 | Owner | header `x-admin-secret` (`LICENSE_ADMIN_SECRET`) | report + account id + account email (looked up at read time) |
-| BSV ops (BSV ops, on the box) | header `x-bsv-reviewer-key` = Netlify env `COMPILE_REVIEWER_KEY` (functions scope, production, secret). Box copy: `/workspace/newbobby-mail/.reviewer_key`, chmod 600, never committed | report + account id only |
+| BSV ops (on the box) | header `x-bsv-reviewer-key` = Netlify env `COMPILE_REVIEWER_KEY` (functions scope, production, secret). Box copy: `box-local reviewer-key file (chmod 600, never committed)`, chmod 600, never committed | report + account id only |
 | ChatGPT | hourly digest email from support@ (BSV ops's Gmail routine), new pending submissions only | report + account id only; email-like strings in free text redacted |
 
 Endpoints (both roles): `GET ?op=queue[&state=pending]`, `GET ?op=get&id=crp_...`, `POST ?op=review` with `{"id","decision","note"}`.
 Decisions: `approved-user-reported`, `rejected`, `needs-info`. There is no `verified` decision; every response carries `bsv_verified:false, public:false`.
 A missing or wrong key returns 401 (key compared as sha256 with a constant-time check; keys under 32 characters are refused).
 
-Box tool (not in the repo, because it sits next to the SMTP scripts): `/workspace/newbobby-mail/compile_reports_digest.py`
+Box tool (not in the repo, because it sits next to the SMTP scripts): `box-local digest tool (not in the repo)`
 
 ```
 python3 compile_reports_digest.py digest                 # write digests/compile-reports-<ts>.md (pending)
