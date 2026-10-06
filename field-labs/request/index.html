@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Request draft quality · BSV Field Labs</title>
+  <meta name="description" content="Draft a marketplace request with job, area, platform, inputs and outputs. See a completeness score and copy a cleaner draft into Request Market. Browser only.">
+  <link rel="stylesheet" href="../assets/labs.css">
+  <script src="../assets/labs.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/">BSV</a>
+    <a href="../" data-lab-link><span data-lang="en">← Field Labs</span><span data-lang="ja">← 実践ラボ</span></a>
+    <div class="lang-toggle" aria-label="Language"><button type="button" data-set-lang="en">EN</button><button type="button" data-set-lang="ja">日本語</button></div>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">MARKETPLACE / REQUESTS</p>
+      <h1><span data-lang="en">Write a request builders can act on.</span><span data-lang="ja">作り手が動けるリクエストを書く。</span></h1>
+      <p class="lead"><span data-lang="en">Fill job, area, platform, inputs and outputs. Get a completeness score and a cleaned draft to paste into <a href="/requests/#new">Request Market</a>. No send from this page — education and drafting only.</span><span data-lang="ja">やりたいこと・分野・プラットフォーム・入出力を埋めると、完成度スコアと清書ドラフトが出ます。<a href="/requests/#new">Request Market</a> に貼り付けてください。このページからは送信しません（下書き・教育用）。</span></p>
+    </section>
+    <div class="workspace">
+      <section class="panel">
+        <p class="eyebrow">01 / DRAFT</p>
+        <h2><span data-lang="en">What should it do?</span><span data-lang="ja">何をしてほしいか</span></h2>
+        <div class="field"><label for="job"><span data-lang="en">Job (20–2000 chars)</span><span data-lang="ja">仕事内容（20〜2000文字）</span></label>
+          <textarea id="job" rows="8" maxlength="2000" spellcheck="true">I need an n8n workflow that takes a CSV of support tickets, clusters similar subjects, and writes a weekly summary markdown file. Prefer free/open nodes. Output should be reproducible from the same CSV.</textarea></div>
+        <div class="grid">
+          <div class="field"><label for="area"><span data-lang="en">Area</span><span data-lang="ja">分野</span></label>
+            <select id="area">
+              <option value="trading">Trading tools</option>
+              <option value="ai-workflows" selected>AI workflows</option>
+              <option value="robotics">Robotics</option>
+              <option value="data-workflows">Data workflows</option>
+              <option value="robot-pilot">Robot pilot</option>
+              <option value="space">Space</option>
+              <option value="quantum">Quantum</option>
+              <option value="biotech">Biotech</option>
+              <option value="medical">Medical</option>
+              <option value="other">Other</option>
+            </select></div>
+          <div class="field"><label for="platforms"><span data-lang="en">Platform / runtime</span><span data-lang="ja">プラットフォーム</span></label>
+            <input id="platforms" type="text" maxlength="480" value="n8n" placeholder="TradingView, MT5, n8n…"></div>
+        </div>
+        <div class="grid">
+          <div class="field"><label for="inputs"><span data-lang="en">Inputs</span><span data-lang="ja">入力</span></label>
+            <input id="inputs" type="text" maxlength="960" value="CSV of tickets (subject, body, created_at)"></div>
+          <div class="field"><label for="outputs"><span data-lang="en">Outputs</span><span data-lang="ja">出力</span></label>
+            <input id="outputs" type="text" maxlength="960" value="weekly summary .md + cluster labels JSON"></div>
+        </div>
+        <div class="grid">
+          <button class="button" type="button" id="score"><span data-lang="en">Score draft</span><span data-lang="ja">ドラフトを採点</span></button>
+          <button class="button secondary" type="button" id="example"><span data-lang="en">Reload sample</span><span data-lang="ja">サンプルを再読込</span></button>
+        </div>
+      </section>
+      <section class="panel">
+        <p class="eyebrow">02 / RESULT</p>
+        <h2><span data-lang="en">Completeness</span><span data-lang="ja">完成度</span></h2>
+        <div id="result" class="result card" aria-live="polite"></div>
+        <div class="field"><label for="clean"><span data-lang="en">Cleaned job text</span><span data-lang="ja">清書した仕事内容</span></label>
+          <textarea id="clean" rows="10" readonly spellcheck="false"></textarea></div>
+        <div class="grid">
+          <button class="button" type="button" id="copy"><span data-lang="en">Copy cleaned job</span><span data-lang="ja">清書をコピー</span></button>
+          <a class="button secondary" id="goto" href="/requests/#new"><span data-lang="en">Open Request Market →</span><span data-lang="ja">Request Marketを開く →</span></a>
+        </div>
+        <div class="field"><label for="export">CSV</label><textarea id="export" rows="6" readonly spellcheck="false"></textarea></div>
+        <p id="status" class="muted" role="status"></p>
+        <p class="muted"><span data-lang="en">Does not submit a request. Sending still needs a verified email on <a href="/requests/#new">/requests/</a>. No escrow; a budget is not a payment.</span><span data-lang="ja">リクエストは送信しません。送信は <a href="/requests/#new">/requests/</a> でメール確認後に行います。エスクローはなく、予算は支払いではありません。</span></p>
+      </section>
+    </div>
+    <section class="sources">
+      <h2><span data-lang="en">Check the underlying ideas</span><span data-lang="ja">背景となる考え方を確認</span></h2>
+      <p><a href="/requests/">BSV Request Market</a> — <span data-lang="en">real reviewed requests only; counts from the store.</span><span data-lang="ja">確認済みの実リクエストのみ。件数は保存先から。</span></p>
+      <p><a href="/for-sellers.html">Seller guide</a> — <span data-lang="en">how paid listings work if someone builds it.</span><span data-lang="ja">作られた場合の有料出品の扱い。</span></p>
+      <p class="muted"><span data-lang="en">BSV original drafting aid. Checked 7 October 2026. Inputs stay in this browser.</span><span data-lang="ja">BSV独自の下書き補助。確認日：2026年10月7日。入力はこのブラウザー内に留まります。</span></p>
+    </section>
+  </main>
+  <footer>BotShelfVampire · Field Labs · <span data-lang="en">Draft only — not a submission.</span><span data-lang="ja">下書き専用。送信ではありません。</span></footer>
+</div>
+</body>
+</html>

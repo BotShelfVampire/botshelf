@@ -17,6 +17,7 @@ FIELDS = [
     ("data", "CSV profile playground", "CSVプロフィール・プレイグラウンド", "Paste a CSV and profile nulls, distinct counts and type guesses.", "CSVを貼り、欠損・ユニーク数・型推定をプロフィールする。"),
     ("space", "Satellite observation designer", "衛星データの観測プラン", "Compare public satellite data against your observation constraints.", "観測したい現象と条件から公開衛星データを比較。"),
     ("biotech", "Research reproducibility worksheet", "研究データの再現性チェック", "Identify missing evidence and export an analysis record.", "不足している記録を見つけ、再現のための解析記録を出力。"),
+    ("request", "Request draft quality", "リクエスト下書きの完成度", "Score a marketplace request draft and copy a cleaner job text.", "マーケットのリクエスト下書きを採点し、清書をコピーする。"),
     ("ai", "Context budget playground", "コンテキスト予算プレイグラウンド", "Estimate rough tokens for a prompt or context pack against common windows.", "プロンプトやコンテキストパックの概算トークンを、よくある枠と照らす。"),
     ("trading", "Risk & R-multiple playground", "リスクとR倍数プレイグラウンド", "Size a trade from equity, risk %, entry and stop; export a plan CSV.", "資金・リスク％・エントリー・損切りから数量を出し、計画CSVを書き出す。"),
     ("quantum", "Quantum state explorer", "量子状態を動かす実験室", "Explore how phase changes ideal X and Z measurement probabilities.", "位相によるX・Z測定の確率の違いを、その場で操作。"),
@@ -87,6 +88,18 @@ def build(site: Path, source: Path) -> dict:
             else:
                 html = chip + html
             toolkit.write_text(html, encoding="utf-8")
+
+    req = site / "requests/index.html"
+    if req.is_file():
+        html = req.read_text(encoding="utf-8")
+        if 'data-bsv-lab="request-draft"' not in html and 'class="container subnav"' in html:
+            chip = (
+                '<a class="chip" data-bsv-lab="request-draft" href="/labs/request/">'
+                '<span data-lang="en">Draft quality lab</span>'
+                '<span data-lang="ja">下書き採点ラボ</span></a>'
+            )
+            html = html.replace('<div class="container subnav">', '<div class="container subnav">' + chip, 1)
+            req.write_text(html, encoding="utf-8")
     return manifest
 
 def main():

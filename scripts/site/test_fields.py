@@ -79,6 +79,8 @@ def main():
         ok(any(r.get("id") == "labs/trading" for r in fr), "search: trading Field Lab indexed")
         if any(e.get("field") == "ai" for e in json.loads(catp.read_text()).get("entries", [])):
             ok(any(r.get("id") == "labs/ai" for r in fr), "search: AI Field Lab indexed")
+        if any(e.get("field") == "request" for e in json.loads(catp.read_text()).get("entries", [])):
+            ok(any(r.get("id") == "labs/request" for r in fr), "search: request Field Lab indexed")
     ok(all((s / r["u"].split("#")[0].lstrip("/") / "index.html").exists() for r in fr), "search: every fields row points to a shipped page")
     ok('data-scope="fields"' in sh and "fields: ['分野・ラボ', 'Fields & labs']" in pjs and "counts.fields" in pjs, "search: Fields & labs scope wired")
     old = [p for p in (s / "search").glob("index.v*.json") if p.name not in pjs]

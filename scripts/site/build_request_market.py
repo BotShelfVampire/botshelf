@@ -57,7 +57,7 @@ function setCount(id,v){var b=document.getElementById(id);if(b)b.textContent=Str
 function render(j){var ul=$('#rq-list');ul.textContent='';var c=j.counts||{};
  setCount('rq-c-received',c.received||0);setCount('rq-c-published',c.published||0);setCount('rq-c-budget',c.publishedWithStatedBudget||0);
  var rs=j.requests||[];
- if(!rs.length){ul.appendChild(el('li',{'class':'empty'},[bi('No public requests yet. This list only shows real requests after review.','公開中のリクエストはまだありません。確認を通った実際のリクエストだけを表示します。')]));return}
+ if(!rs.length){var empty=el('li',{'class':'empty'},[]);empty.appendChild(bi('No public requests yet. This list only shows real requests after review.','公開中のリクエストはまだありません。確認を通った実際のリクエストだけを表示します。'));empty.appendChild(document.createElement('br'));empty.appendChild(bi('Next: draft a clear job in the Request draft lab, then send it from New request (email verify).','次: リクエスト下書きラボで仕事内容を整え、新しいリクエストから送信（メール確認）。'));var p=el('p',{'class':'small'},[]);p.appendChild(el('a',{href:'/labs/request/'},[bi('Open draft quality lab →','下書き採点ラボを開く →')]));p.appendChild(document.createTextNode(' · '));p.appendChild(el('a',{href:'#new'},[bi('New request','新しいリクエスト')]));empty.appendChild(p);ul.appendChild(empty);return}
  rs.forEach(function(r){var meta=[(r.domains||[]).map(function(d){return LAB[d]||d}).join(' · ')];
   if(r.platforms&&r.platforms.length)meta.push(r.platforms.join(', '));
   var li=el('li',{'class':'bb-card','id':r.requestId,'data-request-id':r.requestId,'data-areas':' '+(r.domains||[]).join(' ')+' '},[el('div',{'class':'bb-meta'},[el('span',{text:meta.join(' — ')}),el('span',{'class':'bb-flag',text:r.status})]),el('p',{'class':'rq-job',text:r.job})]);
@@ -384,7 +384,7 @@ def page(site: Path, css_href: str, js_href: str) -> str:
         f'<div>{both("Listed after review", "確認後に公開")}<b id="rq-c-published">–</b></div>'
         f'<div>{both("Listed with a stated budget", "予算の記載あり（公開分）")}<b id="rq-c-budget">–</b></div>'
         '</div></aside></section>'
-        '<div class="container subnav"><a class="chip" href="#open">' + both("Open requests", "公開中のリクエスト") + '</a><a class="chip" href="#new">' + both("New request", "新しいリクエスト") + '</a>'
+        '<div class="container subnav"><a class="chip" data-bsv-lab="request-draft" href="/labs/request/">' + both("Draft quality lab", "下書き採点ラボ") + '</a><a class="chip" href="#open">' + both("Open requests", "公開中のリクエスト") + '</a><a class="chip" href="#new">' + both("New request", "新しいリクエスト") + '</a>'
         '<a class="chip" href="/trading/build/">' + both("Build your own chart tool", "自分のチャートツールを作る") + '</a><a class="chip" href="/for-sellers.html">' + both("Seller guide", "出品者ガイド") + '</a></div>'
         f'<section class="container bb-section" id="open"><h2>{both("Open requests", "公開中のリクエスト")}</h2>'
         '<div class="rq-filter" id="rq-filter" role="group" aria-label="Filter by area"></div><p class="small muted" id="rq-filter-note" role="status"></p><p class="small" id="rq-target-note" role="status"></p>'
