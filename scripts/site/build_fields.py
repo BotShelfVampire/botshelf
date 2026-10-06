@@ -372,16 +372,19 @@ def search(site, counts, lb):
             add.append({"s": "fields", "id": f"labs/{cat}", "t": e["title"]["en"], "tj": e["title"]["ja"], "k": "Interactive tool", "kj": "インタラクティブツール",
                         "c": f["name"][0], "p": [], "d": e["summary"]["en"], "dj": e["summary"]["ja"], "x": f'Field Labs 実践ラボ browser {f["name"][1]}',
                         "u": e["url"], "uj": e["url"] + "?lang=ja", "a": "free"})
+    EXTRA_CAT = {"trading": ("Trading", "Field Labs 実践ラボ browser trading risk R-multiple position size"),
+                 "ai": ("AI", "Field Labs 実践ラボ browser AI context pack token budget prompt")}
     for extra_key, e in lb.items():
         if extra_key in ORDER:
             continue
+        cat_label, xtra = EXTRA_CAT.get(extra_key, (extra_key.title(), f"Field Labs 実践ラボ browser {extra_key}"))
         add.append({"s": "fields", "id": f"labs/{extra_key}", "t": e["title"]["en"], "tj": e["title"]["ja"], "k": "Interactive tool", "kj": "インタラクティブツール",
-                    "c": "Trading", "p": [], "d": e["summary"]["en"], "dj": e["summary"]["ja"], "x": "Field Labs 実践ラボ browser trading risk R-multiple position size",
+                    "c": cat_label, "p": [], "d": e["summary"]["en"], "dj": e["summary"]["ja"], "x": xtra,
                     "u": e["url"], "uj": e["url"] + "?lang=ja", "a": "free"})
     if lb:
         add.append({"s": "fields", "id": "labs/", "t": "BSV Field Labs", "tj": "BSV 実践ラボ", "k": "Interactive tools", "kj": "インタラクティブツール", "c": "Fields", "p": [],
-                    "d": "Browser tools for medical robotics, robotics, data, trading risk, space, biotech and quantum (English / Japanese).",
-                    "dj": "医療ロボ・ロボティクス・データ・トレード・宇宙・バイオ・量子のブラウザツール（英語／日本語）。", "x": "labs tools robotics data trading risk", "u": "/labs/", "uj": "/labs/?lang=ja", "a": "free"})
+                    "d": "Browser tools for medical robotics, robotics, data, AI context, trading risk, space, biotech and quantum (English / Japanese).",
+                    "dj": "医療ロボ・ロボティクス・データ・AI・トレード・宇宙・バイオ・量子のブラウザツール（英語／日本語）。", "x": "labs tools robotics data ai context trading risk", "u": "/labs/", "uj": "/labs/?lang=ja", "a": "free"})
     clean = dict(idx, rows=rows)
     clean["counts"] = {k: v for k, v in idx.get("counts", {}).items() if k != "fields"}
     (site / "search" / idx_name).write_text(json.dumps(clean, ensure_ascii=False, separators=(",", ":")))

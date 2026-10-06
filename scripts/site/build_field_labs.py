@@ -17,6 +17,7 @@ FIELDS = [
     ("data", "CSV profile playground", "CSVプロフィール・プレイグラウンド", "Paste a CSV and profile nulls, distinct counts and type guesses.", "CSVを貼り、欠損・ユニーク数・型推定をプロフィールする。"),
     ("space", "Satellite observation designer", "衛星データの観測プラン", "Compare public satellite data against your observation constraints.", "観測したい現象と条件から公開衛星データを比較。"),
     ("biotech", "Research reproducibility worksheet", "研究データの再現性チェック", "Identify missing evidence and export an analysis record.", "不足している記録を見つけ、再現のための解析記録を出力。"),
+    ("ai", "Context budget playground", "コンテキスト予算プレイグラウンド", "Estimate rough tokens for a prompt or context pack against common windows.", "プロンプトやコンテキストパックの概算トークンを、よくある枠と照らす。"),
     ("trading", "Risk & R-multiple playground", "リスクとR倍数プレイグラウンド", "Size a trade from equity, risk %, entry and stop; export a plan CSV.", "資金・リスク％・エントリー・損切りから数量を出し、計画CSVを書き出す。"),
     ("quantum", "Quantum state explorer", "量子状態を動かす実験室", "Explore how phase changes ideal X and Z measurement probabilities.", "位相によるX・Z測定の確率の違いを、その場で操作。"),
 ]
@@ -69,6 +70,23 @@ def build(site: Path, source: Path) -> dict:
             )
             html = html.replace('<div class="container subnav">', '<div class="container subnav">' + chip, 1)
             tools.write_text(html, encoding="utf-8")
+
+    toolkit = site / "library/toolkit/index.html"
+    if toolkit.is_file():
+        html = toolkit.read_text(encoding="utf-8")
+        if 'data-bsv-lab="ai-context"' not in html:
+            chip = (
+                '<a class="chip" data-bsv-lab="ai-context" href="/labs/ai/">'
+                '<span data-lang="en">Context budget lab</span>'
+                '<span data-lang="ja">コンテキスト予算ラボ</span></a>'
+            )
+            if 'class="container subnav"' in html:
+                html = html.replace('<div class="container subnav">', '<div class="container subnav">' + chip, 1)
+            elif '<main' in html:
+                html = html.replace('<main', chip + '<main', 1)
+            else:
+                html = chip + html
+            toolkit.write_text(html, encoding="utf-8")
     return manifest
 
 def main():
