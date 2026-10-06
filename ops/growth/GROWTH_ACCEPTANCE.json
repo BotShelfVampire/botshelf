@@ -1,0 +1,1007 @@
+{
+  "schema_version": 1,
+  "purpose": "Acceptance inventory under Astra direction. Known URLs are public; null means a path must be confirmed, never guessed. Static PASS cannot approve release.",
+  "directive": "https://github.com/BotShelfVampire/botshelf/issues/4#issuecomment-6017081899",
+  "baseline": {
+    "checked_at_jst": "2026-10-06T22:16:00+09:00",
+    "deploy_id": "6ac4eda49cdcf2adb21f2fb8",
+    "integration_commit": "7a7a8d1a01612207ab4f21570083806a502fc404",
+    "note": "Historical observation, not an expected future deploy."
+  },
+  "public_pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "title_pattern": "BotShelf Vampire",
+      "required_links": [
+        "/library/",
+        "/trading/",
+        "/robot-pilot/",
+        "/saas-seat-waste-finder.html",
+        "/gpt-thread-rewrite.html",
+        "/trading/tools/earnforex-positionsizer.html"
+      ]
+    },
+    {
+      "id": "ai-list",
+      "path": "/library/",
+      "title_pattern": "^Build\\ Library\\ —\\ AI\\ Team\\ Registry\\ building\\ blocks\\ \\|\\ BotShelf\\ Vampire$"
+    },
+    {
+      "id": "trading-list",
+      "path": "/trading/",
+      "title_pattern": "^Traders\\ Library\\ —\\ Free\\ Trading\\ Source\\ Code\\ ·\\ BotShelf\\ Vampire$"
+    },
+    {
+      "id": "robotics-list",
+      "path": "/robot-pilot/",
+      "title_pattern": "^Robot\\ Pilot\\ Academy\\ —\\ simulation\\-first\\ teleoperation\\ practice\\ ·\\ BotShelf\\ Vampire$"
+    },
+    {
+      "id": "business-example",
+      "path": "/saas-seat-waste-finder.html",
+      "title_pattern": "SaaS Seat Waste Finder"
+    },
+    {
+      "id": "everyday-example",
+      "path": "/gpt-thread-rewrite.html",
+      "title_pattern": "Thread rewrite"
+    },
+    {
+      "id": "trader-example",
+      "path": "/trading/tools/earnforex-positionsizer.html",
+      "title_pattern": "Position Sizer",
+      "required_links": [
+        "https://github.com/EarnForex/PositionSizer",
+        "https://github.com/EarnForex/PositionSizer/blob/master/LICENSE"
+      ]
+    }
+  ],
+  "domains": [
+    {
+      "id": "ai",
+      "label": "AI",
+      "list_path": "/library/",
+      "detail_path": null,
+      "body_path": null,
+      "status": "unverified",
+      "evidence": "Home anchor observed in fresh public HTML and JA browser"
+    },
+    {
+      "id": "trading",
+      "label": "Trading",
+      "list_path": "/trading/",
+      "detail_path": null,
+      "body_path": null,
+      "status": "unverified",
+      "evidence": "Home anchor observed in fresh public HTML and JA browser"
+    },
+    {
+      "id": "robotics",
+      "label": "Robotics",
+      "list_path": "/robot-pilot/",
+      "detail_path": null,
+      "body_path": null,
+      "status": "unverified",
+      "evidence": "Home anchor observed in fresh public HTML and JA browser"
+    },
+    {
+      "id": "medical-robotics",
+      "label": "Healthcare / Medical Robotics",
+      "list_path": null,
+      "detail_path": null,
+      "body_path": null,
+      "status": "unverified",
+      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
+    },
+    {
+      "id": "data",
+      "label": "Data",
+      "list_path": null,
+      "detail_path": null,
+      "body_path": null,
+      "status": "unverified",
+      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
+    },
+    {
+      "id": "space",
+      "label": "Space",
+      "list_path": null,
+      "detail_path": null,
+      "body_path": null,
+      "status": "unverified",
+      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
+    },
+    {
+      "id": "biotech",
+      "label": "Biotech",
+      "list_path": null,
+      "detail_path": null,
+      "body_path": null,
+      "status": "unverified",
+      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
+    },
+    {
+      "id": "quantum",
+      "label": "Quantum",
+      "list_path": null,
+      "detail_path": null,
+      "body_path": null,
+      "status": "unverified",
+      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
+    }
+  ],
+  "browser_matrix": [
+    {
+      "domain": "ai",
+      "locale": "en",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "ai",
+      "locale": "en",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "ai",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "ai",
+      "locale": "ja",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "ai",
+      "locale": "ja",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "ai",
+      "locale": "ja",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "trading",
+      "locale": "en",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "trading",
+      "locale": "en",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "trading",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "trading",
+      "locale": "ja",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "trading",
+      "locale": "ja",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "trading",
+      "locale": "ja",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "en",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "en",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "ja",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "ja",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "ja",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "medical-robotics",
+      "locale": "en",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "medical-robotics",
+      "locale": "en",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "medical-robotics",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "medical-robotics",
+      "locale": "ja",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "medical-robotics",
+      "locale": "ja",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "medical-robotics",
+      "locale": "ja",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "data",
+      "locale": "en",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "data",
+      "locale": "en",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "data",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "data",
+      "locale": "ja",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "data",
+      "locale": "ja",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "data",
+      "locale": "ja",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "space",
+      "locale": "en",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "space",
+      "locale": "en",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "space",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "space",
+      "locale": "ja",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "space",
+      "locale": "ja",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "space",
+      "locale": "ja",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "biotech",
+      "locale": "en",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "biotech",
+      "locale": "en",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "biotech",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "biotech",
+      "locale": "ja",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "biotech",
+      "locale": "ja",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "biotech",
+      "locale": "ja",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "quantum",
+      "locale": "en",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "quantum",
+      "locale": "en",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "quantum",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "quantum",
+      "locale": "ja",
+      "surface": "list",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "quantum",
+      "locale": "ja",
+      "surface": "detail",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "quantum",
+      "locale": "ja",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    }
+  ],
+  "manual_checks": [
+    {
+      "id": "peer-domains",
+      "expected": "Eight peer-level categories, distinct from goals and resource types; compact map within approximately two 390x844 viewports.",
+      "status": "unverified"
+    },
+    {
+      "id": "real-content",
+      "expected": "Every promoted domain has several useful source-backed resources or workflows, no empty coming-soon category.",
+      "status": "unverified"
+    },
+    {
+      "id": "three-journeys",
+      "expected": "Business, everyday and trader entry explains input, output, runtime, access requirement and next step; recommendations link to actual detail pages.",
+      "status": "unverified"
+    },
+    {
+      "id": "ja-readable",
+      "expected": "Read visible/accessibility UI and representative full bodies in JA; translate ordinary prose and keep functioning code/prompts/identifiers intact. Do not scan raw bilingual HTML as visible leakage.",
+      "status": "unverified"
+    },
+    {
+      "id": "access-copy",
+      "expected": "BSV gated body/download access is distinguished from free public summaries and original-author links; no change to auth behavior.",
+      "status": "unverified"
+    },
+    {
+      "id": "honest-examples",
+      "expected": "Synthetic examples explicitly labelled, no invented performance, customers, partnerships or runtime evidence.",
+      "status": "unverified"
+    },
+    {
+      "id": "responsive",
+      "expected": "Check 390x844 and 1280x900, EN/JA, keyboard focus, overflow, overlap and navigation.",
+      "status": "unverified"
+    },
+    {
+      "id": "regression",
+      "expected": "Existing search, registration/source gates, marketplace vs library distinction and production email health checks remain valid; no transaction test or real order.",
+      "status": "unverified"
+    },
+    {
+      "id": "astra-release-review",
+      "expected": "Astra reviews exact candidate revision plus implementation diff, tests, browser evidence and remaining limitations before production release.",
+      "status": "unverified"
+    }
+  ],
+  "baseline_browser_observations": [
+    {
+      "url": "https://botshelfvampire.com/",
+      "locale": "ja",
+      "viewport": "390x844",
+      "observation": "Three field anchors AI/Trading/Robotics at y~1602px; two large Trader/AI shortcuts precede hero. Eight-domain peer map not yet observed.",
+      "status": "observed-gap"
+    },
+    {
+      "url": "https://botshelfvampire.com/",
+      "locale": "ja",
+      "viewport": "390x844",
+      "observation": "WHAT BSV GIVES YOU is visible English; Search plus English search explanation appears in accessibility tree. Japanese placeholder is visible.",
+      "status": "observed-gap"
+    },
+    {
+      "url": "https://botshelfvampire.com/",
+      "locale": "ja",
+      "viewport": "390x844",
+      "observation": "No page-wide horizontal overflow in sampled viewport. Does not establish all-page/mobile/desktop acceptance.",
+      "status": "limited-pass"
+    },
+    {
+      "url": "https://botshelfvampire.com/",
+      "locale": "ja",
+      "viewport": "390x844",
+      "observation": "Rendered trader copy says 無料でもメール登録・確認が必要です。 Reconcile with original-author external-source exceptions.",
+      "status": "observed-gap"
+    },
+    {
+      "url": "https://botshelfvampire.com/",
+      "locale": "ja",
+      "viewport": "1280x900",
+      "observation": "Three field anchors at y~1743px. No page-wide horizontal overflow.",
+      "status": "observed-gap"
+    },
+    {
+      "url": "https://botshelfvampire.com/",
+      "locale": "en",
+      "viewport": "1280x900 and 390x844",
+      "observation": "EN language control switches hero and three field links to English. No page-wide horizontal overflow in either viewport.",
+      "status": "limited-pass"
+    }
+  ],
+  "required_viewports": [
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "desktop",
+      "width": 1280,
+      "height": 900
+    }
+  ]
+}
