@@ -6,6 +6,8 @@
 2) The Traders Library header licenses link is /trading/guides/licenses.html on the 7 hub pages QC flagged, and exists.
 3) /trading/tools/index.html exists and links every public tool summary page in /trading/tools/.
 4) Every root-absolute internal link to an HTML page or directory resolves to a file in the tree.
+6) Every root-absolute internal link to a file (.md/.json/.zip/...) matches a shipped file with the exact case
+   (Netlify is case-insensitive, local QC is not: fix_case_links.py; QC 10/06 research-desk-local 15 samples).
 5) A crawler that ignores <base> and resolves against the requested path (as the daily QC does) never builds
    /library/source/library/ or <dir>/guides/licenses.html from the register / 404 / hub pages.
 usage: test_links.py --site DIR"""
@@ -38,7 +40,7 @@ def main():
         path = urllib.parse.unquote(path.split("#")[0].split("?")[0])
         f = s / path.lstrip("/")
         return (f / "index.html").exists() if path.endswith("/") else (f.exists() or (f / "index.html").exists() or f.with_name(f.name + ".html").exists())  # Netlify serves /x from x.html
-    pages = sorted(s.rglob("*.html")); rel_pages = []; proto = []; missing = collections.Counter()
+    pages = sorted(s.rglob("*.html")); rel_pages = []; proto = []; missing = collections.Counter(); missing_files = collections.Counter()
     for p in pages:
         t = p.read_text(errors="replace")
         r = relative_links(t)
@@ -50,9 +52,14 @@ def main():
                 last = urllib.parse.urlparse(v).path.rsplit("/", 1)[-1]
                 if (v.split("?")[0].split("#")[0].endswith("/") or last.endswith(".html") or "." not in last) and not exists(v):
                     missing[v.split("#")[0]] += 1
+                elif "." in last and not last.endswith(".html"):
+                    fp = s / urllib.parse.unquote(urllib.parse.urlparse(v).path).lstrip("/")
+                    if not fp.is_file() or fp.name not in {x.name for x in fp.parent.iterdir()}:
+                        missing_files[v.split("#")[0]] += 1
     ok(not rel_pages, f"path-relative links left on {len(rel_pages)} pages: {rel_pages[:5]}")
     ok(not proto, f"protocol-relative (//...) links on {len(proto)} pages (a bad absolutize turns 'x/' into '//x/'): {proto[:5]}")
     ok(not missing, f"internal HTML links to missing pages: {missing.most_common(8)}")
+    ok(not missing_files, f"internal file links without an exact-case shipped file: {len(missing_files)} {missing_files.most_common(8)}")
     ok((s / "trading/guides/licenses.html").exists(), "/trading/guides/licenses.html exists")
     for h in HUBS:
         f = s / h
