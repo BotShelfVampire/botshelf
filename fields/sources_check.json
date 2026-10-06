@@ -266,5 +266,37 @@
  "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson": {
   "status": 200,
   "checked_jst": "2026-10-07"
+ },
+ "https://open.fda.gov/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://open.fda.gov/apis/drug/label/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://api.fda.gov/drug/label.json?search=openfda.brand_name:aspirin&limit=1": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://clinicaltrials.gov/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://clinicaltrials.gov/data-api/api": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://clinicaltrials.gov/api/v2/studies?query.term=surgical%20robot&pageSize=1": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://hl7.org/fhir/R4/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
+ },
+ "https://pydicom.github.io/pydicom/": {
+  "status": 200,
+  "checked_jst": "2026-10-07"
  }
 }
