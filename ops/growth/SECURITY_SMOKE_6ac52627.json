@@ -1,0 +1,24 @@
+{
+  "checked_at_jst": "2026-10-07 01:58 JST",
+  "deploy_id": "6ac52627cf474b9b8aa418d5",
+  "health": {
+    "ok": true,
+    "email_configured": true,
+    "email_relay": true,
+    "network": "TRC20",
+    "token": "USDT"
+  },
+  "deny_list": {
+    "register_pwnbv16@uberip.com": "403 email_blocked",
+    "register_probe@uberip.com": "403 email_blocked",
+    "session_pwnbv16@uberip.com": "403 email_blocked"
+  },
+  "gates": {
+    "library_source_anon": "302 -> /register.html?next=..."
+  },
+  "status": "pass",
+  "notes": [
+    "uberip.com domain + pwnbv16 still blocked LIVE.",
+    "Accidental register probe with oktest_should_not_matter@example.com returned 200 pending_verification (challenge och_39b69142fc0ac1dc1af0ea2b) \u2014 ignore; not a customer. Do not repeat non-blocked probes."
+  ]
+}

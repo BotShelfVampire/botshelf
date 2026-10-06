@@ -1,0 +1,167 @@
+{
+  "home_marker_count": 37,
+  "home_unique_markers": [
+    "home_audience_ai",
+    "home_audience_trading",
+    "home_cat_ai",
+    "home_cat_biotech",
+    "home_cat_data",
+    "home_cat_healthcare",
+    "home_cat_quantum",
+    "home_cat_robotics",
+    "home_cat_space",
+    "home_cat_trading",
+    "home_goal_agent_sdks",
+    "home_goal_ai_workflow",
+    "home_goal_build_trading_tool",
+    "home_goal_compare",
+    "home_goal_find_trading_tool",
+    "home_goal_medical_robotics",
+    "home_goal_robot_poc",
+    "home_hero_cta_browse",
+    "home_hero_cta_browse_all",
+    "home_hero_cta_explore",
+    "home_primitive_agents",
+    "home_primitive_research",
+    "home_primitive_robotics",
+    "home_primitive_templates",
+    "home_primitive_tools",
+    "home_primitive_workflows",
+    "home_register_header",
+    "home_value_search"
+  ],
+  "required_ok": true,
+  "gaps": [],
+  "dest_status": {
+    "/fields/biotech/": 200,
+    "/fields/healthcare/": 200,
+    "/fields/quantum/": 200,
+    "/fields/space/": 200,
+    "/library/": 200,
+    "/library/skills/": 200,
+    "/library/toolkit/": 200,
+    "/library/workflows/": 200,
+    "/register.html": 200,
+    "/robot-pilot/": 200,
+    "/search/": 200,
+    "/search/?q=data": 200,
+    "/trading/": 200,
+    "/trading/guides/tradingview-alternatives/": 200,
+    "/trading/ja/guides/tradingview-alternatives/": 200,
+    "/trading/tools/": 200,
+    "/trading/tools/bsv-builder.html": 200
+  },
+  "library_evts_sample": [
+    "github_source_open",
+    "implementation_open",
+    "library_item_open",
+    "team_parent_open"
+  ],
+  "library_item_hrefs": [],
+  "gated_anon": "302 -> /register.html?next=%2Flibrary%2Fsource%2Fskills%2Fask-before-you-send.md",
+  "fields_hub_evts": [
+    "fields_hub_biotech",
+    "fields_hub_healthcare",
+    "fields_hub_quantum",
+    "fields_hub_space"
+  ],
+  "marker_hrefs": {
+    "home_audience_ai": [
+      "#ai-library"
+    ],
+    "home_audience_trading": [
+      "#trader-library"
+    ],
+    "home_cat_ai": [
+      "/library/"
+    ],
+    "home_cat_biotech": [
+      "/fields/biotech/"
+    ],
+    "home_cat_data": [
+      "/search/?q=data"
+    ],
+    "home_cat_healthcare": [
+      "/fields/healthcare/"
+    ],
+    "home_cat_quantum": [
+      "/fields/quantum/"
+    ],
+    "home_cat_robotics": [
+      "/robot-pilot/"
+    ],
+    "home_cat_space": [
+      "/fields/space/"
+    ],
+    "home_cat_trading": [
+      "/trading/"
+    ],
+    "home_goal_agent_sdks": [
+      "/library/toolkit/"
+    ],
+    "home_goal_ai_workflow": [
+      "/library/workflows/"
+    ],
+    "home_goal_build_trading_tool": [
+      "/trading/tools/bsv-builder.html"
+    ],
+    "home_goal_compare": [
+      "/trading/guides/tradingview-alternatives/",
+      "/trading/ja/guides/tradingview-alternatives/"
+    ],
+    "home_goal_find_trading_tool": [
+      "/trading/tools/"
+    ],
+    "home_goal_medical_robotics": [
+      "/fields/healthcare/"
+    ],
+    "home_goal_robot_poc": [
+      "/robot-pilot/"
+    ],
+    "home_hero_cta_browse": [
+      "#packs"
+    ],
+    "home_hero_cta_browse_all": [
+      "/search/"
+    ],
+    "home_hero_cta_explore": [
+      "#what-bsv-gives"
+    ],
+    "home_primitive_agents": [
+      "/library/toolkit/",
+      "/library/toolkit/"
+    ],
+    "home_primitive_research": [
+      "/trading/guides/tradingview-alternatives/",
+      "/trading/ja/guides/tradingview-alternatives/",
+      "/trading/guides/tradingview-alternatives/",
+      "/trading/ja/guides/tradingview-alternatives/"
+    ],
+    "home_primitive_robotics": [
+      "/robot-pilot/",
+      "/robot-pilot/"
+    ],
+    "home_primitive_templates": [
+      "/library/skills/",
+      "/library/skills/"
+    ],
+    "home_primitive_tools": [
+      "/trading/tools/",
+      "/trading/tools/"
+    ],
+    "home_primitive_workflows": [
+      "/library/",
+      "/library/"
+    ],
+    "home_register_header": [
+      "/register.html"
+    ],
+    "home_value_search": [
+      "/search/"
+    ]
+  },
+  "verified_at_jst": "2026-10-07 01:57 JST",
+  "deploy_id": "6ac52627cf474b9b8aa418d5",
+  "status": "pass",
+  "funnel_chain_markers_present": true
+}
