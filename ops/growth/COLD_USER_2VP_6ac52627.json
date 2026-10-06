@@ -1,0 +1,142 @@
+{
+  "runs": 4,
+  "problems": [],
+  "results": {
+    "desktop-en": {
+      "viewport": {
+        "w": 1280,
+        "h": 900,
+        "limit": 1800
+      },
+      "hscroll": false,
+      "heroBand": {
+        "top": 583,
+        "bottom": 828,
+        "visible": true
+      },
+      "what": {
+        "top": 1486,
+        "bottom": 2134,
+        "visible": true
+      },
+      "cats": {
+        "top": 828,
+        "bottom": 1096,
+        "visible": true
+      },
+      "goals": {
+        "top": 1096,
+        "bottom": 1486,
+        "visible": true
+      },
+      "title": "BotShelf Vampire — Trading Tools & AI Teams",
+      "cold": {
+        "hero_ok": true,
+        "next_ok": true,
+        "map_ok": true
+      }
+    },
+    "desktop-ja": {
+      "viewport": {
+        "w": 1280,
+        "h": 900,
+        "limit": 1800
+      },
+      "hscroll": false,
+      "heroBand": {
+        "top": 583,
+        "bottom": 828,
+        "visible": true
+      },
+      "what": {
+        "top": 1486,
+        "bottom": 2176,
+        "visible": true
+      },
+      "cats": {
+        "top": 828,
+        "bottom": 1096,
+        "visible": true
+      },
+      "goals": {
+        "top": 1096,
+        "bottom": 1486,
+        "visible": true
+      },
+      "title": "BotShelf Vampire — トレードツールとAIチーム",
+      "cold": {
+        "hero_ok": true,
+        "next_ok": true,
+        "map_ok": true
+      }
+    },
+    "mobile-en": {
+      "viewport": {
+        "w": 390,
+        "h": 844,
+        "limit": 1688
+      },
+      "hscroll": false,
+      "heroBand": {
+        "top": 326,
+        "bottom": 510,
+        "visible": true
+      },
+      "what": {
+        "top": 1576,
+        "bottom": 2120,
+        "visible": true
+      },
+      "cats": {
+        "top": 510,
+        "bottom": 924,
+        "visible": true
+      },
+      "goals": {
+        "top": 924,
+        "bottom": 1576,
+        "visible": true
+      },
+      "title": "BotShelf Vampire — Trading Tools & AI Teams",
+      "cold": {
+        "hero_ok": true,
+        "next_ok": true,
+        "map_ok": true
+      }
+    },
+    "mobile-ja": {
+      "viewport": {
+        "w": 390,
+        "h": 844,
+        "limit": 1688
+      },
+      "hscroll": false,
+      "heroBand": {
+        "top": 326,
+        "bottom": 510,
+        "visible": true
+      },
+      "what": {
+        "top": 1606,
+        "bottom": 2190,
+        "visible": true
+      },
+      "cats": {
+        "top": 510,
+        "bottom": 942,
+        "visible": true
+      },
+      "goals": {
+        "top": 942,
+        "bottom": 1606,
+        "visible": true
+      },
+      "title": "BotShelf Vampire — トレードツールとAIチーム",
+      "cold": {
+        "hero_ok": true,
+        "next_ok": true,
+        "map_ok": true
+      }
+    }
+  }
+}

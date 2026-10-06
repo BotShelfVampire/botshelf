@@ -1,136 +1,166 @@
 {
   "schema_version": 1,
-  "purpose": "Acceptance inventory under Astra direction. Known URLs are public; null means a path must be confirmed, never guessed. Static PASS cannot approve release.",
-  "directive": "https://github.com/BotShelfVampire/botshelf/issues/4#issuecomment-6017081899",
-  "baseline": {
-    "checked_at_jst": "2026-10-07T01:49:00+09:00",
-    "deploy_id": "6ac52627cf474b9b8aa418d5",
-    "integration_commit": "db15c0e",
-    "proof_dir": "qa/cdp_three_journeys.py LIVE (on BSV live box)"
+  "checked_at_utc": "2026-10-06T16:51:31.778667+00:00",
+  "static_status": "pass",
+  "counts": {
+    "pass": 7
   },
-  "public_pages": [
+  "pages": [
     {
+      "status": "pass",
+      "url": "https://botshelfvampire.com/",
+      "final_url": "https://botshelfvampire.com/",
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8",
       "id": "home",
-      "path": "/",
-      "title_pattern": "BotShelf Vampire",
-      "required_links": [
-        "/library/",
-        "/trading/",
-        "/robot-pilot/",
-        "/saas-seat-waste-finder.html",
-        "/gpt-thread-rewrite.html",
-        "/trading/tools/earnforex-positionsizer.html"
+      "scope": "anonymous HTTP and static HTML only",
+      "title": "BotShelf Vampire — Trading Tools & AI Teams",
+      "checks": [
+        {
+          "id": "expected_title",
+          "status": "pass"
+        },
+        {
+          "id": "anchor_present",
+          "target": "/library/",
+          "status": "pass"
+        },
+        {
+          "id": "anchor_present",
+          "target": "/trading/",
+          "status": "pass"
+        },
+        {
+          "id": "anchor_present",
+          "target": "/robot-pilot/",
+          "status": "pass"
+        },
+        {
+          "id": "anchor_present",
+          "target": "/saas-seat-waste-finder.html",
+          "status": "pass"
+        },
+        {
+          "id": "anchor_present",
+          "target": "/gpt-thread-rewrite.html",
+          "status": "pass"
+        },
+        {
+          "id": "anchor_present",
+          "target": "/trading/tools/earnforex-positionsizer.html",
+          "status": "pass"
+        }
       ]
     },
     {
+      "status": "pass",
+      "url": "https://botshelfvampire.com/library/",
+      "final_url": "https://botshelfvampire.com/library/",
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8",
       "id": "ai-list",
-      "path": "/library/",
-      "title_pattern": "^Build\\ Library\\ —\\ AI\\ Team\\ Registry\\ building\\ blocks\\ \\|\\ BotShelf\\ Vampire$"
+      "scope": "anonymous HTTP and static HTML only",
+      "title": "Build Library — AI Team Registry building blocks | BotShelf Vampire",
+      "checks": [
+        {
+          "id": "expected_title",
+          "status": "pass"
+        }
+      ]
     },
     {
+      "status": "pass",
+      "url": "https://botshelfvampire.com/trading/",
+      "final_url": "https://botshelfvampire.com/trading/",
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8",
       "id": "trading-list",
-      "path": "/trading/",
-      "title_pattern": "^Traders\\ Library\\ —\\ Free\\ Trading\\ Source\\ Code\\ ·\\ BotShelf\\ Vampire$"
+      "scope": "anonymous HTTP and static HTML only",
+      "title": "Traders Library — Free Trading Source Code · BotShelf Vampire",
+      "checks": [
+        {
+          "id": "expected_title",
+          "status": "pass"
+        }
+      ]
     },
     {
+      "status": "pass",
+      "url": "https://botshelfvampire.com/robot-pilot/",
+      "final_url": "https://botshelfvampire.com/robot-pilot/",
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8",
       "id": "robotics-list",
-      "path": "/robot-pilot/",
-      "title_pattern": "^Robot\\ Pilot\\ Academy\\ —\\ simulation\\-first\\ teleoperation\\ practice\\ ·\\ BotShelf\\ Vampire$"
+      "scope": "anonymous HTTP and static HTML only",
+      "title": "Robot Pilot Academy — simulation-first teleoperation practice · BotShelf Vampire",
+      "checks": [
+        {
+          "id": "expected_title",
+          "status": "pass"
+        }
+      ]
     },
     {
+      "status": "pass",
+      "url": "https://botshelfvampire.com/saas-seat-waste-finder.html",
+      "final_url": "https://botshelfvampire.com/saas-seat-waste-finder.html",
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8",
       "id": "business-example",
-      "path": "/saas-seat-waste-finder.html",
-      "title_pattern": "SaaS Seat Waste Finder"
+      "scope": "anonymous HTTP and static HTML only",
+      "title": "SaaS Seat Waste Finder — Grok Bot team | BotShelf Vampire",
+      "checks": [
+        {
+          "id": "expected_title",
+          "status": "pass"
+        }
+      ]
     },
     {
+      "status": "pass",
+      "url": "https://botshelfvampire.com/gpt-thread-rewrite.html",
+      "final_url": "https://botshelfvampire.com/gpt-thread-rewrite.html",
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8",
       "id": "everyday-example",
-      "path": "/gpt-thread-rewrite.html",
-      "title_pattern": "Thread rewrite"
+      "scope": "anonymous HTTP and static HTML only",
+      "title": "Thread rewrite — ChatGPT | BotShelf Vampire",
+      "checks": [
+        {
+          "id": "expected_title",
+          "status": "pass"
+        }
+      ]
     },
     {
+      "status": "pass",
+      "url": "https://botshelfvampire.com/trading/tools/earnforex-positionsizer.html",
+      "final_url": "https://botshelfvampire.com/trading/tools/earnforex-positionsizer.html",
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8",
       "id": "trader-example",
-      "path": "/trading/tools/earnforex-positionsizer.html",
-      "title_pattern": "Position Sizer",
-      "required_links": [
-        "https://github.com/EarnForex/PositionSizer",
-        "https://github.com/EarnForex/PositionSizer/blob/master/LICENSE"
+      "scope": "anonymous HTTP and static HTML only",
+      "title": "Position Sizer · BotShelf Vampire",
+      "checks": [
+        {
+          "id": "expected_title",
+          "status": "pass"
+        },
+        {
+          "id": "anchor_present",
+          "target": "https://github.com/EarnForex/PositionSizer",
+          "status": "pass"
+        },
+        {
+          "id": "anchor_present",
+          "target": "https://github.com/EarnForex/PositionSizer/blob/master/LICENSE",
+          "status": "pass"
+        }
       ]
     }
   ],
-  "domains": [
-    {
-      "id": "ai",
-      "label": "AI",
-      "list_path": "/library/",
-      "detail_path": "/library/workflows/",
-      "body_path": "/library/toolkit/",
-      "status": "live",
-      "evidence": "Home anchor observed in fresh public HTML and JA browser"
-    },
-    {
-      "id": "trading",
-      "label": "Trading",
-      "list_path": "/trading/",
-      "detail_path": "/trading/tools/",
-      "body_path": "/trading-gold-morning-3.html",
-      "status": "live",
-      "evidence": "Home anchor observed in fresh public HTML and JA browser"
-    },
-    {
-      "id": "robotics",
-      "label": "Robotics",
-      "list_path": "/robot-pilot/",
-      "detail_path": "/robot-pilot/",
-      "body_path": "/robot-pilot/",
-      "status": "live",
-      "evidence": "Home anchor observed in fresh public HTML and JA browser"
-    },
-    {
-      "id": "medical-robotics",
-      "label": "Healthcare / Medical Robotics",
-      "list_path": "/fields/healthcare/",
-      "detail_path": "/fields/healthcare/",
-      "body_path": "/fields/healthcare/",
-      "status": "live",
-      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
-    },
-    {
-      "id": "data",
-      "label": "Data",
-      "list_path": "/search/?q=data",
-      "detail_path": "/search/?q=data",
-      "body_path": "/search/?q=data",
-      "status": "live",
-      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
-    },
-    {
-      "id": "space",
-      "label": "Space",
-      "list_path": "/fields/space/",
-      "detail_path": "/fields/space/",
-      "body_path": "/fields/space/",
-      "status": "live",
-      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
-    },
-    {
-      "id": "biotech",
-      "label": "Biotech",
-      "list_path": "/fields/biotech/",
-      "detail_path": "/fields/biotech/",
-      "body_path": "/fields/biotech/",
-      "status": "live",
-      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
-    },
-    {
-      "id": "quantum",
-      "label": "Quantum",
-      "list_path": "/fields/quantum/",
-      "detail_path": "/fields/quantum/",
-      "body_path": "/fields/quantum/",
-      "status": "live",
-      "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
-    }
-  ],
+  "release_readiness": "unverified",
+  "reason": "Static availability is not rendered EN/JA, content usefulness, mobile usability, or runtime verification.",
   "browser_matrix": [
     {
       "domain": "ai",
@@ -1012,8 +1042,8 @@
       "id": "responsive",
       "expected": "Check 390x844 and 1280x900, EN/JA, keyboard focus, overflow, overlap and navigation.",
       "status": "pass",
-      "evidence": "CDP mobile 390x844 + desktop 1440x900: 0 hscroll on home and 8 landings; cat grid ~1.05 mobile viewports. Cold-user 2vp LIVE 6ac52627: desktop+mobile EN/JA 4/0 (ops/growth/COLD_USER_2VP_6ac52627.json).",
-      "checked_at_jst": "2026-10-07 01:55 JST"
+      "evidence": "CDP mobile 390x844 + desktop 1440x900: 0 hscroll on home and 8 landings; cat grid ~1.05 mobile viewports.",
+      "checked_at_jst": "2026-10-07 01:43 JST"
     },
     {
       "id": "regression",
@@ -1025,65 +1055,8 @@
     {
       "id": "astra-release-review",
       "expected": "Astra reviews exact candidate revision plus implementation diff, tests, browser evidence and remaining limitations before production release.",
-      "status": "ready-for-astra",
-      "evidence": "ops/growth/ASTRA_RELEASE_REVIEW_6ac52627.json — candidate 6ac52627, diff (2 journey pages), audit pass 7/7, three-journeys 33/0, category 48/0, cold-user 2vp 4/0, regression green, limitations + rollback listed. Astra decision still required for pass.",
-      "checked_at_jst": "2026-10-07 01:55 JST"
+      "status": "unverified"
     }
   ],
-  "baseline_browser_observations": [
-    {
-      "url": "https://botshelfvampire.com/",
-      "locale": "ja",
-      "viewport": "390x844",
-      "observation": "Three field anchors AI/Trading/Robotics at y~1602px; two large Trader/AI shortcuts precede hero. Eight-domain peer map not yet observed.",
-      "status": "observed-gap"
-    },
-    {
-      "url": "https://botshelfvampire.com/",
-      "locale": "ja",
-      "viewport": "390x844",
-      "observation": "WHAT BSV GIVES YOU is visible English; Search plus English search explanation appears in accessibility tree. Japanese placeholder is visible.",
-      "status": "observed-gap"
-    },
-    {
-      "url": "https://botshelfvampire.com/",
-      "locale": "ja",
-      "viewport": "390x844",
-      "observation": "No page-wide horizontal overflow in sampled viewport. Does not establish all-page/mobile/desktop acceptance.",
-      "status": "limited-pass"
-    },
-    {
-      "url": "https://botshelfvampire.com/",
-      "locale": "ja",
-      "viewport": "390x844",
-      "observation": "Rendered trader copy says 無料でもメール登録・確認が必要です。 Reconcile with original-author external-source exceptions.",
-      "status": "observed-gap"
-    },
-    {
-      "url": "https://botshelfvampire.com/",
-      "locale": "ja",
-      "viewport": "1280x900",
-      "observation": "Three field anchors at y~1743px. No page-wide horizontal overflow.",
-      "status": "observed-gap"
-    },
-    {
-      "url": "https://botshelfvampire.com/",
-      "locale": "en",
-      "viewport": "1280x900 and 390x844",
-      "observation": "EN language control switches hero and three field links to English. No page-wide horizontal overflow in either viewport.",
-      "status": "limited-pass"
-    }
-  ],
-  "required_viewports": [
-    {
-      "id": "mobile",
-      "width": 390,
-      "height": 844
-    },
-    {
-      "id": "desktop",
-      "width": 1280,
-      "height": 900
-    }
-  ]
+  "unmapped_domains": []
 }

@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "purpose": "Astra release-review package for candidate production deploy. Does not grant release approval; Astra decides.",
+  "candidate": {
+    "deploy_id": "6ac52627cf474b9b8aa418d5",
+    "checked_at_jst": "2026-10-07T01:55:00+09:00",
+    "integration_branch": "new-bobby/live-toolkit-integration",
+    "integration_commits": [
+      "db15c0e",
+      "c7b044c"
+    ],
+    "stage": "stage100",
+    "backup": "deploy-pre100",
+    "health_email_configured": true,
+    "netlify_credits_changed": false
+  },
+  "implementation_diff": {
+    "summary": "stage100 vs stage99: First use EN/JA blocks on saas-seat-waste-finder.html and gpt-thread-rewrite.html only (add_first_use.py ITEMS extended). No pricing/wallets/auth/payment/accent/hero/logo changes.",
+    "files_changed_vs_stage99": [
+      "site/saas-seat-waste-finder.html",
+      "site/gpt-thread-rewrite.html"
+    ],
+    "script": "scripts/site/add_first_use.py (+2 ITEMS)"
+  },
+  "tests_and_browser_evidence": {
+    "audit_growth_readiness": {
+      "static_status": "pass",
+      "counts": {
+        "pass": 7
+      },
+      "path": "ops/growth/AUDIT_6ac52627.json"
+    },
+    "three_journeys_cdp": {
+      "runs": 33,
+      "problems": 0,
+      "script": "qa/cdp_three_journeys.py LIVE"
+    },
+    "category_landing_proof": {
+      "path": "ops/growth/CATEGORY_LANDING_PROOF.json",
+      "runs": 48,
+      "real_defects": 0
+    },
+    "first_use_check": {
+      "script": "scripts/site/add_first_use.py --check",
+      "pages": 10,
+      "failures": 0
+    },
+    "test_links": {
+      "checks": 32,
+      "failures": 0
+    },
+    "regression": {
+      "search_register_library_marketplace_trading": "HTTP 200",
+      "gated_library_source_anon": "302 -> /register.html",
+      "marketplace_vs_library": "distinct titles",
+      "health": "email_configured true before/after deploy"
+    },
+    "cold_user_2vp": {
+      "runs": 4,
+      "problems": [],
+      "path": "ops/growth/COLD_USER_2VP_6ac52627.json",
+      "results": {
+        "desktop-en": {
+          "cold": {
+            "hero_ok": true,
+            "next_ok": true,
+            "map_ok": true
+          },
+          "heroBand": {
+            "top": 583,
+            "bottom": 828,
+            "visible": true
+          },
+          "cats": {
+            "top": 828,
+            "bottom": 1096,
+            "visible": true
+          },
+          "what": {
+            "top": 1486,
+            "bottom": 2134,
+            "visible": true
+          },
+          "hscroll": false,
+          "cta_count": 12,
+          "tile_count": 8
+        },
+        "desktop-ja": {
+          "cold": {
+            "hero_ok": true,
+            "next_ok": true,
+            "map_ok": true
+          },
+          "heroBand": {
+            "top": 583,
+            "bottom": 828,
+            "visible": true
+          },
+          "cats": {
+            "top": 828,
+            "bottom": 1096,
+            "visible": true
+          },
+          "what": {
+            "top": 1486,
+            "bottom": 2176,
+            "visible": true
+          },
+          "hscroll": false,
+          "cta_count": 12,
+          "tile_count": 8
+        },
+        "mobile-en": {
+          "cold": {
+            "hero_ok": true,
+            "next_ok": true,
+            "map_ok": true
+          },
+          "heroBand": {
+            "top": 326,
+            "bottom": 510,
+            "visible": true
+          },
+          "cats": {
+            "top": 510,
+            "bottom": 924,
+            "visible": true
+          },
+          "what": {
+            "top": 1576,
+            "bottom": 2120,
+            "visible": true
+          },
+          "hscroll": false,
+          "cta_count": 12,
+          "tile_count": 8
+        },
+        "mobile-ja": {
+          "cold": {
+            "hero_ok": true,
+            "next_ok": true,
+            "map_ok": true
+          },
+          "heroBand": {
+            "top": 326,
+            "bottom": 510,
+            "visible": true
+          },
+          "cats": {
+            "top": 510,
+            "bottom": 942,
+            "visible": true
+          },
+          "what": {
+            "top": 1606,
+            "bottom": 2190,
+            "visible": true
+          },
+          "hscroll": false,
+          "cta_count": 12,
+          "tile_count": 8
+        }
+      }
+    },
+    "detail_body_http_smoke": [
+      {
+        "domain": "ai",
+        "surface": "detail",
+        "path": "/library/workflows/",
+        "http": 200
+      },
+      {
+        "domain": "ai",
+        "surface": "body",
+        "path": "/library/toolkit/",
+        "http": 200
+      },
+      {
+        "domain": "trading",
+        "surface": "detail",
+        "path": "/trading/tools/",
+        "http": 200
+      },
+      {
+        "domain": "trading",
+        "surface": "body",
+        "path": "/trading-gold-morning-3.html",
+        "http": 200
+      },
+      {
+        "domain": "robotics",
+        "surface": "detail",
+        "path": "/robot-pilot/",
+        "http": 200
+      },
+      {
+        "domain": "robotics",
+        "surface": "body",
+        "path": "/robot-pilot/",
+        "http": 200
+      },
+      {
+        "domain": "medical-robotics",
+        "surface": "detail",
+        "path": "/fields/healthcare/",
+        "http": 200
+      },
+      {
+        "domain": "space",
+        "surface": "detail",
+        "path": "/fields/space/",
+        "http": 200
+      },
+      {
+        "domain": "biotech",
+        "surface": "detail",
+        "path": "/fields/biotech/",
+        "http": 200
+      },
+      {
+        "domain": "quantum",
+        "surface": "detail",
+        "path": "/fields/quantum/",
+        "http": 200
+      },
+      {
+        "domain": "business",
+        "surface": "body",
+        "path": "/saas-seat-waste-finder.html",
+        "http": 200
+      },
+      {
+        "domain": "everyday",
+        "surface": "body",
+        "path": "/gpt-thread-rewrite.html",
+        "http": 200
+      },
+      {
+        "domain": "trader",
+        "surface": "body",
+        "path": "/trading/tools/earnforex-positionsizer.html",
+        "http": 200
+      }
+    ]
+  },
+  "acceptance_manual_checks": {
+    "peer-domains": "pass",
+    "real-content": "pass",
+    "three-journeys": "pass",
+    "ja-readable": "pass",
+    "access-copy": "pass",
+    "honest-examples": "pass",
+    "responsive": "pass",
+    "regression": "pass",
+    "astra-release-review": "ready-for-astra (this package); Astra decision pending"
+  },
+  "remaining_limitations": [
+    "Browser matrix detail/body cells for most domains remain unverified in GROWTH_ACCEPTANCE (list surfaces passed via category-landing proof). HTTP smoke on representative detail/body paths is 200.",
+    "Anonymous CDP cannot see first-use on gated switchboard-cos.html (302 to register) — expected.",
+    "Astra/Codex independent QA of this exact revision not yet recorded.",
+    "Owner brand gate: HOLD X bio/header and final hero visual repositioning until growth gate + Robotics/Medical materially represented (Robot Pilot + healthcare field live).",
+    "Funnel: data-evt markers only; no paid analytics.",
+    "Auth/payment/pricing/wallets/80-20 untouched (locks)."
+  ],
+  "rollback": {
+    "plan": "Redeploy from deploy-pre100 (byte tree before stage100 first-use) via qa/deploy_prod.sh; confirm health email_configured true; confirm journey pages lose first-use blocks.",
+    "backup_path": "/workspace/bsv-live/deploy-pre100"
+  },
+  "locks_held": [
+    "accent #bad4b7 / logo / hero image unchanged",
+    "pricing/wallets/80-20/payment/auth/entitlement untouched",
+    "no referral/IB/affiliate",
+    "no invented numbers",
+    "no Netlify credit purchase",
+    "medical = research/education/simulation only",
+    "box only"
+  ],
+  "requested_astra_action": "Review this package against GROWTH_ACCEPTANCE. Mark astra-release-review pass or file blocking issues. Growth-gate cold-user item 8 evidence is included (4/0)."
+}
