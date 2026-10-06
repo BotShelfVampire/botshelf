@@ -159,11 +159,21 @@ def category_counts(site: Path, si: list) -> dict:
         "cat_trading": sc.get("trading", sum(1 for e in rows if e.get("s") == "trading")),
         "cat_robotics": len(list((site / "robot-pilot/curricula").glob("*.json"))) + len(list((site / "robot-pilot/teleop-recipes").glob("*.json"))),
         "cat_data": sum(1 for e in si if e.get("use_case") == "Data"),
-        "cat_healthcare": kw("medical", "healthcare", "surgical", "clinical"),
-        "cat_space": kw("satellite", "aerospace", "orbital", "spacecraft"),
-        "cat_biotech": kw("biotech", "bioinformatic", "genomic", "protein"),
-        "cat_quantum": kw("quantum", "qubit"),
+        **field_counts(site),
     }
+
+
+def field_counts(site: Path) -> dict:
+    """Healthcare / Space / Biotech / Quantum: BSV recipes + verified sources + Field Lab tools published on /fields/<key>/, read from the
+    /fields/index.json that build_fields.py writes in the same build. No file or no page = 0 (Coming soon)."""
+    p = site / "fields/index.json"
+    cats = json.loads(p.read_text()).get("categories", {}) if p.exists() else {}
+    out = {}
+    for key in ("healthcare", "space", "biotech", "quantum"):
+        c = cats.get(key) or {}
+        live = (site / "fields" / key / "index.html").exists()
+        out[f"cat_{key}"] = int(c.get("recipes", 0)) + int(c.get("sources", 0)) + int(c.get("tools", 0)) if live else 0
+    return out
 
 
 def b(ja: str, en: str) -> str:
@@ -243,11 +253,11 @@ CATS = [
     ("ai", "/library/", ("AI", "AI", "IA", "AI", "AI")),
     ("trading", "/trading/", ("Trading", "トレード", "Trading", "交易", "트레이딩")),
     ("robotics", "/robot-pilot/", ("Robotics", "ロボティクス", "Robótica", "机器人", "로보틱스")),
-    ("healthcare", None, ("Healthcare & Medical Robotics", "ヘルスケア・医療ロボティクス", "Salud y robótica médica", "医疗健康与医疗机器人", "헬스케어·의료 로보틱스")),
+    ("healthcare", "/fields/healthcare/", ("Healthcare & Medical Robotics", "ヘルスケア・医療ロボティクス", "Salud y robótica médica", "医疗健康与医疗机器人", "헬스케어·의료 로보틱스")),
     ("data", "/search/?q=data", ("Data", "データ", "Datos", "数据", "데이터")),
-    ("space", None, ("Space", "宇宙", "Espacio", "航天", "우주")),
-    ("biotech", None, ("Biotech", "バイオ", "Biotecnología", "生物技术", "바이오")),
-    ("quantum", None, ("Quantum", "量子", "Cuántica", "量子", "양자")),
+    ("space", "/fields/space/", ("Space", "宇宙", "Espacio", "航天", "우주")),
+    ("biotech", "/fields/biotech/", ("Biotech", "バイオ", "Biotecnología", "生物技术", "바이오")),
+    ("quantum", "/fields/quantum/", ("Quantum", "量子", "Cuántica", "量子", "양자")),
 ]
 CAT_SEARCH = {"healthcare": "medical robotics", "space": "space", "biotech": "biotech", "quantum": "quantum"}
 UNITS = {  # live-count wording per category, {n} = count
@@ -255,18 +265,20 @@ UNITS = {  # live-count wording per category, {n} = count
     "trading": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
     "robotics": ("{n} simulation resources", "シミュレーション教材 {n}件", "{n} recursos de simulación", "{n} 项仿真资源", "시뮬레이션 자료 {n}개"),
     "data": ("{n} data-analysis resources", "データ分析リソース {n}件", "{n} recursos de análisis de datos", "{n} 项数据分析资源", "데이터 분석 리소스 {n}개"),
-    "healthcare": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
-    "space": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
-    "biotech": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
-    "quantum": ("{n} resources", "リソース {n}件", "{n} recursos", "{n} 项资源", "리소스 {n}개"),
+    "healthcare": ("{n} recipes, tools & sources", "レシピ・ツール・出典 {n}件", "{n} recetas, herramientas y fuentes", "{n} 个配方、工具与来源", "레시피·도구·출처 {n}개"),
+    "space": ("{n} recipes, tools & sources", "レシピ・ツール・出典 {n}件", "{n} recetas, herramientas y fuentes", "{n} 个配方、工具与来源", "레시피·도구·출처 {n}개"),
+    "biotech": ("{n} recipes, tools & sources", "レシピ・ツール・出典 {n}件", "{n} recetas, herramientas y fuentes", "{n} 个配方、工具与来源", "레시피·도구·출처 {n}개"),
+    "quantum": ("{n} recipes, tools & sources", "レシピ・ツール・出典 {n}件", "{n} recetas, herramientas y fuentes", "{n} 个配方、工具与来源", "레시피·도구·출처 {n}개"),
 }
 SOON = ("Coming soon", "準備中", "Próximamente", "即将推出", "준비 중")
 RESEARCH_ONLY = ("Research & simulation only", "研究・シミュレーション用途のみ", "Solo investigación y simulación", "仅限研究与仿真", "연구·시뮬레이션 전용")
 STATIC_I18N = {
     "homeCatsTitle": ("Categories", "カテゴリー", "Categorías", "类别", "카테고리"),
-    "homeCatsLead": ("Counts are live. Fields without content yet are marked Coming soon.", "数は公開中の件数です。まだ中身のない分野は「準備中」と表示しています。",
-                     "Las cifras son recuentos reales. Los campos sin contenido aún aparecen como «Próximamente».", "数字为实时统计。尚无内容的领域标为“即将推出”。",
-                     "숫자는 실제 공개 건수입니다. 아직 콘텐츠가 없는 분야는 '준비 중'으로 표시합니다."),
+    "homeCatsLead": ("Counts are computed from what is published right now. A field with nothing published yet is marked Coming soon.",
+                     "数は、いま公開している内容から自動で数えています。まだ何も公開していない分野は「準備中」と表示します。",
+                     "Las cifras se calculan a partir de lo publicado ahora mismo. Un campo sin nada publicado aparece como «Próximamente».",
+                     "数字根据当前已发布的内容自动统计。尚未发布任何内容的领域标为“即将推出”。",
+                     "숫자는 지금 공개된 내용에서 자동으로 집계합니다. 아직 공개된 것이 없는 분야는 '준비 중'으로 표시합니다."),
     "homeGoalsTitle": ("Browse by goal", "目的から探す", "Explorar por objetivo", "按目标浏览", "목표별로 찾기"),
     "homeValueEyebrow": ("CONTENT TYPES", "コンテンツの種類", "TIPOS DE CONTENIDO", "内容类型", "콘텐츠 유형"),
     "homeValueTitle": ("What you can use on BSV", "BSVで使えるもの", "Lo que puedes usar en BSV", "在 BSV 上可以使用的内容", "BSV에서 쓸 수 있는 것"),
@@ -300,9 +312,9 @@ GOALS = [
     ("agent_sdks", "/library/toolkit/", None, False,
      ("Find agent SDKs and frameworks", "エージェントのSDKを探す", "Encontrar SDK y frameworks de agentes", "查找智能体 SDK 与框架", "에이전트 SDK·프레임워크 찾기"),
      ("Templates grouped by framework", "フレームワーク別のテンプレート", "Plantillas agrupadas por framework", "按框架分组的模板", "프레임워크별 템플릿")),
-    ("medical_robotics", "/search/?q=medical%20robotics", None, True,
+    ("medical_robotics", "/fields/healthcare/", None, False,
      ("Evaluate medical robotics", "医療ロボティクスを検討する", "Evaluar robótica médica", "评估医疗机器人", "의료 로보틱스 검토"),
-     ("Coming soon · research & simulation only", "準備中・研究とシミュレーション用途のみ", "Próximamente · solo investigación y simulación", "即将推出 · 仅限研究与仿真", "준비 중 · 연구·시뮬레이션 전용")),
+     ("Simulation recipes · research & education only", "シミュレーションのレシピ・研究と教育用途のみ", "Recetas de simulación · solo investigación y educación", "仿真配方 · 仅限研究与教育", "시뮬레이션 레시피 · 연구·교육 전용")),
 ]
 
 

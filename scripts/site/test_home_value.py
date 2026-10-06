@@ -63,12 +63,15 @@ def main():
         else:
             ok(cls.endswith("bsv-home-cat-soon") and href.startswith("/search/?q=") and "Coming soon" in inner and not re.search(r"\d", re.sub(r"<[^>]+>", "", inner)), f"category {key}: honest Coming soon, no number, search link")
     ok("homeCatResearchOnly" in cats and re.search(r'data-bsv-cat="healthcare"[^>]*>.*?Research &amp; simulation only', cats), "healthcare tile says research & simulation only")
-    ok(len({tuple(re.findall(r"<(\w+) class=\"?([\w-]*)|<(strong)", x[4])) for x in tiles if x[0] == "bsv-home-cat"}) == 1, "live tiles share one markup (peer-level)")
+    ok(len({tuple(re.findall(r"<(\w+) class=\"?([\w-]*)|<(strong)", re.sub(r'<span class="bsv-home-cat-note".*?</span>', "", x[4]))) for x in tiles if x[0] == "bsv-home-cat"}) == 1, "live tiles share one markup (peer-level; the research-only note aside)")
     REWARD = re.compile(r"referral|紹介報酬|IB reward|rebate|キャッシュバック|cure|treat|diagnos|治療|診断|guarantee|保証", re.I)
     ok(not REWARD.search(re.sub(r"<[^>]+>", " ", cats + goals)), "categories / goals: no reward or medical claims")
     for k in ("ai_workflow", "find_trading_tool", "build_trading_tool", "robot_poc", "compare", "agent_sdks", "medical_robotics"):
         ok(f'data-evt="home_goal_{k}"' in goals, f"goal {k}")
-    ok(re.search(r'<a href="/search/\?q=medical%20robotics" class="bsv-home-goal-soon" data-evt="home_goal_medical_robotics">', goals), "medical robotics goal = coming soon (search link)")
+    ok(re.search(r'<a href="/fields/healthcare/" data-evt="home_goal_medical_robotics">', goals) and (s / "fields/healthcare/index.html").exists(), "medical robotics goal -> /fields/healthcare/ (page exists)")
+    ok(re.search(r'data-evt="home_goal_medical_robotics">.*?research &amp; education only', goals), "medical robotics goal keeps its research & education only line")
+    for k_ in ("healthcare", "space", "biotech", "quantum"):
+        ok(re.search(rf'href="/fields/{k_}/" data-evt="home_cat_{k_}"', cats) is not None, f"field tile {k_} -> /fields/{k_}/")
     m_ = H.PAGE_I18N_RE.search(t); pj = json.loads(m_.group(2)) if m_ else {}
     hi = H.home_i18n(cc)
     for lang in H.LANGS:

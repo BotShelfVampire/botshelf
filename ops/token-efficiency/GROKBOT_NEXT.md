@@ -1,5 +1,20 @@
 # Progress 2026-10-04 00:00 JST (New Bobby) — P0 tranches
 
+## FIELDS TRANCHE — 2026-10-07 00:20 JST (stage94)
+
+- SUPERSEDED: the stage93 note "goes in 10/07's FIRST deploy" below — stage93 shipped 10/06 23:14 (6ac5023e) under the owner's one-off override at 23:13 JST ("いいよ、止めずに今すぐ進めろ"; scope = that one deploy beyond the 3/day cap).
+- #4 comments 6017081899 (22:15 JST) and 6017332772 (22:29 JST) were NOT read before the stage93 deploy (only 6016571854 / 6016551155 were). 6017332772 put stage93 on hold -> deployed anyway under the owner override; no rollback. Their no-placeholder point (Coming soon fields + medical goal) is resolved by stage94. Still OPEN from 6017081899: item 3 (homepage email-verification wording / Position Sizer); PR #10 integration; acceptance inventory.
+- Astra ACK (field work) sent by New Bobby; arrived Gmail msg 1a1119c609fb48e8, 23:27 JST, thread 1a111941a3e7f842. Do not resend.
+- stage94 = /fields/{healthcare,space,biotech,quantum}/ + /fields/ hub (build_fields.py from fields_content.py; BSV-original recipes, code fields/code/<field>/ MIT; smoke_fields_recipes.py -> fields/test_runs.json; check_fields_sources.py -> fields/sources_check.json, only HTTP 200 published) + Astra/Codex Field Labs /labs/ (build_field_labs.py from origin/astra/field-labs-20261006 d751321, EN/JA only, linked from each field page). Homepage tiles + medical goal -> /fields/<field>/; counts = recipes + verified sources + lab tools from /fields/index.json (build-computed). Tests: test_fields.py (new) in build_stage.
+
+## BACKLOG (Astra, 10/06)
+
+| # | Item | Owner | Next action | Evidence required |
+|---|------|-------|-------------|-------------------|
+| 2 | dagram Trader IB journey end-to-end check: approved entry article -> landing page -> broker destination; every link works | New Bobby (BSV) | Walk the path on LIVE desktop + mobile, EN + JA; record each URL, HTTP status and final destination. Open no accounts, place no trades. | URL list with status codes + screenshots per step; broken links filed as fixes |
+| 3 | Outcomes and cost report from existing records only | New Bobby (BSV) | Collect deploys, Netlify usage shown in the UI, verified registrations / purchases from existing logs; unknown stays unknown; no test account counted as a customer | One table: metric, value or "unknown", source record, date |
+
+
 ## OWNER GROWTH PIVOT — 2026-10-06 16:41 JST
 
 BSV is now in Phase 3/5: Growth Readiness. Product depth has outrun first-visit comprehension. Until the gate below is LIVE and verified, stop treating routine Trader-generator / AI-toolkit breadth expansion as the default P0. Continue only security, payment/auth correctness, compliance deadlines, broken-link/regression repair, and work required by this growth gate.

@@ -1,0 +1,170 @@
+{
+ "https://alphafold.ebi.ac.uk/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://alphafold.ebi.ac.uk/api-docs": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://api.nasa.gov/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://biopython.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://celestrak.org/NORAD/documentation/gp-data-formats.php": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://chembl.gitbook.io/chembl-interface-documentation/web-services/chembl-data-web-services": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://cneos.jpl.nasa.gov/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://dataspace.copernicus.eu/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://docs.pennylane.ai/en/stable/code/qp_qchem.html": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://element84.com/earth-search/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://github.com/Project-MONAI/MONAI": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://github.com/Qiskit/qiskit": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://github.com/Qiskit/qiskit-aer": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://github.com/amazon-braket/amazon-braket-sdk-python": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://github.com/bulletphysics/bullet3": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://github.com/pydicom/pydicom": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://github.com/sofa-framework/sofa": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://github.com/stac-utils/pystac-client": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://mujoco.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://mujoco.readthedocs.io/en/stable/python.html": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://pennylane.ai/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://pennylane.ai/demos/tutorial_vqe": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://quantum.cloud.ibm.com/docs/en/guides": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://quantumai.google/cirq": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://qutip.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://registry.opendata.aws/sentinel-2-l2a-cogs/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://rhodesmill.org/skyfield/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://slicer.readthedocs.io/en/latest/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://sofapython3.readthedocs.io/en/latest/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://software.nasa.gov/software/GSC-17177-1": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://ssd-api.jpl.nasa.gov/doc/cad.html": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.astropy.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.dicomstandard.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.ebi.ac.uk/chembl/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.ibm.com/quantum/qiskit": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.ncbi.nlm.nih.gov/books/NBK25501/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.rcsb.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.rdkit.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.slicer.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.spaceweather.gov/products/planetary-k-index": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.uniprot.org/": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ },
+ "https://www.uniprot.org/help/api": {
+  "status": 200,
+  "checked_jst": "2026-10-06"
+ }
+}
