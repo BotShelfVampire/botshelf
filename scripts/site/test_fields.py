@@ -69,8 +69,14 @@ def main():
     pjs = (s / "js" / jsn).read_text()
     si = json.loads((s / "search" / re.search(r"(index\.v[0-9a-z]+\.json)", pjs).group(1)).read_text())
     fr = [r for r in si["rows"] if r.get("s") == "fields"]
-    want = 1 + sum(idx[c]["recipes"] + 1 + idx[c]["tools"] for c in idx) + (1 if any(idx[c]["tools"] for c in idx) else 0)
+    catp = s / "labs/catalog.json"
+    extra = 0
+    if catp.exists():
+        extra = sum(1 for e in json.loads(catp.read_text()).get("entries", []) if e.get("field") not in idx)
+    want = 1 + sum(idx[c]["recipes"] + 1 + idx[c]["tools"] for c in idx) + (1 if any(idx[c]["tools"] for c in idx) else 0) + extra
     ok(len(fr) == want == si["counts"].get("fields"), f"search: {len(fr)} fields rows (want {want})")
+    if extra:
+        ok(any(r.get("id") == "labs/trading" for r in fr), "search: trading Field Lab indexed")
     ok(all((s / r["u"].split("#")[0].lstrip("/") / "index.html").exists() for r in fr), "search: every fields row points to a shipped page")
     ok('data-scope="fields"' in sh and "fields: ['分野・ラボ', 'Fields & labs']" in pjs and "counts.fields" in pjs, "search: Fields & labs scope wired")
     old = [p for p in (s / "search").glob("index.v*.json") if p.name not in pjs]

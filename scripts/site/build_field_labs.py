@@ -17,6 +17,7 @@ FIELDS = [
     ("data", "CSV profile playground", "CSVプロフィール・プレイグラウンド", "Paste a CSV and profile nulls, distinct counts and type guesses.", "CSVを貼り、欠損・ユニーク数・型推定をプロフィールする。"),
     ("space", "Satellite observation designer", "衛星データの観測プラン", "Compare public satellite data against your observation constraints.", "観測したい現象と条件から公開衛星データを比較。"),
     ("biotech", "Research reproducibility worksheet", "研究データの再現性チェック", "Identify missing evidence and export an analysis record.", "不足している記録を見つけ、再現のための解析記録を出力。"),
+    ("trading", "Risk & R-multiple playground", "リスクとR倍数プレイグラウンド", "Size a trade from equity, risk %, entry and stop; export a plan CSV.", "資金・リスク％・エントリー・損切りから数量を出し、計画CSVを書き出す。"),
     ("quantum", "Quantum state explorer", "量子状態を動かす実験室", "Explore how phase changes ideal X and Z measurement probabilities.", "位相によるX・Z測定の確率の違いを、その場で操作。"),
 ]
 
@@ -56,6 +57,18 @@ def build(site: Path, source: Path) -> dict:
                for key, en, ja, desc_en, desc_ja in available]
     manifest = {"schema_version": 1, "hub": "/labs/", "entries": entries}
     (output / "catalog.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    tools = site / "trading/tools/index.html"
+    if tools.is_file():
+        html = tools.read_text(encoding="utf-8")
+        if 'data-bsv-lab="trading-risk"' not in html and 'class="container subnav"' in html:
+            chip = (
+                '<a class="chip" data-bsv-lab="trading-risk" href="/labs/trading/">'
+                '<span data-lang="en">Risk &amp; R lab</span>'
+                '<span data-lang="ja">リスクとRのラボ</span></a>'
+            )
+            html = html.replace('<div class="container subnav">', '<div class="container subnav">' + chip, 1)
+            tools.write_text(html, encoding="utf-8")
     return manifest
 
 def main():
