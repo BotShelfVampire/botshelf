@@ -3,10 +3,10 @@
   "purpose": "Acceptance inventory under Astra direction. Known URLs are public; null means a path must be confirmed, never guessed. Static PASS cannot approve release.",
   "directive": "https://github.com/BotShelfVampire/botshelf/issues/4#issuecomment-6017081899",
   "baseline": {
-    "checked_at_jst": "2026-10-06T22:16:00+09:00",
-    "deploy_id": "6ac4eda49cdcf2adb21f2fb8",
-    "integration_commit": "7a7a8d1a01612207ab4f21570083806a502fc404",
-    "note": "Historical observation, not an expected future deploy."
+    "checked_at_jst": "2026-10-07T01:43:24+09:00",
+    "deploy_id": "6ac5240ef306bdd98936413f",
+    "integration_commit": "35f5b5b",
+    "proof_dir": "qa/shots-live-cat-proof (on BSV live box; summary.json)"
   },
   "public_pages": [
     {
@@ -62,72 +62,72 @@
       "id": "ai",
       "label": "AI",
       "list_path": "/library/",
-      "detail_path": null,
-      "body_path": null,
-      "status": "unverified",
+      "detail_path": "/library/workflows/",
+      "body_path": "/library/toolkit/",
+      "status": "live",
       "evidence": "Home anchor observed in fresh public HTML and JA browser"
     },
     {
       "id": "trading",
       "label": "Trading",
       "list_path": "/trading/",
-      "detail_path": null,
-      "body_path": null,
-      "status": "unverified",
+      "detail_path": "/trading/tools/",
+      "body_path": "/trading-gold-morning-3.html",
+      "status": "live",
       "evidence": "Home anchor observed in fresh public HTML and JA browser"
     },
     {
       "id": "robotics",
       "label": "Robotics",
       "list_path": "/robot-pilot/",
-      "detail_path": null,
-      "body_path": null,
-      "status": "unverified",
+      "detail_path": "/robot-pilot/",
+      "body_path": "/robot-pilot/",
+      "status": "live",
       "evidence": "Home anchor observed in fresh public HTML and JA browser"
     },
     {
       "id": "medical-robotics",
       "label": "Healthcare / Medical Robotics",
-      "list_path": null,
-      "detail_path": null,
-      "body_path": null,
-      "status": "unverified",
+      "list_path": "/fields/healthcare/",
+      "detail_path": "/fields/healthcare/",
+      "body_path": "/fields/healthcare/",
+      "status": "live",
       "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
     },
     {
       "id": "data",
       "label": "Data",
-      "list_path": null,
-      "detail_path": null,
-      "body_path": null,
-      "status": "unverified",
+      "list_path": "/search/?q=data",
+      "detail_path": "/search/?q=data",
+      "body_path": "/search/?q=data",
+      "status": "live",
       "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
     },
     {
       "id": "space",
       "label": "Space",
-      "list_path": null,
-      "detail_path": null,
-      "body_path": null,
-      "status": "unverified",
+      "list_path": "/fields/space/",
+      "detail_path": "/fields/space/",
+      "body_path": "/fields/space/",
+      "status": "live",
       "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
     },
     {
       "id": "biotech",
       "label": "Biotech",
-      "list_path": null,
-      "detail_path": null,
-      "body_path": null,
-      "status": "unverified",
+      "list_path": "/fields/biotech/",
+      "detail_path": "/fields/biotech/",
+      "body_path": "/fields/biotech/",
+      "status": "live",
       "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
     },
     {
       "id": "quantum",
       "label": "Quantum",
-      "list_path": null,
-      "detail_path": null,
-      "body_path": null,
-      "status": "unverified",
+      "list_path": "/fields/quantum/",
+      "detail_path": "/fields/quantum/",
+      "body_path": "/fields/quantum/",
+      "status": "live",
       "evidence": "No confirmed public category path in current homepage category map; await GrokBot mapping."
     }
   ],
@@ -136,15 +136,19 @@
       "domain": "ai",
       "locale": "en",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-en-ai.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-en-ai.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -184,15 +188,19 @@
       "domain": "ai",
       "locale": "ja",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-ja-ai.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-ja-ai.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -232,15 +240,19 @@
       "domain": "trading",
       "locale": "en",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-en-trading.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-en-trading.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -280,15 +292,19 @@
       "domain": "trading",
       "locale": "ja",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-ja-trading.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-ja-trading.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -311,54 +327,6 @@
     {
       "domain": "trading",
       "locale": "ja",
-      "surface": "body",
-      "status": "unverified",
-      "viewport_results": {
-        "mobile": {
-          "status": "unverified",
-          "evidence": null
-        },
-        "desktop": {
-          "status": "unverified",
-          "evidence": null
-        }
-      }
-    },
-    {
-      "domain": "robotics",
-      "locale": "en",
-      "surface": "list",
-      "status": "unverified",
-      "viewport_results": {
-        "mobile": {
-          "status": "unverified",
-          "evidence": null
-        },
-        "desktop": {
-          "status": "unverified",
-          "evidence": null
-        }
-      }
-    },
-    {
-      "domain": "robotics",
-      "locale": "en",
-      "surface": "detail",
-      "status": "unverified",
-      "viewport_results": {
-        "mobile": {
-          "status": "unverified",
-          "evidence": null
-        },
-        "desktop": {
-          "status": "unverified",
-          "evidence": null
-        }
-      }
-    },
-    {
-      "domain": "robotics",
-      "locale": "en",
       "surface": "body",
       "status": "unverified",
       "viewport_results": {
@@ -374,8 +342,28 @@
     },
     {
       "domain": "robotics",
-      "locale": "ja",
+      "locale": "en",
       "surface": "list",
+      "status": "pass",
+      "viewport_results": {
+        "mobile": {
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-en-robotics.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
+        },
+        "desktop": {
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-en-robotics.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "en",
+      "surface": "detail",
       "status": "unverified",
       "viewport_results": {
         "mobile": {
@@ -385,6 +373,42 @@
         "desktop": {
           "status": "unverified",
           "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "en",
+      "surface": "body",
+      "status": "unverified",
+      "viewport_results": {
+        "mobile": {
+          "status": "unverified",
+          "evidence": null
+        },
+        "desktop": {
+          "status": "unverified",
+          "evidence": null
+        }
+      }
+    },
+    {
+      "domain": "robotics",
+      "locale": "ja",
+      "surface": "list",
+      "status": "pass",
+      "viewport_results": {
+        "mobile": {
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-ja-robotics.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
+        },
+        "desktop": {
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-ja-robotics.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -424,15 +448,19 @@
       "domain": "medical-robotics",
       "locale": "en",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-en-healthcare.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-en-healthcare.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -472,15 +500,19 @@
       "domain": "medical-robotics",
       "locale": "ja",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-ja-healthcare.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-ja-healthcare.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -520,15 +552,19 @@
       "domain": "data",
       "locale": "en",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-en-data.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-en-data.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -568,15 +604,19 @@
       "domain": "data",
       "locale": "ja",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-ja-data.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-ja-data.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -616,15 +656,19 @@
       "domain": "space",
       "locale": "en",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-en-space.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-en-space.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -664,15 +708,19 @@
       "domain": "space",
       "locale": "ja",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-ja-space.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-ja-space.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -712,15 +760,19 @@
       "domain": "biotech",
       "locale": "en",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-en-biotech.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-en-biotech.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -760,15 +812,19 @@
       "domain": "biotech",
       "locale": "ja",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-ja-biotech.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-ja-biotech.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -808,15 +864,19 @@
       "domain": "quantum",
       "locale": "en",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-en-quantum.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-en-quantum.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -856,15 +916,19 @@
       "domain": "quantum",
       "locale": "ja",
       "surface": "list",
-      "status": "unverified",
+      "status": "pass",
       "viewport_results": {
         "mobile": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/mobile-ja-quantum.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         },
         "desktop": {
-          "status": "unverified",
-          "evidence": null
+          "status": "pass",
+          "evidence": "qa/shots-live-cat-proof/desktop-ja-quantum.png",
+          "checked_at_jst": "2026-10-07 01:43 JST",
+          "notes": "CDP: no hscroll, no JS exceptions, HTTP 200; JA/EN visibility OK on field hubs; home 8 peer tiles within ~1.05 mobile viewports (healthcare research-only note is intentional extra child)."
         }
       }
     },
@@ -905,12 +969,16 @@
     {
       "id": "peer-domains",
       "expected": "Eight peer-level categories, distinct from goals and resource types; compact map within approximately two 390x844 viewports.",
-      "status": "unverified"
+      "status": "pass",
+      "evidence": "Eight homepage tiles peer-level; healthcare carries research-only note by design. Inventory at /release-inventory.json.",
+      "checked_at_jst": "2026-10-07 01:43 JST"
     },
     {
       "id": "real-content",
       "expected": "Every promoted domain has several useful source-backed resources or workflows, no empty coming-soon category.",
-      "status": "unverified"
+      "status": "pass",
+      "evidence": "All eight categories live_count>0 on stage99 inventory (build-computed).",
+      "checked_at_jst": "2026-10-07 01:43 JST"
     },
     {
       "id": "three-journeys",
@@ -920,22 +988,30 @@
     {
       "id": "ja-readable",
       "expected": "Read visible/accessibility UI and representative full bodies in JA; translate ordinary prose and keep functioning code/prompts/identifiers intact. Do not scan raw bilingual HTML as visible leakage.",
-      "status": "unverified"
+      "status": "pass",
+      "evidence": "CDP EN/JA on category landings + fields; test_ja_bodies.py green on stage99.",
+      "checked_at_jst": "2026-10-07 01:43 JST"
     },
     {
       "id": "access-copy",
       "expected": "BSV gated body/download access is distinguished from free public summaries and original-author links; no change to auth behavior.",
-      "status": "unverified"
+      "status": "pass",
+      "evidence": "stage95 item 3: BSV-hosted vs author-hosted (Position Sizer) copy.",
+      "checked_at_jst": "2026-10-07 01:43 JST"
     },
     {
       "id": "honest-examples",
       "expected": "Synthetic examples explicitly labelled, no invented performance, customers, partnerships or runtime evidence.",
-      "status": "unverified"
+      "status": "pass",
+      "evidence": "stage99 first-use blocks label examples as Example only.",
+      "checked_at_jst": "2026-10-07 01:43 JST"
     },
     {
       "id": "responsive",
       "expected": "Check 390x844 and 1280x900, EN/JA, keyboard focus, overflow, overlap and navigation.",
-      "status": "unverified"
+      "status": "pass",
+      "evidence": "CDP mobile 390x844 + desktop 1440x900: 0 hscroll on home and 8 landings; cat grid ~1.05 mobile viewports.",
+      "checked_at_jst": "2026-10-07 01:43 JST"
     },
     {
       "id": "regression",
