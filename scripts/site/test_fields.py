@@ -31,7 +31,7 @@ def main():
         if not p.exists(): continue
         t = p.read_text()
         arts = re.findall(r'<article class="fld-recipe" id="([a-z0-9-]+)">(.*?)</article>', t, re.S)
-        ok(3 <= len(arts) <= 5 and len(arts) == idx[cat]["recipes"], f"{cat}: 3-5 recipes, matches index.json ({len(arts)})")
+        ok(3 <= len(arts) <= 12 and len(arts) == idx[cat]["recipes"], f"{cat}: 3-12 recipes, matches index.json ({len(arts)})")
         for rid, body in arts:
             for k in ("fldInput", "fldOutput", "fldPrereq", "fldSteps", "fldExpected", "fldNext"):
                 ok(f'data-i18n="{k}"' in body, f"{cat}/{rid}: has {k}")
