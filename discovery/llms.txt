@@ -1,0 +1,26 @@
+# BotShelf Vampire
+
+> Practical AI-team, trader-tool, workflow and frontier-industry capability building blocks.
+
+## Start
+- https://botshelfvampire.com/
+- https://botshelfvampire.com/search/
+- https://botshelfvampire.com/trading/
+- https://botshelfvampire.com/trading/build/
+- https://botshelfvampire.com/library/
+
+## For buyers and builders
+- Buyer guide: https://botshelfvampire.com/for-buyers.html
+- Seller guide: https://botshelfvampire.com/for-sellers.html
+
+## Core ideas
+- Build/remix reusable capabilities instead of only browsing tools.
+- Public summaries describe prerequisites, limits and verification state.
+- Source/access may require email registration or payment depending on the item.
+- Runtime verification is scoped; untested assets remain explicitly untested.
+
+## Machine-readable sources
+- Public catalogs and capability manifests should be preferred where available.
+
+## Important
+This file is an experimental navigation aid for AI systems. It does not replace robots.txt, sitemap.xml, canonical URLs, structured data, or normal web crawlability.

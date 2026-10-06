@@ -1,0 +1,62 @@
+name: Frontier growth schema check
+
+on:
+  push:
+    paths:
+      - 'strategy/BSV_FRONTIER_GROWTH_OS.md'
+      - 'schemas/bsv-capability-manifest.schema.json'
+      - 'schemas/bsv-demand-request.schema.json'
+      - 'frontier-industries/catalog.json'
+      - '.github/workflows/frontier-growth-check.yml'
+  pull_request:
+    paths:
+      - 'strategy/BSV_FRONTIER_GROWTH_OS.md'
+      - 'schemas/bsv-capability-manifest.schema.json'
+      - 'schemas/bsv-demand-request.schema.json'
+      - 'frontier-industries/catalog.json'
+      - '.github/workflows/frontier-growth-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate JSON artifacts
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const capability = JSON.parse(fs.readFileSync('schemas/bsv-capability-manifest.schema.json','utf8'));
+          const demand = JSON.parse(fs.readFileSync('schemas/bsv-demand-request.schema.json','utf8'));
+          const catalog = JSON.parse(fs.readFileSync('frontier-industries/catalog.json','utf8'));
+
+          for (const [name, schema] of Object.entries({capability,demand})) {
+            if (schema.$schema !== 'https://json-schema.org/draft/2020-12/schema') {
+              throw new Error(name + ' must use JSON Schema 2020-12');
+            }
+            if (!schema.$id || !schema.title || schema.type !== 'object') {
+              throw new Error(name + ' missing schema metadata');
+            }
+          }
+
+          if (catalog.schemaVersion !== '0.1') throw new Error('bad frontier catalog version');
+          if (!Array.isArray(catalog.sectors) || catalog.sectors.length < 8) throw new Error('expected frontier sector coverage');
+
+          const ids = new Set();
+          for (const sector of catalog.sectors) {
+            if (!sector.id || !sector.label || !Array.isArray(sector.safeInitialJobs) || sector.safeInitialJobs.length === 0 || !sector.riskGate) {
+              throw new Error('invalid sector: ' + JSON.stringify(sector));
+            }
+            if (ids.has(sector.id)) throw new Error('duplicate sector: ' + sector.id);
+            ids.add(sector.id);
+          }
+
+          if (!/NOT measured demand/i.test(catalog.note)) throw new Error('catalog must explicitly prohibit treating editorial hypotheses as measured demand');
+          NODE
+      - name: Ensure strategy preserves demand honesty
+        run: |
+          grep -q "Never fabricate demand" strategy/BSV_FRONTIER_GROWTH_OS.md
+          grep -q "Avoid taxonomy before liquidity" strategy/BSV_FRONTIER_GROWTH_OS.md
