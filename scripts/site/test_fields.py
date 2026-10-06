@@ -64,6 +64,18 @@ def main():
         for key in set(re.findall(r'data-i18n="([A-Za-z0-9_-]+)"', t)) - {"navRegister"}:
             ok(all(pj.get(l, {}).get(key) for l in C.LANGS), f"{cat}: i18n key {key} in 5 languages")
         ok(t.count('data-lang-show="en"') == t.count('data-lang-show="ja"'), f"{cat}: en/ja bodies paired")
+    sh = (s / "search/index.html").read_text()
+    jsn = re.search(r"/js/(bsv-search-page\.v[0-9a-z]+\.js)", sh).group(1)
+    pjs = (s / "js" / jsn).read_text()
+    si = json.loads((s / "search" / re.search(r"(index\.v[0-9a-z]+\.json)", pjs).group(1)).read_text())
+    fr = [r for r in si["rows"] if r.get("s") == "fields"]
+    want = 1 + sum(idx[c]["recipes"] + 1 + idx[c]["tools"] for c in idx) + (1 if any(idx[c]["tools"] for c in idx) else 0)
+    ok(len(fr) == want == si["counts"].get("fields"), f"search: {len(fr)} fields rows (want {want})")
+    ok(all((s / r["u"].split("#")[0].lstrip("/") / "index.html").exists() for r in fr), "search: every fields row points to a shipped page")
+    ok('data-scope="fields"' in sh and "fields: ['分野・ラボ', 'Fields & labs']" in pjs and "counts.fields" in pjs, "search: Fields & labs scope wired")
+    old = [p for p in (s / "search").glob("index.v*.json") if p.name not in pjs]
+    ok(not any(r.get("s") == "fields" for p in old for r in json.loads(p.read_text())["rows"]), "search: older indexes carry no fields rows (cached old scripts stay safe)")
+    ok((s / "favicon.ico").exists(), "favicon.ico shipped")
     sm = (s / "sitemap.xml").read_text()
     ok(all(f"<loc>https://botshelfvampire.com/fields/{c}</loc>" in sm for c in [x + "/" for x in C.F] + [""]) , "sitemap has /fields/ pages")
     print(json.dumps({"test": "fields", "checks": n[0], "failures": len(fails), "fail": fails[:10]}, ensure_ascii=False))

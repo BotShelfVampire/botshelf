@@ -7,6 +7,13 @@
 - Astra ACK (field work) sent by New Bobby; arrived Gmail msg 1a1119c609fb48e8, 23:27 JST, thread 1a111941a3e7f842. Do not resend.
 - stage94 = /fields/{healthcare,space,biotech,quantum}/ + /fields/ hub (build_fields.py from fields_content.py; BSV-original recipes, code fields/code/<field>/ MIT; smoke_fields_recipes.py -> fields/test_runs.json; check_fields_sources.py -> fields/sources_check.json, only HTTP 200 published) + Astra/Codex Field Labs /labs/ (build_field_labs.py from origin/astra/field-labs-20261006 d751321, EN/JA only, linked from each field page). Homepage tiles + medical goal -> /fields/<field>/; counts = recipes + verified sources + lab tools from /fields/index.json (build-computed). Tests: test_fields.py (new) in build_stage.
 
+## BATCH stage95 — 2026-10-07 (search + access copy + PR #10)
+
+- /search/: scope "Fields & labs" (26 rows: /fields/ hub, 4 field pages, 16 recipes, 4 Field Labs, /labs/). build_fields.search() writes index.v20261007.json + bsv-search-page.v20261007.js (new names so cached v20261003 scripts never see the new scope); build_live_toolkit drops fields/ + labs/ rows from its base so older indexes stay clean. /favicon.ico generated from img/mark.jpg.
+- #4 6017081899 item 3 DONE: homepage value lead (5 languages) + Trader hub access note now distinguish BSV-hosted source/downloads (email verification) from author-hosted links (Position Sizer: no BSV email verification). Copy only; edge gate/auth unchanged. Tests in test_home_value.
+- PR #10 (d2fc7f3) INTEGRATED: merged into new-bobby/live-toolkit-integration (3 additive files: ops/growth/ASTRA_GOVERNANCE.md, ops/growth/GROWTH_ACCEPTANCE.json, scripts/site/audit_growth_readiness.py). Compatible: no generator/i18n/homepage overlap; self-test 12/12 OK. It is a QA tool, not part of build_stage.
+- Stray drafts deleted (fields/code/*.py top level, fields/space.json, fields/quantum.json; never committed or shipped).
+
 ## BACKLOG (Astra, 10/06)
 
 | # | Item | Owner | Next action | Evidence required |

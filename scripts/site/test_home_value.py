@@ -83,6 +83,11 @@ def main():
     ok('data-i18n-placeholder="siteSearchPh"' in hdr and "Search EA, indicators, AI teams" not in hdr, "header search copy covers the whole product")
     allnums = {int(x) for x in re.findall(r"(?<![\w.#%-])(\d+)(?![\w.%-])", re.sub(r"<[^>]+>", " ", cats + goals))}
     ok(allnums <= {v for v in cc.values() if isinstance(v, int)}, f"category numbers all from live counts: {allnums}")
+    ok("Verified email required, including free tools" not in t and "無料でもメール登録・確認が必要です" not in t, "no blanket email-verification claim (#4 6017081899 item 3)")
+    ok(t.count("Author-hosted tools (for example Position Sizer)") == 1 and "原作者が配布しているツール（例：Position Sizer）" in t, "Trader hub: author-hosted Position Sizer needs no BSV verification")
+    ok(all("Position Sizer" in hi[l]["homeValueLead"] for l in H.LANGS) and "need a verified email" not in hi["en"]["homeValueLead"], "value lead distinguishes BSV-hosted source from author-hosted links (5 languages)")
+    psz = s / "trading/tools/earnforex-positionsizer.html"
+    ok(psz.exists() and "BSV email verification is not needed" in psz.read_text(), "Position Sizer page states no BSV email verification for the author link")
     band = t[b0:b1]
     ok("<picture" not in band and "<img" not in band and "style=" not in band, "band: text only, no image, no inline style")
     ok('href="#what-bsv-gives" data-evt="home_hero_cta_explore" data-i18n="heroBandCtaExplore"' in band, "primary CTA -> #what-bsv-gives with data-evt")
