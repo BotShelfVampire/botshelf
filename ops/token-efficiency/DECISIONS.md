@@ -1,4 +1,6 @@
 # BSV binding decisions — compact ledger
+- 2026-10-06 (batch 37, Trader): MQL4 joins bsvPivotReal: pivots / liquidity_sweep / pivot zones render on every MQL4 recipe; pivots read NULL outside a scan, g_sym inside; zone = 2 extra buffers after the plots; iATR 0 = no value (no sweep). Range/breakout/table/webhook stay TODO on MQL4. UNTESTED_RUNTIME.
+- 2026-10-06 (batch 38, AI): n8n evidence via record_execution.py (no --eval-record flag in n8n): input = n8n CLI execute --rawOutput JSON; approval = --approved yes|no; approval_boundaries/action_boundary rewritten for n8n (no ./out claim); eval_record.py kept byte-identical in 4 runners. Deploy held to fold 37+38 in one deploy.
 
 - 2026-10-05 23:40 JST: EN nav removed bilingual「Search / 検索」; `data-i18n="navSearch"` + COMMON translations (en/ja/es/zh/ko). Live HTML mass-fix on stage88 (919) + ops script `fix_nav_search_i18n.py`. Not a brand/commerce change.
 - Existing Trader category is expanded; do not create a duplicate.
